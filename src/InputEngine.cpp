@@ -78,6 +78,15 @@ void InputEngine::Update() {
                             pkt.down = false;
                             m_pendingPackets.push(pkt);
                         }
+
+                        // Button events
+                        USHORT flags = raw->data.mouse.usButtonFlags;
+                        if (flags & RI_MOUSE_LEFT_BUTTON_DOWN)   m_pendingPackets.push({PacketType::Click, 0, 0, 0, true});
+                        if (flags & RI_MOUSE_LEFT_BUTTON_UP)     m_pendingPackets.push({PacketType::Click, 0, 0, 0, false});
+                        if (flags & RI_MOUSE_RIGHT_BUTTON_DOWN)  m_pendingPackets.push({PacketType::Click, 0, 0, 1, true});
+                        if (flags & RI_MOUSE_RIGHT_BUTTON_UP)    m_pendingPackets.push({PacketType::Click, 0, 0, 1, false});
+                        if (flags & RI_MOUSE_MIDDLE_BUTTON_DOWN) m_pendingPackets.push({PacketType::Click, 0, 0, 2, true});
+                        if (flags & RI_MOUSE_MIDDLE_BUTTON_UP)   m_pendingPackets.push({PacketType::Click, 0, 0, 2, false});
                     }
                 }
                 delete[] lpb;

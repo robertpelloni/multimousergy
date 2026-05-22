@@ -54,6 +54,8 @@ int main(int argc, char* argv[]) {
 
     // Basic loop for demonstration
     bool running = true;
+    int remoteX = 0, remoteY = 0;
+
     while (running) {
         input.Update();
 
@@ -65,7 +67,9 @@ int main(int argc, char* argv[]) {
         Packet inPkt;
         if (network.ReceivePacket(inPkt)) {
             if (inPkt.type == PacketType::Movement) {
-                overlay.Render(inPkt.x, inPkt.y);
+                remoteX += inPkt.x;
+                remoteY += inPkt.y;
+                overlay.Render(remoteX, remoteY);
                 driver.SendMouseMovement(inPkt.x, inPkt.y);
             } else if (inPkt.type == PacketType::Click) {
                 driver.SendMouseButton(inPkt.button, inPkt.down);
