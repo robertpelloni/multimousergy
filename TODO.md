@@ -3,6 +3,9 @@
 - [x] Create basic project structure (CMake, src, include).
 - [ ] Implement `DriverInterface` with actual ViGEmBus integration.
 - [x] Implement `InputEngine` with `WM_INPUT` and `WH_MOUSE_LL` hooks.
-- [x] Implement `NetworkManager` for bidirectional non-blocking packets.
-- [x] Implement `OverlayEngine` with GDI layered window.
+- [x] Implement `NetworkManager` with automated peer discovery.
+- [x] Implement `OverlayEngine` with optimized `UpdateLayeredWindow` and resource pre-allocation.
+- [x] Implement `ConfigManager` and programmatic `ConfigGUI`.
 - [x] Setup unit testing framework.
+- [x] Create automated test scripts (`run_server.bat`, `run_client.bat`).
+- [ ] Refactor `OverlayEngine` to support cursor sprite loading from file/resource.

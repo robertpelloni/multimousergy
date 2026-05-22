@@ -7,13 +7,17 @@
 
 ## Milestone 2: Independent Rendering
 - [x] Transparent layered window overlay.
-- [x] Standard cursor icon rendering.
-- [ ] D3D11 hardware-accelerated overlay (Performance optimization).
+- [x] Optimized flicker-free `UpdateLayeredWindow` implementation.
+- [x] Pre-allocated GDI resource management for low-latency rendering.
+- [x] Standard cursor icon and colorized crosshair rendering.
+- [ ] D3D11 hardware-accelerated overlay (Future performance optimization).
 
 ## Milestone 3: Interaction & Multiplexing
 - [x] TCP state sync for clicks and buttons.
-- [x] Warp-Click-Restore helper implementation.
+- [x] Warp-Click-Restore with window focus handling.
+- [x] Crossover release mechanism for local cursor recovery.
 
 ## Milestone 4: Polishing & UI
-- [ ] Configuration GUI.
-- [ ] Auto-discovery of peers on LAN.
+- [x] Programmatic Win32 Configuration GUI.
+- [x] Automated peer discovery via UDP broadcasting.
+- [ ] Multi-monitor coordinate scaling and clamping.

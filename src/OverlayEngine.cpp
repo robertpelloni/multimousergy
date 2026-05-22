@@ -24,6 +24,8 @@ OverlayEngine::OverlayEngine() : m_active(false) {
     m_hdcMem = nullptr;
     m_hBitmap = nullptr;
     m_hOldBitmap = nullptr;
+    m_hPen = nullptr;
+    m_hBrush = nullptr;
     m_screenWidth = 0;
     m_screenHeight = 0;
 #endif
@@ -65,6 +67,8 @@ bool OverlayEngine::Initialize() {
     m_hdcMem = CreateCompatibleDC(hdcScreen);
     m_hBitmap = CreateCompatibleBitmap(hdcScreen, m_screenWidth, m_screenHeight);
     m_hOldBitmap = SelectObject((HDC)m_hdcMem, (HBITMAP)m_hBitmap);
+    m_hPen = CreatePen(PS_SOLID, 2, RGB(255, 255, 255));
+    m_hBrush = CreateSolidBrush(RGB(0, 0, 0));
     ReleaseDC(NULL, hdcScreen);
 #endif
 
@@ -82,24 +86,20 @@ void OverlayEngine::Render(int cursorX, int cursorY) {
 
     // Clear with transparent color (black + color key)
     RECT rect = { 0, 0, m_screenWidth, m_screenHeight };
-    HBRUSH hBrush = CreateSolidBrush(RGB(0, 0, 0));
-    FillRect(hdcMem, &rect, hBrush);
-    DeleteObject(hBrush);
+    FillRect(hdcMem, &rect, (HBRUSH)m_hBrush);
 
     // Draw a colorized crosshair or proxy
     HBRUSH hBrushColor = CreateSolidBrush(RGB(m_colorR, m_colorG, m_colorB));
     RECT cursorRect = { cursorX - 5, cursorY - 5, cursorX + 5, cursorY + 5 };
     FillRect(hdcMem, &cursorRect, hBrushColor);
 
-    HPEN hPen = CreatePen(PS_SOLID, 2, RGB(255, 255, 255));
-    HPEN hOldPen = (HPEN)SelectObject(hdcMem, hPen);
+    HPEN hOldPen = (HPEN)SelectObject(hdcMem, (HPEN)m_hPen);
     MoveToEx(hdcMem, cursorX - 10, cursorY, NULL);
     LineTo(hdcMem, cursorX + 10, cursorY);
     MoveToEx(hdcMem, cursorX, cursorY - 10, NULL);
     LineTo(hdcMem, cursorX, cursorY + 10);
 
     SelectObject(hdcMem, hOldPen);
-    DeleteObject(hPen);
     DeleteObject(hBrushColor);
 
     POINT ptSrc = { 0, 0 };
@@ -120,6 +120,8 @@ void OverlayEngine::Shutdown() {
         if (m_hdcMem) {
             SelectObject((HDC)m_hdcMem, (HBITMAP)m_hOldBitmap);
             DeleteObject((HBITMAP)m_hBitmap);
+            if (m_hPen) DeleteObject((HPEN)m_hPen);
+            if (m_hBrush) DeleteObject((HBRUSH)m_hBrush);
             DeleteDC((HDC)m_hdcMem);
         }
         if (m_hwnd) {

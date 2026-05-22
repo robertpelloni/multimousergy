@@ -12,6 +12,10 @@ static HWND s_hwndIp = nullptr;
 static HWND s_hwndPort = nullptr;
 static HWND s_hwndBoundary = nullptr;
 
+enum ControlIDs {
+    ID_SAVE_BUTTON = 1
+};
+
 LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
         case WM_CREATE:
@@ -28,11 +32,11 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             CreateWindow("STATIC", "Boundary X:", WS_VISIBLE | WS_CHILD, 10, 100, 100, 20, hwnd, NULL, NULL, NULL);
             s_hwndBoundary = CreateWindowEx(WS_EX_CLIENTEDGE, "EDIT", std::to_string(s_currentSettings->inputConfig.boundaryX).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER, 110, 100, 150, 20, hwnd, NULL, NULL, NULL);
 
-            CreateWindow("BUTTON", "Save & Start", WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 80, 140, 120, 30, hwnd, (HMENU)1, NULL, NULL);
+            CreateWindow("BUTTON", "Save & Start", WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 80, 140, 120, 30, hwnd, (HMENU)ID_SAVE_BUTTON, NULL, NULL);
             break;
 
         case WM_COMMAND:
-            if (LOWORD(wParam) == 1) {
+            if (LOWORD(wParam) == ID_SAVE_BUTTON) {
                 char buffer[256];
                 try {
                     GetWindowText(s_hwndPort, buffer, 256);

@@ -24,6 +24,8 @@ private:
     void* m_hdcMem;
     void* m_hBitmap;
     void* m_hOldBitmap;
+    void* m_hPen;
+    void* m_hBrush;
     int m_screenWidth;
     int m_screenHeight;
 #endif

@@ -199,7 +199,23 @@ bool NetworkManager::ListenForPeers(DiscoveryPacket& pkt) {
 }
 
 bool NetworkManager::PollDiscovery(DiscoveryPacket& pkt) {
-    if (m_udpSocket == INVALID_SOCKET) return false;
+    if (m_udpSocket == INVALID_SOCKET) {
+        m_udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        if (m_udpSocket == INVALID_SOCKET) return false;
+
+        sockaddr_in addr;
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = INADDR_ANY;
+        addr.sin_port = htons(5556); // Discovery port
+        bind(m_udpSocket, (struct sockaddr*)&addr, sizeof(addr));
+
+#ifdef _WIN32
+        unsigned long mode = 1;
+        ioctlsocket(m_udpSocket, FIONBIO, &mode);
+#else
+        fcntl(m_udpSocket, F_SETFL, O_NONBLOCK);
+#endif
+    }
 
     sockaddr_in fromAddr;
     socklen_t fromLen = sizeof(fromAddr);

@@ -1,5 +1,14 @@
 # CHANGELOG.md
 
+## [0.1.2-alpha] - 2026-05-22
+### Added
+- Automated peer discovery via UDP broadcasting.
+- Win32 settings window for interactive configuration.
+- Crossover release mechanism to regain local cursor control.
+- Optimized flicker-free GDI rendering using `UpdateLayeredWindow`.
+- Enhanced interaction focus handling with `WindowFromPoint` and `SetForegroundWindow`.
+- Support for custom cursor colors.
+
 ## [0.1.1-alpha] - 2026-05-22
 ### Added
 - Bidirectional non-blocking UDP/TCP networking.
