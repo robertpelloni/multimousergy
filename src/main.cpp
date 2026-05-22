@@ -16,7 +16,8 @@ int main(int argc, char* argv[]) {
     ConfigManager configManager("netmux.cfg");
     AppSettings settings = { false, "127.0.0.1", 5555, {0, 0, false} };
 
-    if (!configManager.Load(settings)) {
+    bool firstRun = !configManager.Load(settings);
+    if (firstRun) {
         std::cout << "No configuration file found. Using defaults." << std::endl;
     }
 
@@ -34,9 +35,13 @@ int main(int argc, char* argv[]) {
         } else if (arg == "--left") {
             settings.inputConfig.isLeft = true;
         } else if (arg == "--gui") {
-            if (!ConfigGUI::ShowDialog(settings)) return 0;
-            configManager.Save(settings);
+            firstRun = true;
         }
+    }
+
+    if (firstRun) {
+        if (!ConfigGUI::ShowDialog(settings)) return 0;
+        configManager.Save(settings);
     }
 
     NetworkManager network;
