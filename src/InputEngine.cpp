@@ -9,6 +9,7 @@ static InputEngine* s_instance = nullptr;
 InputEngine::InputEngine() : m_active(false) {
 #ifdef _WIN32
     m_mouseHook = nullptr;
+    m_hwnd = nullptr;
 #endif
 }
 
@@ -17,6 +18,10 @@ InputEngine::~InputEngine() {
 }
 
 #ifdef _WIN32
+LRESULT CALLBACK InputWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    return DefWindowProc(hwnd, msg, wParam, lParam);
+}
+
 LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode >= 0 && s_instance) {
         MSLLHOOKSTRUCT* mouseInfo = (MSLLHOOKSTRUCT*)lParam;
@@ -35,11 +40,23 @@ bool InputEngine::Initialize(const Config& config) {
 
 #ifdef _WIN32
     s_instance = this;
+
+    // Create a message-only window to receive WM_INPUT
+    WNDCLASSEX wc = {0};
+    wc.cbSize = sizeof(WNDCLASSEX);
+    wc.lpfnWndProc = InputWndProc;
+    wc.hInstance = GetModuleHandle(NULL);
+    wc.lpszClassName = "NetMuxInputWindow";
+    RegisterClassEx(&wc);
+
+    m_hwnd = CreateWindowEx(0, "NetMuxInputWindow", NULL, 0, 0, 0, 0, 0, HWND_MESSAGE, NULL, GetModuleHandle(NULL), NULL);
+    if (!m_hwnd) return false;
+
     RAWINPUTDEVICE rid;
     rid.usUsagePage = 0x01;
     rid.usUsage = 0x02; // Mouse
     rid.dwFlags = RIDEV_INPUTSINK;
-    rid.hwndTarget = GetConsoleWindow(); // Placeholder
+    rid.hwndTarget = (HWND)m_hwnd;
 
     if (!RegisterRawInputDevices(&rid, 1, sizeof(rid))) {
         return false;
@@ -104,6 +121,10 @@ void InputEngine::Shutdown() {
         if (m_mouseHook) {
             UnhookWindowsHookEx((HHOOK)m_mouseHook);
             m_mouseHook = nullptr;
+        }
+        if (m_hwnd) {
+            DestroyWindow((HWND)m_hwnd);
+            m_hwnd = nullptr;
         }
         s_instance = nullptr;
 #endif

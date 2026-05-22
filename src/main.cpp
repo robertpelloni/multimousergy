@@ -1,4 +1,5 @@
 #include <iostream>
+#include <algorithm>
 #include "DriverInterface.hpp"
 #include "InputEngine.hpp"
 #include "NetworkManager.hpp"
@@ -69,6 +70,13 @@ int main(int argc, char* argv[]) {
             if (inPkt.type == PacketType::Movement) {
                 remoteX += inPkt.x;
                 remoteY += inPkt.y;
+
+                // Clamp to screen bounds
+#ifdef _WIN32
+                remoteX = std::max(0, std::min(remoteX, (int)GetSystemMetrics(SM_CXSCREEN)));
+                remoteY = std::max(0, std::min(remoteY, (int)GetSystemMetrics(SM_CYSCREEN)));
+#endif
+
                 overlay.Render(remoteX, remoteY);
                 driver.SendMouseMovement(inPkt.x, inPkt.y);
             } else if (inPkt.type == PacketType::Click) {

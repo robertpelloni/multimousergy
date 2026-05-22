@@ -21,7 +21,8 @@ Successfully transitioned **NetMux** from a skeletal scaffold to a functionally 
 
 ## Current State & Structural Shifts
 - The project now has functional components for input interception and network transmission.
-- Cursor movement is tracked absolutely on the receiver side for rendering.
+- Input interception uses a hidden message-only window for reliable `WM_INPUT` capture.
+- Cursor movement is tracked absolutely on the receiver side and clamped to screen bounds for rendering.
 - Local cursor suppression is active when boundaries are reached.
 - The project is ready for integration with a virtual HID driver (e.g., ViGEmBus).
 

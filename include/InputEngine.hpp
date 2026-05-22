@@ -28,5 +28,6 @@ private:
     std::queue<Packet> m_pendingPackets;
 #ifdef _WIN32
     void* m_mouseHook;
+    void* m_hwnd;
 #endif
 };
