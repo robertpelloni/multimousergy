@@ -7,13 +7,40 @@
 #include <thread>
 #include <chrono>
 
-int main() {
+int main(int argc, char* argv[]) {
     std::cout << "NetMux starting..." << std::endl;
+
+    bool isServer = false;
+    std::string remoteIp = "127.0.0.1";
+    int port = 5555;
+
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--server") {
+            isServer = true;
+        } else if (arg == "--client" && i + 1 < argc) {
+            remoteIp = argv[++i];
+        } else if (arg == "--port" && i + 1 < argc) {
+            port = std::stoi(argv[++i]);
+        }
+    }
 
     NetworkManager network;
     InputEngine input;
     DriverInterface driver;
     OverlayEngine overlay;
+
+    if (isServer) {
+        if (!network.StartServer(port)) {
+            std::cerr << "Failed to start server on port " << port << std::endl;
+            return 1;
+        }
+    } else {
+        if (!network.Connect(remoteIp, port)) {
+            std::cerr << "Failed to connect to " << remoteIp << ":" << port << std::endl;
+            return 1;
+        }
+    }
 
     if (!driver.Initialize() || !input.Initialize() || !overlay.Initialize()) {
         std::cerr << "Failed to initialize core components." << std::endl;
@@ -25,17 +52,22 @@ int main() {
     while (running) {
         input.Update();
 
-        Packet pkt;
-        if (network.ReceivePacket(pkt)) {
-            if (pkt.type == PacketType::Movement) {
-                overlay.Render(pkt.x, pkt.y);
-                driver.SendMouseMovement(pkt.x, pkt.y);
-            } else if (pkt.type == PacketType::Click) {
-                driver.SendMouseButton(pkt.button, pkt.down);
+        Packet outPkt;
+        while (input.GetPendingPacket(outPkt)) {
+            network.SendPacket(outPkt);
+        }
+
+        Packet inPkt;
+        if (network.ReceivePacket(inPkt)) {
+            if (inPkt.type == PacketType::Movement) {
+                overlay.Render(inPkt.x, inPkt.y);
+                driver.SendMouseMovement(inPkt.x, inPkt.y);
+            } else if (inPkt.type == PacketType::Click) {
+                driver.SendMouseButton(inPkt.button, inPkt.down);
             }
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     return 0;

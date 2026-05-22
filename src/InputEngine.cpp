@@ -76,3 +76,10 @@ bool InputEngine::IsAtBoundary(int x, int y) {
     // Basic logic for boundary detection
     return false;
 }
+
+bool InputEngine::GetPendingPacket(Packet& pkt) {
+    if (m_pendingPackets.empty()) return false;
+    pkt = m_pendingPackets.front();
+    m_pendingPackets.pop();
+    return true;
+}

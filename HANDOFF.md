@@ -15,13 +15,14 @@ In this session, we initialized the **NetMux** (PolyPointer) project, a cross-ne
 5.  **Repository Hygiene**: Configured `.gitignore` to keep the repo clean of build artifacts.
 
 ## Current State & Structural Shifts
-- The project is in an "Alpha Scaffolding" state.
-- Networking uses non-blocking I/O to avoid stalling the real-time input loop.
+- The project is in an "Alpha Scaffolding" state with functional networking.
+- Networking uses non-blocking I/O and bidirectional communication. The server now accepts clients and learns their UDP address.
+- `InputEngine` supports asynchronous packet queuing for local input events.
+- Command-line argument parsing is implemented (`--server`, `--client`, `--port`).
 - The system is designed to use a "Warp-Click-Restore" cycle to interact with remote windows without stealing local focus.
 
 ## Successor Instructions
-- **Networking**: Refine `NetworkManager` to use `accept()` for the TCP server and `recvfrom()` for UDP to correctly handle peer identity.
-- **Input**: Implement actual boundary detection logic in `InputEngine::IsAtBoundary`.
+- **Input**: Implement `WM_INPUT` message handling in `InputEngine::Update` to populate the packet queue with real mouse data. Implement actual boundary detection logic in `InputEngine::IsAtBoundary`.
 - **UI**: Replace the `OverlayEngine` stubs with either a GDI layered window or a D3D11 overlay.
 - **Integration**: Update `main.cpp` to parse command-line arguments (e.g., `--server` or `--client <ip>`).
 - **Driver**: Explore integrating with the ViGEmBus C++ API for actual virtual mouse creation.

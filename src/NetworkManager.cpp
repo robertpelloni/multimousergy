@@ -11,13 +11,14 @@
     #include <arpa/inet.h>
     #include <unistd.h>
     #include <fcntl.h>
+    #include <cstring>
     typedef int SOCKET;
     #define INVALID_SOCKET -1
     #define SOCKET_ERROR -1
     #define closesocket close
 #endif
 
-NetworkManager::NetworkManager() : m_running(false), m_udpSocket(INVALID_SOCKET), m_tcpSocket(INVALID_SOCKET), m_remoteAddr(nullptr) {
+NetworkManager::NetworkManager() : m_running(false), m_udpSocket(INVALID_SOCKET), m_tcpSocket(INVALID_SOCKET), m_clientTcpSocket(INVALID_SOCKET), m_remoteAddr(nullptr) {
 #ifdef _WIN32
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -131,8 +132,9 @@ void NetworkManager::SendPacket(const Packet& packet) {
         }
     } else {
         // TCP for clicks/sync
-        if (m_tcpSocket != INVALID_SOCKET) {
-            send(m_tcpSocket, (const char*)&packet, sizeof(packet), 0);
+        SOCKET targetTcp = (m_clientTcpSocket != INVALID_SOCKET) ? m_clientTcpSocket : m_tcpSocket;
+        if (targetTcp != INVALID_SOCKET) {
+            send(targetTcp, (const char*)&packet, sizeof(packet), 0);
         }
     }
 }
@@ -140,9 +142,34 @@ void NetworkManager::SendPacket(const Packet& packet) {
 bool NetworkManager::ReceivePacket(Packet& packet) {
     if (!m_running) return false;
 
+    // Handle incoming TCP connections if we are a server
+    if (m_tcpSocket != INVALID_SOCKET && m_clientTcpSocket == INVALID_SOCKET) {
+        sockaddr_in clientAddr;
+        socklen_t clientAddrLen = sizeof(clientAddr);
+        m_clientTcpSocket = accept(m_tcpSocket, (struct sockaddr*)&clientAddr, &clientAddrLen);
+        if (m_clientTcpSocket != INVALID_SOCKET) {
+            std::cout << "[Network] Accepted new TCP connection." << std::endl;
+#ifdef _WIN32
+            unsigned long mode = 1;
+            ioctlsocket(m_clientTcpSocket, FIONBIO, &mode);
+#else
+            fcntl(m_clientTcpSocket, F_SETFL, O_NONBLOCK);
+#endif
+        }
+    }
+
     // Check UDP first for movement
-    int result = recv(m_udpSocket, (char*)&packet, sizeof(packet), 0);
-    if (result > 0) return true;
+    sockaddr_in fromAddr;
+    socklen_t fromLen = sizeof(fromAddr);
+    int result = recvfrom(m_udpSocket, (char*)&packet, sizeof(packet), 0, (struct sockaddr*)&fromAddr, &fromLen);
+    if (result > 0) {
+        // If we don't have a remote address yet, learn it from this UDP packet
+        if (!m_remoteAddr) {
+            m_remoteAddr = malloc(sizeof(sockaddr_in));
+            memcpy(m_remoteAddr, &fromAddr, sizeof(sockaddr_in));
+        }
+        return true;
+    }
 
 #ifdef _WIN32
     if (result == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK) {
@@ -154,9 +181,11 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
     }
 #endif
 
-    // Then check TCP
-    if (m_tcpSocket != INVALID_SOCKET) {
-        result = recv(m_tcpSocket, (char*)&packet, sizeof(packet), 0);
+    // Then check TCP (the accepted client socket if we are server, or m_tcpSocket if we are client)
+    SOCKET targetTcp = (m_clientTcpSocket != INVALID_SOCKET) ? m_clientTcpSocket : m_tcpSocket;
+
+    if (targetTcp != INVALID_SOCKET) {
+        result = recv(targetTcp, (char*)&packet, sizeof(packet), 0);
         if (result > 0) return true;
     }
 
@@ -173,6 +202,10 @@ void NetworkManager::Shutdown() {
         if (m_tcpSocket != INVALID_SOCKET) {
             closesocket(m_tcpSocket);
             m_tcpSocket = INVALID_SOCKET;
+        }
+        if (m_clientTcpSocket != INVALID_SOCKET) {
+            closesocket(m_clientTcpSocket);
+            m_clientTcpSocket = INVALID_SOCKET;
         }
         if (m_remoteAddr) {
             free(m_remoteAddr);

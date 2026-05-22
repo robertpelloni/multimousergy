@@ -32,5 +32,6 @@ private:
     bool m_running;
     unsigned long long m_udpSocket; // Using unsigned long long to accommodate SOCKET on 64-bit Windows
     unsigned long long m_tcpSocket;
+    unsigned long long m_clientTcpSocket;
     void* m_remoteAddr; // sockaddr_in storage
 };
