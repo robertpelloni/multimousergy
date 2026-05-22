@@ -5,6 +5,15 @@
 #include "OverlayEngine.hpp"
 #include "ConfigManager.hpp"
 #include "Timer.hpp"
+#include <map>
+
+struct PeerCursor {
+    int x;
+    int y;
+    unsigned char colorR;
+    unsigned char colorG;
+    unsigned char colorB;
+};
 
 class NetMuxFramework {
 public:
@@ -19,6 +28,7 @@ private:
     void ProcessOutgoingPackets();
     void ProcessIncomingPackets();
     void PerformLatencySync();
+    void PerformDiscoveryBroadcast();
 
     NetworkManager m_network;
     InputEngine m_input;
@@ -27,10 +37,12 @@ private:
 
     AppSettings m_settings;
     bool m_running;
-    int m_remoteX;
-    int m_remoteY;
+
+    std::map<unsigned long long, PeerCursor> m_peers;
 
     Timer m_loopTimer;
     Timer m_syncTimer;
+    Timer m_renderTimer;
     double m_lastSyncTime;
+    bool m_overlayDirty;
 };

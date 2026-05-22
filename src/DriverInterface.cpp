@@ -21,18 +21,28 @@ bool DriverInterface::Initialize() {
     std::cout << "[Driver] Initializing virtual HID device..." << std::endl;
 
 #ifdef _WIN32
-    // Pseudo-code for ViGEm implementation as requested in AGENTS.md
-    // m_client = vigem_alloc();
-    // if (vigem_connect(m_client) != VIGEM_ERROR_NONE) return false;
-    // m_target = vigem_target_x360_alloc();
-    // vigem_target_add(m_client, m_target);
+    /*
+     * ARCHITECTURE NOTE (AGENTS.md Alignment):
+     * To bypass the Single-Cursor Windows Kernel Constraint, we use a virtual HID driver.
+     * We have two primary paths for implementation:
+     *
+     * Path A: Interception Driver (Recommended for Mouse/Keyboard)
+     * m_context = interception_create_context();
+     * interception_set_filter(m_context, interception_is_mouse, INTERCEPTION_FILTER_MOUSE_ALL);
+     *
+     * Path B: ViGEmBus (Common for Gamepads, requires custom HID for Mouse)
+     * m_client = vigem_alloc();
+     * vigem_connect(m_client);
+     *
+     * For this Alpha, we stub the Interception-style context which allows us to inject
+     * events as if they came from a physical hardware device with a unique ID.
+     */
 
-    // Note: Since ViGEm is primarily for gamepads, for a mouse we would use
-    // the 'Interception' driver framework or a custom HID descriptor if using a raw USB emulator.
-    // For now, we maintain the ViGEm-style initialization logic as a high-level stub.
+    std::cout << "[Driver] Virtual HID kernel context is currently stubbed (Alpha)." << std::endl;
+    m_client = nullptr; // Explicitly null while stubbed
 #endif
 
-    m_initialized = true;
+    m_initialized = false; // Stay uninitialized for fallback logic in alpha
     return true;
 }
 
@@ -56,8 +66,14 @@ bool DriverInterface::SendMouseMovement(long dx, long dy) {
     m_lastY += dy;
 
 #ifdef _WIN32
-    // Pseudo-code for updating virtual HID state
-    // vigem_target_x360_update(m_client, m_target, report);
+    /*
+     * INTERCEPTION INJECTION LOGIC:
+     * InterceptionMouseStroke stroke = {0};
+     * stroke.flags = INTERCEPTION_MOUSE_MOVE_RELATIVE;
+     * stroke.x = dx;
+     * stroke.y = dy;
+     * interception_send(m_context, m_virtual_mouse_id, (InterceptionStroke*)&stroke, 1);
+     */
 #endif
 
     return true;
@@ -72,7 +88,12 @@ bool DriverInterface::SendMouseButton(int button, bool down) {
     std::cout << "[Driver] Button " << button << (down ? " down" : " up") << " (State: " << m_buttonState << ")" << std::endl;
 
 #ifdef _WIN32
-    // Pseudo-code for updating virtual HID buttons
+    /*
+     * INTERCEPTION BUTTON LOGIC:
+     * InterceptionMouseStroke stroke = {0};
+     * stroke.state = ConvertToInterceptionState(button, down);
+     * interception_send(m_context, m_virtual_mouse_id, (InterceptionStroke*)&stroke, 1);
+     */
 #endif
 
     return true;

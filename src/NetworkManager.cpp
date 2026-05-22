@@ -158,7 +158,8 @@ bool NetworkManager::BroadcastDiscovery(int port) {
     broadcastAddr.sin_addr.s_addr = INADDR_BROADCAST;
 
     DiscoveryPacket pkt = {0};
-    gethostname(pkt.hostname, 64);
+    gethostname(pkt.hostname, sizeof(pkt.hostname) - 1);
+    pkt.hostname[sizeof(pkt.hostname) - 1] = '\0';
     pkt.port = port;
 
     sendto(m_udpSocket, (const char*)&pkt, sizeof(pkt), 0, (struct sockaddr*)&broadcastAddr, sizeof(broadcastAddr));
@@ -221,7 +222,8 @@ bool NetworkManager::PollDiscovery(DiscoveryPacket& pkt) {
     socklen_t fromLen = sizeof(fromAddr);
     int result = recvfrom(m_udpSocket, (char*)&pkt, sizeof(pkt), 0, (struct sockaddr*)&fromAddr, &fromLen);
 
-    if (result > 0) {
+    if (result >= (int)sizeof(pkt)) {
+        pkt.hostname[sizeof(pkt.hostname) - 1] = '\0'; // Safety null-termination
         return true;
     }
     return false;
@@ -280,8 +282,23 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
     }
 
     if (targetTcp != INVALID_SOCKET) {
-        result = recv(targetTcp, (char*)&packet, sizeof(packet), 0);
-        if (result > 0) return true;
+        char tempBuf[sizeof(Packet)];
+        result = recv(targetTcp, tempBuf, sizeof(tempBuf), 0);
+        if (result > 0) {
+            m_tcpBuffer.insert(m_tcpBuffer.end(), tempBuf, tempBuf + result);
+        } else if (result == 0) {
+            // Connection closed by peer
+            std::cout << "[Network] Peer closed TCP connection." << std::endl;
+            closesocket(targetTcp);
+            if (m_clientTcpSocket != INVALID_SOCKET) m_clientTcpSocket = INVALID_SOCKET;
+            else m_tcpSocket = INVALID_SOCKET;
+        }
+    }
+
+    if (m_tcpBuffer.size() >= sizeof(Packet)) {
+        std::memcpy(&packet, m_tcpBuffer.data(), sizeof(Packet));
+        m_tcpBuffer.erase(m_tcpBuffer.begin(), m_tcpBuffer.begin() + sizeof(Packet));
+        return true;
     }
 
     return false;

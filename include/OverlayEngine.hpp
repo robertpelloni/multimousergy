@@ -1,4 +1,13 @@
 #pragma once
+#include <map>
+
+struct RemoteCursorState {
+    int x;
+    int y;
+    unsigned char r;
+    unsigned char g;
+    unsigned char b;
+};
 
 class OverlayEngine {
 public:
@@ -7,6 +16,7 @@ public:
 
     bool Initialize();
     void Render(int cursorX, int cursorY);
+    void RenderPeers(const std::map<unsigned long long, RemoteCursorState>& peers);
     void Shutdown();
 
     void SetColor(unsigned char r, unsigned char g, unsigned char b) {

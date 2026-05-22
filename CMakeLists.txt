@@ -27,7 +27,7 @@ target_include_directories(NetMux PRIVATE include)
 
 # Windows specific libraries
 if(WIN32)
-    target_link_libraries(NetMuxLib user32 gdi32 d3d11 dxgi)
+    target_link_libraries(NetMuxLib user32 gdi32 d3d11 dxgi ws2_32)
 endif()
 
 # Tests

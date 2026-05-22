@@ -77,6 +77,12 @@ bool OverlayEngine::Initialize() {
 }
 
 void OverlayEngine::Render(int cursorX, int cursorY) {
+    std::map<unsigned long long, RemoteCursorState> peers;
+    peers[0] = { cursorX, cursorY, m_colorR, m_colorG, m_colorB };
+    RenderPeers(peers);
+}
+
+void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorState>& peers) {
     if (!m_active) return;
 
 #ifdef _WIN32
@@ -88,19 +94,21 @@ void OverlayEngine::Render(int cursorX, int cursorY) {
     RECT rect = { 0, 0, m_screenWidth, m_screenHeight };
     FillRect(hdcMem, &rect, (HBRUSH)m_hBrush);
 
-    // Draw a colorized crosshair or proxy
-    HBRUSH hBrushColor = CreateSolidBrush(RGB(m_colorR, m_colorG, m_colorB));
-    RECT cursorRect = { cursorX - 5, cursorY - 5, cursorX + 5, cursorY + 5 };
-    FillRect(hdcMem, &cursorRect, hBrushColor);
+    for (auto const& [id, peer] : peers) {
+        // Draw a colorized crosshair or proxy for each peer
+        HBRUSH hBrushColor = CreateSolidBrush(RGB(peer.r, peer.g, peer.b));
+        RECT cursorRect = { peer.x - 5, peer.y - 5, peer.x + 5, peer.y + 5 };
+        FillRect(hdcMem, &cursorRect, hBrushColor);
 
-    HPEN hOldPen = (HPEN)SelectObject(hdcMem, (HPEN)m_hPen);
-    MoveToEx(hdcMem, cursorX - 10, cursorY, NULL);
-    LineTo(hdcMem, cursorX + 10, cursorY);
-    MoveToEx(hdcMem, cursorX, cursorY - 10, NULL);
-    LineTo(hdcMem, cursorX, cursorY + 10);
+        HPEN hOldPen = (HPEN)SelectObject(hdcMem, (HPEN)m_hPen);
+        MoveToEx(hdcMem, peer.x - 10, peer.y, NULL);
+        LineTo(hdcMem, peer.x + 10, peer.y);
+        MoveToEx(hdcMem, peer.x, peer.y - 10, NULL);
+        LineTo(hdcMem, peer.x, peer.y + 10);
 
-    SelectObject(hdcMem, hOldPen);
-    DeleteObject(hBrushColor);
+        SelectObject(hdcMem, hOldPen);
+        DeleteObject(hBrushColor);
+    }
 
     POINT ptSrc = { 0, 0 };
     POINT ptDest = { 0, 0 };

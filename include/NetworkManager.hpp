@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -51,4 +52,6 @@ private:
     unsigned long long m_clientTcpSocket;
     sockaddr_in m_remoteAddr;
     bool m_hasRemoteAddr;
+
+    std::vector<char> m_tcpBuffer;
 };

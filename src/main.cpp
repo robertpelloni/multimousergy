@@ -46,13 +46,14 @@ int main(int argc, char* argv[]) {
     if (firstRun) {
         std::cout << "Searching for peers (5 seconds)..." << std::endl;
         auto start = std::chrono::steady_clock::now();
+        NetworkManager tempNetwork;
         while (std::chrono::steady_clock::now() - start < std::chrono::seconds(5)) {
-            NetworkManager tempNetwork;
             DiscoveryPacket dpkt;
             if (tempNetwork.PollDiscovery(dpkt)) {
-                std::cout << "Found peer: " << dpkt.hostname << " on port " << dpkt.port << std::endl;
+                std::cout << "Discovered peer: " << dpkt.hostname << " on port " << dpkt.port << std::endl;
                 settings.remoteIp = dpkt.hostname;
                 settings.port = dpkt.port;
+                // For alpha, we take the first discovered peer as primary
                 break;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(100));

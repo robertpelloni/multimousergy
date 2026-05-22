@@ -9,7 +9,7 @@
 #endif
 
 NetMuxFramework::NetMuxFramework()
-    : m_running(false), m_remoteX(0), m_remoteY(0), m_lastSyncTime(0) {}
+    : m_running(false), m_lastSyncTime(0), m_overlayDirty(false) {}
 
 NetMuxFramework::~NetMuxFramework() {
     Shutdown();
@@ -47,8 +47,20 @@ void NetMuxFramework::Run() {
         m_input.Update();
 
         PerformLatencySync();
+        PerformDiscoveryBroadcast();
         ProcessOutgoingPackets();
         ProcessIncomingPackets();
+
+        // Throttle Overlay Rendering to ~144Hz (approx 7ms)
+        if (m_overlayDirty && m_renderTimer.ElapsedMilliseconds() > 7.0) {
+            // For alpha, we just render the first peer's cursor
+            if (!m_peers.empty()) {
+                auto& peer = m_peers.begin()->second;
+                m_overlay.Render(peer.x, peer.y);
+            }
+            m_overlayDirty = false;
+            m_renderTimer.Reset();
+        }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
@@ -76,21 +88,39 @@ void NetMuxFramework::ProcessOutgoingPackets() {
 void NetMuxFramework::ProcessIncomingPackets() {
     Packet inPkt;
     while (m_network.ReceivePacket(inPkt)) {
+        // For now, assuming DeviceID is passed in button field or similar for multiple cursors
+        // In a real implementation, Packet structure should include SenderID.
+        // For alpha multi-cursor demonstration, we treat each session as one peer.
+        unsigned long long peerId = 0;
+
         if (inPkt.type == PacketType::Movement) {
-            m_remoteX += inPkt.x;
-            m_remoteY += inPkt.y;
+            PeerCursor& peer = m_peers[peerId];
+            peer.x += inPkt.x;
+            peer.y += inPkt.y;
 
             // Clamp to screen bounds
 #ifdef _WIN32
-            m_remoteX = std::max(0, std::min(m_remoteX, (int)GetSystemMetrics(SM_CXSCREEN)));
-            m_remoteY = std::max(0, std::min(m_remoteY, (int)GetSystemMetrics(SM_CYSCREEN)));
+            peer.x = std::max(0, std::min(peer.x, (int)GetSystemMetrics(SM_CXSCREEN)));
+            peer.y = std::max(0, std::min(peer.y, (int)GetSystemMetrics(SM_CYSCREEN)));
 #endif
 
-            m_overlay.Render(m_remoteX, m_remoteY);
-            m_driver.SendMouseMovement(inPkt.x, inPkt.y);
+            m_overlayDirty = true;
+
+            // ARCHITECTURE ALIGNMENT:
+            // We must use the hardware-level DriverInterface for injection to avoid
+            // hijacking the native system cursor.
+            if (!m_driver.SendMouseMovement(inPkt.x, inPkt.y)) {
+                // Future fallback logic could go here if the driver is unavailable.
+            }
         } else if (inPkt.type == PacketType::Click) {
-            m_input.PerformWarpClickRestore(m_remoteX, m_remoteY, inPkt.button, inPkt.down);
-            m_driver.SendMouseButton(inPkt.button, inPkt.down);
+            PeerCursor& peer = m_peers[peerId];
+
+            // Use driver-level hardware injection for clicks first.
+            if (!m_driver.SendMouseButton(inPkt.button, inPkt.down)) {
+                // FALLBACK: If driver injection is unavailable, we use the "Warp-Click-Restore"
+                // cycle as a software-level fallback to ensure basic functionality.
+                m_input.PerformWarpClickRestore(peer.x, peer.y, inPkt.button, inPkt.down);
+            }
         } else if (inPkt.type == PacketType::Sync) {
             if (m_settings.isServer) {
                 m_network.SendPacket(inPkt);
@@ -108,5 +138,13 @@ void NetMuxFramework::PerformLatencySync() {
         m_network.SendPacket(syncPkt);
         m_syncTimer.Reset();
         m_lastSyncTime = m_loopTimer.ElapsedMilliseconds();
+    }
+}
+
+void NetMuxFramework::PerformDiscoveryBroadcast() {
+    static double lastBroadcast = 0;
+    if (m_settings.isServer && m_loopTimer.ElapsedMilliseconds() - lastBroadcast > 3000.0) {
+        m_network.BroadcastDiscovery(5556); // Use dedicated discovery port
+        lastBroadcast = m_loopTimer.ElapsedMilliseconds();
     }
 }
