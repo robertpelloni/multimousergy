@@ -62,7 +62,9 @@ int main(int argc, char* argv[]) {
 
         Packet outPkt;
         while (input.GetPendingPacket(outPkt)) {
-            network.SendPacket(outPkt);
+            if (input.IsCaptured()) {
+                network.SendPacket(outPkt);
+            }
         }
 
         Packet inPkt;

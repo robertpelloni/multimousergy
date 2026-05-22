@@ -6,7 +6,7 @@
 static InputEngine* s_instance = nullptr;
 #endif
 
-InputEngine::InputEngine() : m_active(false) {
+InputEngine::InputEngine() : m_active(false), m_isCaptured(false) {
 #ifdef _WIN32
     m_mouseHook = nullptr;
     m_hwnd = nullptr;
@@ -25,8 +25,32 @@ LRESULT CALLBACK InputWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode >= 0 && s_instance) {
         MSLLHOOKSTRUCT* mouseInfo = (MSLLHOOKSTRUCT*)lParam;
-        if (s_instance->IsAtBoundary(mouseInfo->pt.x, mouseInfo->pt.y)) {
-            // Suppress the message and trigger network crossover
+
+        bool atBoundary = s_instance->IsAtBoundary(mouseInfo->pt.x, mouseInfo->pt.y);
+
+        if (atBoundary && !s_instance->m_isCaptured) {
+            // Trigger capture
+            s_instance->m_isCaptured = true;
+            return 1;
+        }
+
+        if (s_instance->m_isCaptured) {
+            // Logic to release capture:
+            // If the mouse moves significantly back towards the center of the local screen, release.
+            // We use the absolute position from MSLLHOOKSTRUCT
+            int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+            bool movingBack = false;
+            if (s_instance->m_config.isLeft) {
+                if (mouseInfo->pt.x > s_instance->m_config.boundaryX + 100) movingBack = true;
+            } else {
+                if (mouseInfo->pt.x < s_instance->m_config.boundaryX - 100) movingBack = true;
+            }
+
+            if (movingBack) {
+                s_instance->m_isCaptured = false;
+                return CallNextHookEx(NULL, nCode, wParam, lParam);
+            }
+
             return 1;
         }
     }

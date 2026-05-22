@@ -63,20 +63,37 @@ void OverlayEngine::Render(int cursorX, int cursorY) {
 
 #ifdef _WIN32
     HWND hwnd = (HWND)m_hwnd;
-    HDC hdc = GetDC(hwnd);
+    HDC hdcScreen = GetDC(NULL);
+    HDC hdcMem = CreateCompatibleDC(hdcScreen);
 
-    // Clear previous or just draw at new position
-    // For a simple GDI cursor:
-    RECT rect = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
+    int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+    int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+
+    HBITMAP hBitmap = CreateCompatibleBitmap(hdcScreen, screenWidth, screenHeight);
+    HBITMAP hOldBitmap = (HBITMAP)SelectObject(hdcMem, hBitmap);
+
+    // Fill with transparent color (black + color key)
+    RECT rect = { 0, 0, screenWidth, screenHeight };
     HBRUSH hBrush = CreateSolidBrush(RGB(0, 0, 0));
-    FillRect(hdc, &rect, hBrush);
+    FillRect(hdcMem, &rect, hBrush);
     DeleteObject(hBrush);
 
     // Draw a standard mouse cursor icon
     HCURSOR hCursor = LoadCursor(NULL, IDC_ARROW);
-    DrawIcon(hdc, cursorX, cursorY, hCursor);
+    DrawIcon(hdcMem, cursorX, cursorY, hCursor);
 
-    ReleaseDC(hwnd, hdc);
+    POINT ptSrc = { 0, 0 };
+    POINT ptDest = { 0, 0 };
+    SIZE size = { screenWidth, screenHeight };
+    BLENDFUNCTION blend = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
+
+    // UpdateLayeredWindow with alpha or just simple transparency
+    UpdateLayeredWindow(hwnd, hdcScreen, &ptDest, &size, hdcMem, &ptSrc, RGB(0,0,0), &blend, ULW_COLORKEY);
+
+    SelectObject(hdcMem, hOldBitmap);
+    DeleteObject(hBitmap);
+    DeleteDC(hdcMem);
+    ReleaseDC(NULL, hdcScreen);
 #endif
 }
 

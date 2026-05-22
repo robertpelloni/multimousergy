@@ -22,8 +22,11 @@ public:
     bool GetPendingPacket(Packet& pkt);
     void PerformWarpClickRestore(int targetX, int targetY, int button, bool down);
 
+    bool IsCaptured() const { return m_isCaptured; }
+
 private:
     bool m_active;
+    bool m_isCaptured;
     Config m_config;
     std::queue<Packet> m_pendingPackets;
 #ifdef _WIN32
