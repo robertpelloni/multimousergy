@@ -3,6 +3,7 @@
 
 #ifdef _WIN32
 #include <windows.h>
+static InputEngine* s_instance = nullptr;
 #endif
 
 InputEngine::InputEngine() : m_active(false) {
@@ -17,9 +18,13 @@ InputEngine::~InputEngine() {
 
 #ifdef _WIN32
 LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
-    if (nCode >= 0) {
-        // MSLLHOOKSTRUCT* mouseInfo = (MSLLHOOKSTRUCT*)lParam;
-        // logic for boundary detection and suppression
+    if (nCode >= 0 && s_instance) {
+        MSLLHOOKSTRUCT* mouseInfo = (MSLLHOOKSTRUCT*)lParam;
+        if (s_instance->IsAtBoundary(mouseInfo->pt.x, mouseInfo->pt.y)) {
+            // Stub: In a real implementation, we would return 1 to suppress the message
+            // and trigger the network crossover.
+            // return 1;
+        }
     }
     return CallNextHookEx(NULL, nCode, wParam, lParam);
 }
@@ -30,6 +35,7 @@ bool InputEngine::Initialize(const Config& config) {
     std::cout << "[Input] Initializing Raw Input and Hooks..." << std::endl;
 
 #ifdef _WIN32
+    s_instance = this;
     RAWINPUTDEVICE rid;
     rid.usUsagePage = 0x01;
     rid.usUsage = 0x02; // Mouse
@@ -63,9 +69,15 @@ void InputEngine::Update() {
                 if (GetRawInputData(hRawInput, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) == dwSize) {
                     RAWINPUT* raw = (RAWINPUT*)lpb;
                     if (raw->header.dwType == RIM_TYPEMOUSE) {
-                        // Capture deltas
-                        // Packet pkt = { PacketType::Movement, raw->data.mouse.lLastX, raw->data.mouse.lLastY, 0, false };
-                        // m_pendingPackets.push(pkt);
+                        if (raw->data.mouse.usFlags & MOUSE_MOVE_RELATIVE) {
+                            Packet pkt;
+                            pkt.type = PacketType::Movement;
+                            pkt.x = raw->data.mouse.lLastX;
+                            pkt.y = raw->data.mouse.lLastY;
+                            pkt.button = 0;
+                            pkt.down = false;
+                            m_pendingPackets.push(pkt);
+                        }
                     }
                 }
                 delete[] lpb;
@@ -85,6 +97,7 @@ void InputEngine::Shutdown() {
             UnhookWindowsHookEx((HHOOK)m_mouseHook);
             m_mouseHook = nullptr;
         }
+        s_instance = nullptr;
 #endif
         m_active = false;
     }
