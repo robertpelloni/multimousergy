@@ -12,6 +12,7 @@ set(LIB_SOURCES
     src/OverlayEngine.cpp
     src/ConfigManager.cpp
     src/ConfigGUI.cpp
+    src/Timer.cpp
 )
 
 # Library

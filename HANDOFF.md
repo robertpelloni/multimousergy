@@ -17,6 +17,8 @@ Successfully implemented and reconciled the functional core of **NetMux** (v0.1.
     *   Enhanced `PerformWarpClickRestore` with window identification and focus handling, ensuring remote clicks correctly interact with the UI.
 6.  **Crossover Release**:
     *   Implemented a release mechanism in the low-level hook to allow users to regain local cursor control by moving away from the screen edge.
+7.  **Latency Measurement**:
+    *   Implemented a high-resolution `Timer` class and integrated periodic RTT latency tracking into the main loop.
 
 ## Current State & Structural Shifts
 - The project is now in a "Stable Alpha" state with functional networking, input, and rendering.

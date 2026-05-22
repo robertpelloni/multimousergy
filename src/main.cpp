@@ -6,6 +6,7 @@
 #include "OverlayEngine.hpp"
 #include "ConfigManager.hpp"
 #include "ConfigGUI.hpp"
+#include "Timer.hpp"
 
 #include <thread>
 #include <chrono>
@@ -92,9 +93,20 @@ int main(int argc, char* argv[]) {
     // Basic loop for demonstration
     bool running = true;
     int remoteX = 0, remoteY = 0;
+    Timer loopTimer;
+    Timer syncTimer;
+    double lastSyncTime = 0;
 
     while (running) {
         input.Update();
+
+        // Periodic Latency Sync (every 1 second)
+        if (loopTimer.ElapsedMilliseconds() - lastSyncTime > 1000.0) {
+            Packet syncPkt = { PacketType::Sync, 0, 0, 0, false };
+            network.SendPacket(syncPkt);
+            syncTimer.Reset();
+            lastSyncTime = loopTimer.ElapsedMilliseconds();
+        }
 
         Packet outPkt;
         while (input.GetPendingPacket(outPkt)) {
@@ -120,6 +132,15 @@ int main(int argc, char* argv[]) {
             } else if (inPkt.type == PacketType::Click) {
                 input.PerformWarpClickRestore(remoteX, remoteY, inPkt.button, inPkt.down);
                 driver.SendMouseButton(inPkt.button, inPkt.down);
+            } else if (inPkt.type == PacketType::Sync) {
+                if (settings.isServer) {
+                    // Server reflects sync back to client
+                    network.SendPacket(inPkt);
+                } else {
+                    // Client calculates RTT
+                    double rtt = syncTimer.ElapsedMilliseconds();
+                    std::cout << "[Latency] RTT: " << rtt << " ms" << std::endl;
+                }
             }
         }
 
