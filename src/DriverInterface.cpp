@@ -60,7 +60,11 @@ void DriverInterface::Shutdown() {
 }
 
 bool DriverInterface::SendMouseMovement(long dx, long dy) {
+#ifdef _WIN32
+    if (!m_initialized || m_client == nullptr) return false;
+#else
     if (!m_initialized) return false;
+#endif
 
     m_lastX += dx;
     m_lastY += dy;
@@ -80,7 +84,11 @@ bool DriverInterface::SendMouseMovement(long dx, long dy) {
 }
 
 bool DriverInterface::SendMouseButton(int button, bool down) {
+#ifdef _WIN32
+    if (!m_initialized || m_client == nullptr) return false;
+#else
     if (!m_initialized) return false;
+#endif
 
     if (down) m_buttonState |= (1 << button);
     else m_buttonState &= ~(1 << button);

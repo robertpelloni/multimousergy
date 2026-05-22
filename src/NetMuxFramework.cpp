@@ -30,9 +30,13 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
         }
     }
 
-    if (!m_driver.Initialize() || !m_input.Initialize(m_settings.inputConfig) || !m_overlay.Initialize()) {
-        std::cerr << "Failed to initialize core components." << std::endl;
+    if (!m_input.Initialize(m_settings.inputConfig) || !m_overlay.Initialize()) {
+        std::cerr << "Failed to initialize input or overlay components." << std::endl;
         return false;
+    }
+
+    if (!m_driver.Initialize()) {
+        std::cout << "[Warning] Virtual HID Driver not available. Using software fallback." << std::endl;
     }
 
     // Default color
@@ -53,11 +57,11 @@ void NetMuxFramework::Run() {
 
         // Throttle Overlay Rendering to ~144Hz (approx 7ms)
         if (m_overlayDirty && m_renderTimer.ElapsedMilliseconds() > 7.0) {
-            // For alpha, we just render the first peer's cursor
-            if (!m_peers.empty()) {
-                auto& peer = m_peers.begin()->second;
-                m_overlay.Render(peer.x, peer.y);
+            std::map<unsigned long long, RemoteCursorState> overlayPeers;
+            for (auto const& [id, peer] : m_peers) {
+                overlayPeers[id] = { peer.x, peer.y, peer.colorR, peer.colorG, peer.colorB };
             }
+            m_overlay.RenderPeers(overlayPeers);
             m_overlayDirty = false;
             m_renderTimer.Reset();
         }

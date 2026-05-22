@@ -38,5 +38,9 @@ private:
     void* m_hBrush;
     int m_screenWidth;
     int m_screenHeight;
+
+    void* m_hCursorBitmap;
+    int m_cursorWidth;
+    int m_cursorHeight;
 #endif
 };

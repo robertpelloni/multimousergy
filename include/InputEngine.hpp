@@ -27,6 +27,7 @@ public:
 private:
     bool m_active;
     bool m_isCaptured;
+    long m_accumulatedX;
     Config m_config;
     std::queue<Packet> m_pendingPackets;
 #ifdef _WIN32

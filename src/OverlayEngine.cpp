@@ -28,6 +28,9 @@ OverlayEngine::OverlayEngine() : m_active(false) {
     m_hBrush = nullptr;
     m_screenWidth = 0;
     m_screenHeight = 0;
+    m_hCursorBitmap = nullptr;
+    m_cursorWidth = 0;
+    m_cursorHeight = 0;
 #endif
 }
 
@@ -69,6 +72,31 @@ bool OverlayEngine::Initialize() {
     m_hOldBitmap = SelectObject((HDC)m_hdcMem, (HBITMAP)m_hBitmap);
     m_hPen = CreatePen(PS_SOLID, 2, RGB(255, 255, 255));
     m_hBrush = CreateSolidBrush(RGB(0, 0, 0));
+
+    // Create a default cursor bitmap (simple arrow shape)
+    m_cursorWidth = 32;
+    m_cursorHeight = 32;
+    m_hCursorBitmap = CreateCompatibleBitmap(hdcScreen, m_cursorWidth, m_cursorHeight);
+    HDC hdcCursor = CreateCompatibleDC(hdcScreen);
+    HBITMAP hOldCursorBmp = (HBITMAP)SelectObject(hdcCursor, (HBITMAP)m_hCursorBitmap);
+
+    // Fill with transparent color (black)
+    RECT cRect = { 0, 0, m_cursorWidth, m_cursorHeight };
+    FillRect(hdcCursor, &cRect, (HBRUSH)GetStockObject(BLACK_BRUSH));
+
+    // Draw a simple white arrow
+    HPEN hWhitePen = CreatePen(PS_SOLID, 1, RGB(255, 255, 255));
+    HPEN hOldP = (HPEN)SelectObject(hdcCursor, hWhitePen);
+    MoveToEx(hdcCursor, 0, 0, NULL);
+    LineTo(hdcCursor, 15, 10);
+    LineTo(hdcCursor, 10, 15);
+    LineTo(hdcCursor, 0, 0);
+
+    SelectObject(hdcCursor, hOldP);
+    DeleteObject(hWhitePen);
+    SelectObject(hdcCursor, hOldCursorBmp);
+    DeleteDC(hdcCursor);
+
     ReleaseDC(NULL, hdcScreen);
 #endif
 
@@ -95,18 +123,21 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
     FillRect(hdcMem, &rect, (HBRUSH)m_hBrush);
 
     for (auto const& [id, peer] : peers) {
-        // Draw a colorized crosshair or proxy for each peer
+        // Render the cursor bitmap
+        HDC hdcCursor = CreateCompatibleDC(hdcScreen);
+        SelectObject(hdcCursor, (HBITMAP)m_hCursorBitmap);
+
+        // Alpha blending or simple BitBlt with color keying
+        // Since we are using a simple color key, we can use TransparentBlt if available,
+        // or just BitBlt if we don't mind the black background (which is color-keyed anyway)
+        BitBlt(hdcMem, peer.x, peer.y, m_cursorWidth, m_cursorHeight, hdcCursor, 0, 0, SRCPAINT);
+
+        DeleteDC(hdcCursor);
+
+        // Also draw a small colorized indicator
         HBRUSH hBrushColor = CreateSolidBrush(RGB(peer.r, peer.g, peer.b));
-        RECT cursorRect = { peer.x - 5, peer.y - 5, peer.x + 5, peer.y + 5 };
-        FillRect(hdcMem, &cursorRect, hBrushColor);
-
-        HPEN hOldPen = (HPEN)SelectObject(hdcMem, (HPEN)m_hPen);
-        MoveToEx(hdcMem, peer.x - 10, peer.y, NULL);
-        LineTo(hdcMem, peer.x + 10, peer.y);
-        MoveToEx(hdcMem, peer.x, peer.y - 10, NULL);
-        LineTo(hdcMem, peer.x, peer.y + 10);
-
-        SelectObject(hdcMem, hOldPen);
+        RECT indicatorRect = { peer.x, peer.y, peer.x + 4, peer.y + 4 };
+        FillRect(hdcMem, &indicatorRect, hBrushColor);
         DeleteObject(hBrushColor);
     }
 
@@ -130,6 +161,7 @@ void OverlayEngine::Shutdown() {
             DeleteObject((HBITMAP)m_hBitmap);
             if (m_hPen) DeleteObject((HPEN)m_hPen);
             if (m_hBrush) DeleteObject((HBRUSH)m_hBrush);
+            if (m_hCursorBitmap) DeleteObject((HBITMAP)m_hCursorBitmap);
             DeleteDC((HDC)m_hdcMem);
         }
         if (m_hwnd) {

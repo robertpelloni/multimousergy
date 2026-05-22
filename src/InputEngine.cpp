@@ -6,7 +6,7 @@
 static InputEngine* s_instance = nullptr;
 #endif
 
-InputEngine::InputEngine() : m_active(false), m_isCaptured(false) {
+InputEngine::InputEngine() : m_active(false), m_isCaptured(false), m_accumulatedX(0) {
 #ifdef _WIN32
     m_mouseHook = nullptr;
     m_hwnd = nullptr;
@@ -31,23 +31,28 @@ LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
         if (atBoundary && !s_instance->m_isCaptured) {
             // Trigger capture
             s_instance->m_isCaptured = true;
+            s_instance->m_accumulatedX = 0;
+            std::cout << "[Input] Boundary hit. Capturing cursor." << std::endl;
             return 1;
         }
 
         if (s_instance->m_isCaptured) {
             // Logic to release capture:
-            // If the mouse moves significantly back towards the center of the local screen, release.
-            // We use the absolute position from MSLLHOOKSTRUCT
-            int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+            // Since we are suppressing movement, the system cursor is stuck.
+            // We must use RAW INPUT deltas (accumulated in m_accumulatedX)
+            // to detect when the user has pulled back significantly.
+
             bool movingBack = false;
             if (s_instance->m_config.isLeft) {
-                if (mouseInfo->pt.x > s_instance->m_config.boundaryX + 100) movingBack = true;
+                if (s_instance->m_accumulatedX > 100) movingBack = true;
             } else {
-                if (mouseInfo->pt.x < s_instance->m_config.boundaryX - 100) movingBack = true;
+                if (s_instance->m_accumulatedX < -100) movingBack = true;
             }
 
             if (movingBack) {
+                std::cout << "[Input] Release threshold met. Returning to local control." << std::endl;
                 s_instance->m_isCaptured = false;
+                s_instance->m_accumulatedX = 0;
                 return CallNextHookEx(NULL, nCode, wParam, lParam);
             }
 
@@ -112,6 +117,10 @@ void InputEngine::Update() {
                 RAWINPUT* raw = (RAWINPUT*)lpb.data();
                 if (raw->header.dwType == RIM_TYPEMOUSE) {
                         if (raw->data.mouse.usFlags & MOUSE_MOVE_RELATIVE) {
+                            if (m_isCaptured) {
+                                m_accumulatedX += raw->data.mouse.lLastX;
+                            }
+
                             Packet pkt;
                             pkt.type = PacketType::Movement;
                             pkt.x = raw->data.mouse.lLastX;
@@ -123,16 +132,15 @@ void InputEngine::Update() {
 
                         // Button events
                         USHORT flags = raw->data.mouse.usButtonFlags;
-                        if (flags & RI_MOUSE_LEFT_BUTTON_DOWN)   m_pendingPackets.push({PacketType::Click, 0, 0, 0, true});
-                        if (flags & RI_MOUSE_LEFT_BUTTON_UP)     m_pendingPackets.push({PacketType::Click, 0, 0, 0, false});
-                        if (flags & RI_MOUSE_RIGHT_BUTTON_DOWN)  m_pendingPackets.push({PacketType::Click, 0, 0, 1, true});
-                        if (flags & RI_MOUSE_RIGHT_BUTTON_UP)    m_pendingPackets.push({PacketType::Click, 0, 0, 1, false});
-                        if (flags & RI_MOUSE_MIDDLE_BUTTON_DOWN) m_pendingPackets.push({PacketType::Click, 0, 0, 2, true});
-                        if (flags & RI_MOUSE_MIDDLE_BUTTON_UP)   m_pendingPackets.push({PacketType::Click, 0, 0, 2, false});
+                        if (flags & RI_MOUSE_LEFT_BUTTON_DOWN)   m_pendingPackets.push({0, PacketType::Click, 0, 0, 0, true});
+                        if (flags & RI_MOUSE_LEFT_BUTTON_UP)     m_pendingPackets.push({0, PacketType::Click, 0, 0, 0, false});
+                        if (flags & RI_MOUSE_RIGHT_BUTTON_DOWN)  m_pendingPackets.push({0, PacketType::Click, 0, 0, 1, true});
+                        if (flags & RI_MOUSE_RIGHT_BUTTON_UP)    m_pendingPackets.push({0, PacketType::Click, 0, 0, 1, false});
+                        if (flags & RI_MOUSE_MIDDLE_BUTTON_DOWN) m_pendingPackets.push({0, PacketType::Click, 0, 0, 2, true});
+                        if (flags & RI_MOUSE_MIDDLE_BUTTON_UP)   m_pendingPackets.push({0, PacketType::Click, 0, 0, 2, false});
                     }
                 }
             }
-        }
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
