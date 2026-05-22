@@ -14,4 +14,7 @@ public:
 
 private:
     bool m_active;
+#ifdef _WIN32
+    void* m_mouseHook;
+#endif
 };
