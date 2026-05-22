@@ -19,9 +19,12 @@ Successfully implemented and reconciled the functional core of **NetMux** (v0.1.
     *   Implemented a release mechanism in the low-level hook to allow users to regain local cursor control by moving away from the screen edge.
 7.  **Latency Measurement**:
     *   Implemented a high-resolution `Timer` class and integrated periodic RTT latency tracking into the main loop.
+8.  **Orchestration Framework**:
+    *   Implemented `NetMuxFramework` to encapsulate and coordinate core modules.
+    *   Added integration tests in `tests/test_main.cpp`.
 
 ## Current State & Structural Shifts
-- The project is now in a "Stable Alpha" state with functional networking, input, and rendering.
+- The project is now in a "Stable Alpha" state with a centralized orchestration framework and verified integration logic.
 - Documentation and versioning are strictly maintained.
 - All code is Win32-guarded and verified to build on Linux.
 

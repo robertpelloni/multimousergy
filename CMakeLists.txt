@@ -13,6 +13,7 @@ set(LIB_SOURCES
     src/ConfigManager.cpp
     src/ConfigGUI.cpp
     src/Timer.cpp
+    src/NetMuxFramework.cpp
 )
 
 # Library

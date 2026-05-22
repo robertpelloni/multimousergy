@@ -1,12 +1,7 @@
 #include <iostream>
 #include <algorithm>
-#include "DriverInterface.hpp"
-#include "InputEngine.hpp"
-#include "NetworkManager.hpp"
-#include "OverlayEngine.hpp"
-#include "ConfigManager.hpp"
+#include "NetMuxFramework.hpp"
 #include "ConfigGUI.hpp"
-#include "Timer.hpp"
 
 #include <thread>
 #include <chrono>
@@ -45,15 +40,16 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    NetworkManager network;
+    NetMuxFramework framework;
 
     // Optional Peer Discovery Phase
     if (firstRun) {
         std::cout << "Searching for peers (5 seconds)..." << std::endl;
         auto start = std::chrono::steady_clock::now();
         while (std::chrono::steady_clock::now() - start < std::chrono::seconds(5)) {
+            NetworkManager tempNetwork;
             DiscoveryPacket dpkt;
-            if (network.PollDiscovery(dpkt)) {
+            if (tempNetwork.PollDiscovery(dpkt)) {
                 std::cout << "Found peer: " << dpkt.hostname << " on port " << dpkt.port << std::endl;
                 settings.remoteIp = dpkt.hostname;
                 settings.port = dpkt.port;
@@ -67,85 +63,12 @@ int main(int argc, char* argv[]) {
         if (!ConfigGUI::ShowDialog(settings)) return 0;
         configManager.Save(settings);
     }
-    InputEngine input;
-    DriverInterface driver;
-    OverlayEngine overlay;
 
-    if (settings.isServer) {
-        if (!network.StartServer(settings.port)) {
-            std::cerr << "Failed to start server on port " << settings.port << std::endl;
-            return 1;
-        }
-    } else {
-        if (!network.Connect(settings.remoteIp, settings.port)) {
-            std::cerr << "Failed to connect to " << settings.remoteIp << ":" << settings.port << std::endl;
-            return 1;
-        }
-    }
-
-    if (!driver.Initialize() || !input.Initialize(settings.inputConfig) || !overlay.Initialize()) {
-        std::cerr << "Failed to initialize core components." << std::endl;
+    if (!framework.Initialize(settings)) {
         return 1;
     }
 
-    overlay.SetColor(colorR, colorG, colorB);
-
-    // Basic loop for demonstration
-    bool running = true;
-    int remoteX = 0, remoteY = 0;
-    Timer loopTimer;
-    Timer syncTimer;
-    double lastSyncTime = 0;
-
-    while (running) {
-        input.Update();
-
-        // Periodic Latency Sync (every 1 second)
-        if (loopTimer.ElapsedMilliseconds() - lastSyncTime > 1000.0) {
-            Packet syncPkt = { PacketType::Sync, 0, 0, 0, false };
-            network.SendPacket(syncPkt);
-            syncTimer.Reset();
-            lastSyncTime = loopTimer.ElapsedMilliseconds();
-        }
-
-        Packet outPkt;
-        while (input.GetPendingPacket(outPkt)) {
-            if (input.IsCaptured()) {
-                network.SendPacket(outPkt);
-            }
-        }
-
-        Packet inPkt;
-        while (network.ReceivePacket(inPkt)) {
-            if (inPkt.type == PacketType::Movement) {
-                remoteX += inPkt.x;
-                remoteY += inPkt.y;
-
-                // Clamp to screen bounds
-#ifdef _WIN32
-                remoteX = std::max(0, std::min(remoteX, (int)GetSystemMetrics(SM_CXSCREEN)));
-                remoteY = std::max(0, std::min(remoteY, (int)GetSystemMetrics(SM_CYSCREEN)));
-#endif
-
-                overlay.Render(remoteX, remoteY);
-                driver.SendMouseMovement(inPkt.x, inPkt.y);
-            } else if (inPkt.type == PacketType::Click) {
-                input.PerformWarpClickRestore(remoteX, remoteY, inPkt.button, inPkt.down);
-                driver.SendMouseButton(inPkt.button, inPkt.down);
-            } else if (inPkt.type == PacketType::Sync) {
-                if (settings.isServer) {
-                    // Server reflects sync back to client
-                    network.SendPacket(inPkt);
-                } else {
-                    // Client calculates RTT
-                    double rtt = syncTimer.ElapsedMilliseconds();
-                    std::cout << "[Latency] RTT: " << rtt << " ms" << std::endl;
-                }
-            }
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
+    framework.Run();
 
     return 0;
 }
