@@ -28,6 +28,8 @@ private:
     bool m_active;
     bool m_isCaptured;
     long m_accumulatedX;
+    int m_virtualX;
+    int m_virtualY;
     Config m_config;
     std::queue<Packet> m_pendingPackets;
 #ifdef _WIN32

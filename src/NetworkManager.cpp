@@ -286,11 +286,10 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
 
     for (auto it = targets.begin(); it != targets.end(); ) {
         SOCKET targetTcp = *it;
-        char tempBuf[sizeof(Packet)];
+        char tempBuf[sizeof(Packet) * 10]; // Receive multiple packets at once
         result = recv(targetTcp, tempBuf, sizeof(tempBuf), 0);
         if (result > 0) {
             m_tcpBuffer.insert(m_tcpBuffer.end(), tempBuf, tempBuf + result);
-            break; // Process one packet at a time for now
         } else if (result == 0) {
             std::cout << "[Network] Peer closed TCP connection." << std::endl;
             closesocket(targetTcp);

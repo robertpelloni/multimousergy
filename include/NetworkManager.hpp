@@ -10,6 +10,7 @@
 
 enum class PacketType {
     Movement,
+    AbsoluteMovement,
     Click,
     Sync,
     Discovery

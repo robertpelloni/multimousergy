@@ -6,7 +6,7 @@
 static InputEngine* s_instance = nullptr;
 #endif
 
-InputEngine::InputEngine() : m_active(false), m_isCaptured(false), m_accumulatedX(0) {
+InputEngine::InputEngine() : m_active(false), m_isCaptured(false), m_accumulatedX(0), m_virtualX(0), m_virtualY(0) {
 #ifdef _WIN32
     m_mouseHook = nullptr;
     m_hwnd = nullptr;
@@ -32,7 +32,9 @@ LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
             // Trigger capture
             s_instance->m_isCaptured = true;
             s_instance->m_accumulatedX = 0;
-            std::cout << "[Input] Boundary hit. Capturing cursor." << std::endl;
+            s_instance->m_virtualX = mouseInfo->pt.x;
+            s_instance->m_virtualY = mouseInfo->pt.y;
+            std::cout << "[Input] Boundary hit. Capturing cursor at (" << s_instance->m_virtualX << "," << s_instance->m_virtualY << ")" << std::endl;
             return 1;
         }
 
@@ -119,16 +121,39 @@ void InputEngine::Update() {
                         if (raw->data.mouse.usFlags & MOUSE_MOVE_RELATIVE) {
                             if (m_isCaptured) {
                                 m_accumulatedX += raw->data.mouse.lLastX;
-                            }
+                                m_virtualX += raw->data.mouse.lLastX;
+                                m_virtualY += raw->data.mouse.lLastY;
 
-                            Packet pkt;
-                            pkt.senderId = 0;
-                            pkt.type = PacketType::Movement;
-                            pkt.x = raw->data.mouse.lLastX;
-                            pkt.y = raw->data.mouse.lLastY;
-                            pkt.button = 0;
-                            pkt.down = false;
-                            m_pendingPackets.push(pkt);
+                                // Send absolute position update instead of relative
+                                Packet pkt;
+                                pkt.senderId = 0;
+                                pkt.type = PacketType::AbsoluteMovement;
+
+                                // Normalized coordinates 0-65535
+                                int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+                                int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+
+                                // Clamp virtual coords
+                                if (m_virtualX < 0) m_virtualX = 0;
+                                if (m_virtualX >= screenWidth) m_virtualX = screenWidth - 1;
+                                if (m_virtualY < 0) m_virtualY = 0;
+                                if (m_virtualY >= screenHeight) m_virtualY = screenHeight - 1;
+
+                                pkt.x = (m_virtualX * 65535) / (screenWidth - 1);
+                                pkt.y = (m_virtualY * 65535) / (screenHeight - 1);
+                                pkt.button = 0;
+                                pkt.down = false;
+                                m_pendingPackets.push(pkt);
+                            } else {
+                                Packet pkt;
+                                pkt.senderId = 0;
+                                pkt.type = PacketType::Movement;
+                                pkt.x = raw->data.mouse.lLastX;
+                                pkt.y = raw->data.mouse.lLastY;
+                                pkt.button = 0;
+                                pkt.down = false;
+                                m_pendingPackets.push(pkt);
+                            }
                         }
 
                         // Button events

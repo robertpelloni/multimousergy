@@ -30,6 +30,16 @@ private:
     void PerformLatencySync();
     void PerformDiscoveryBroadcast();
 
+    static int Normalize(int val, int max) {
+        if (max <= 1) return 0;
+        return (val * 65535) / (max - 1);
+    }
+
+    static int Denormalize(int val, int max) {
+        if (max <= 1) return 0;
+        return (val * (max - 1)) / 65535;
+    }
+
     NetworkManager m_network;
     InputEngine m_input;
     DriverInterface m_driver;

@@ -97,10 +97,6 @@ void NetMuxFramework::ProcessIncomingPackets() {
 
         if (inPkt.type == PacketType::Movement) {
             PeerCursor& peer = m_peers[peerId];
-
-            // ARCHITECTURE NOTE:
-            // For now we use relative deltas. In a future step, we will implement
-            // 0-65535 absolute normalization to handle different monitor resolutions.
             peer.x += inPkt.x;
             peer.y += inPkt.y;
 
@@ -109,14 +105,32 @@ void NetMuxFramework::ProcessIncomingPackets() {
             peer.x = std::max(0, std::min(peer.x, (int)GetSystemMetrics(SM_CXSCREEN)));
             peer.y = std::max(0, std::min(peer.y, (int)GetSystemMetrics(SM_CYSCREEN)));
 #endif
+            m_overlayDirty = true;
+            m_driver.SendMouseMovement(inPkt.x, inPkt.y);
+        } else if (inPkt.type == PacketType::AbsoluteMovement) {
+            PeerCursor& peer = m_peers[peerId];
+
+            int screenWidth = 1920, screenHeight = 1080;
+#ifdef _WIN32
+            screenWidth = GetSystemMetrics(SM_CXSCREEN);
+            screenHeight = GetSystemMetrics(SM_CYSCREEN);
+#endif
+            int newX = Denormalize(inPkt.x, screenWidth);
+            int newY = Denormalize(inPkt.y, screenHeight);
+
+            long dx = newX - peer.x;
+            long dy = newY - peer.y;
+
+            peer.x = newX;
+            peer.y = newY;
 
             m_overlayDirty = true;
+            m_driver.SendMouseMovement(dx, dy);
 
-            // ARCHITECTURE ALIGNMENT:
-            // We must use the hardware-level DriverInterface for injection to avoid
-            // hijacking the native system cursor.
-            if (!m_driver.SendMouseMovement(inPkt.x, inPkt.y)) {
-                // Future fallback logic could go here if the driver is unavailable.
+            // SERVER-SIDE BROADCAST (Conflict Resolution)
+            // If we are server, rebroadcast absolute position of this peer to all other peers
+            if (m_settings.isServer) {
+                m_network.SendPacket(inPkt);
             }
         } else if (inPkt.type == PacketType::Click) {
             PeerCursor& peer = m_peers[peerId];
