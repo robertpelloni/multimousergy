@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
         }
 
         Packet inPkt;
-        if (network.ReceivePacket(inPkt)) {
+        while (network.ReceivePacket(inPkt)) {
             if (inPkt.type == PacketType::Movement) {
                 remoteX += inPkt.x;
                 remoteY += inPkt.y;

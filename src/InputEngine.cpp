@@ -80,11 +80,13 @@ void InputEngine::Update() {
             HRAWINPUT hRawInput = (HRAWINPUT)msg.lParam;
             UINT dwSize;
             GetRawInputData(hRawInput, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
-            LPBYTE lpb = new BYTE[dwSize];
-            if (lpb != NULL) {
-                if (GetRawInputData(hRawInput, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) == dwSize) {
-                    RAWINPUT* raw = (RAWINPUT*)lpb;
-                    if (raw->header.dwType == RIM_TYPEMOUSE) {
+
+            static std::vector<BYTE> lpb;
+            if (lpb.size() < dwSize) lpb.resize(dwSize);
+
+            if (GetRawInputData(hRawInput, RID_INPUT, lpb.data(), &dwSize, sizeof(RAWINPUTHEADER)) == dwSize) {
+                RAWINPUT* raw = (RAWINPUT*)lpb.data();
+                if (raw->header.dwType == RIM_TYPEMOUSE) {
                         if (raw->data.mouse.usFlags & MOUSE_MOVE_RELATIVE) {
                             Packet pkt;
                             pkt.type = PacketType::Movement;
@@ -105,7 +107,6 @@ void InputEngine::Update() {
                         if (flags & RI_MOUSE_MIDDLE_BUTTON_UP)   m_pendingPackets.push({PacketType::Click, 0, 0, 2, false});
                     }
                 }
-                delete[] lpb;
             }
         }
         TranslateMessage(&msg);
