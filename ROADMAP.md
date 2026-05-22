@@ -2,16 +2,17 @@
 
 ## Milestone 1: Core Connectivity
 - [ ] Virtual HID Driver integration (ViGEmBus).
-- [ ] Raw Input interception and local cursor suppression.
-- [ ] Basic UDP networking for cursor sync.
+- [x] Raw Input interception and local cursor suppression logic.
+- [x] Bidirectional non-blocking networking for cursor and state sync.
 
 ## Milestone 2: Independent Rendering
-- [ ] Hardware-accelerated cursor overlay.
-- [ ] Low-latency rendering loop.
+- [x] Transparent layered window overlay.
+- [x] Standard cursor icon rendering.
+- [ ] D3D11 hardware-accelerated overlay (Performance optimization).
 
 ## Milestone 3: Interaction & Multiplexing
-- [ ] TCP state sync for clicks and buttons.
-- [ ] Warp-Click-Restore implementation for window focus.
+- [x] TCP state sync for clicks and buttons.
+- [x] Warp-Click-Restore helper implementation.
 
 ## Milestone 4: Polishing & UI
 - [ ] Configuration GUI.

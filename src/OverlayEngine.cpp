@@ -72,11 +72,9 @@ void OverlayEngine::Render(int cursorX, int cursorY) {
     FillRect(hdc, &rect, hBrush);
     DeleteObject(hBrush);
 
-    // Draw a small red square as a cursor proxy
-    HBRUSH hCursorBrush = CreateSolidBrush(RGB(255, 0, 0));
-    RECT cursorRect = { cursorX, cursorY, cursorX + 10, cursorY + 10 };
-    FillRect(hdc, &cursorRect, hCursorBrush);
-    DeleteObject(hCursorBrush);
+    // Draw a standard mouse cursor icon
+    HCURSOR hCursor = LoadCursor(NULL, IDC_ARROW);
+    DrawIcon(hdc, cursorX, cursorY, hCursor);
 
     ReleaseDC(hwnd, hdc);
 #endif

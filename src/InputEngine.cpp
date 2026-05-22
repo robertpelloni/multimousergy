@@ -21,9 +21,8 @@ LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode >= 0 && s_instance) {
         MSLLHOOKSTRUCT* mouseInfo = (MSLLHOOKSTRUCT*)lParam;
         if (s_instance->IsAtBoundary(mouseInfo->pt.x, mouseInfo->pt.y)) {
-            // Stub: In a real implementation, we would return 1 to suppress the message
-            // and trigger the network crossover.
-            // return 1;
+            // Suppress the message and trigger network crossover
+            return 1;
         }
     }
     return CallNextHookEx(NULL, nCode, wParam, lParam);
@@ -125,4 +124,26 @@ bool InputEngine::GetPendingPacket(Packet& pkt) {
     pkt = m_pendingPackets.front();
     m_pendingPackets.pop();
     return true;
+}
+
+void InputEngine::PerformWarpClickRestore(int targetX, int targetY, int button, bool down) {
+#ifdef _WIN32
+    POINT oldPos;
+    GetCursorPos(&oldPos);
+
+    // Snap to remote cursor position
+    SetCursorPos(targetX, targetY);
+
+    // Inject click
+    INPUT input = {0};
+    input.type = INPUT_MOUSE;
+    if (button == 0) input.mi.dwFlags = down ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_LEFTUP;
+    else if (button == 1) input.mi.dwFlags = down ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_RIGHTUP;
+    else if (button == 2) input.mi.dwFlags = down ? MOUSEEVENTF_MIDDLEDOWN : MOUSEEVENTF_MIDDLEUP;
+
+    SendInput(1, &input, sizeof(INPUT));
+
+    // Restore local cursor position
+    SetCursorPos(oldPos.x, oldPos.y);
+#endif
 }

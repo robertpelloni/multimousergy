@@ -72,6 +72,7 @@ int main(int argc, char* argv[]) {
                 overlay.Render(remoteX, remoteY);
                 driver.SendMouseMovement(inPkt.x, inPkt.y);
             } else if (inPkt.type == PacketType::Click) {
+                input.PerformWarpClickRestore(remoteX, remoteY, inPkt.button, inPkt.down);
                 driver.SendMouseButton(inPkt.button, inPkt.down);
             }
         }

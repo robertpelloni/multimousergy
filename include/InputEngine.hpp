@@ -20,6 +20,7 @@ public:
 
     bool IsAtBoundary(int x, int y);
     bool GetPendingPacket(Packet& pkt);
+    void PerformWarpClickRestore(int targetX, int targetY, int button, bool down);
 
 private:
     bool m_active;
