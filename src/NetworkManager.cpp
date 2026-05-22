@@ -18,7 +18,7 @@
     #define closesocket close
 #endif
 
-NetworkManager::NetworkManager() : m_running(false), m_udpSocket(INVALID_SOCKET), m_tcpSocket(INVALID_SOCKET), m_clientTcpSocket(INVALID_SOCKET), m_remoteAddr(nullptr) {
+NetworkManager::NetworkManager() : m_running(false), m_udpSocket(INVALID_SOCKET), m_tcpSocket(INVALID_SOCKET), m_clientTcpSocket(INVALID_SOCKET), m_hasRemoteAddr(false) {
 #ifdef _WIN32
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -78,11 +78,10 @@ bool NetworkManager::StartServer(int port) {
 bool NetworkManager::Connect(const std::string& address, int port) {
     std::cout << "[Network] Connecting to " << address << ":" << port << "..." << std::endl;
 
-    m_remoteAddr = malloc(sizeof(sockaddr_in));
-    sockaddr_in* remoteAddr = (sockaddr_in*)m_remoteAddr;
-    remoteAddr->sin_family = AF_INET;
-    remoteAddr->sin_port = htons(port);
-    inet_pton(AF_INET, address.c_str(), &remoteAddr->sin_addr);
+    m_remoteAddr.sin_family = AF_INET;
+    m_remoteAddr.sin_port = htons(port);
+    inet_pton(AF_INET, address.c_str(), &m_remoteAddr.sin_addr);
+    m_hasRemoteAddr = true;
 
     m_udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (m_udpSocket == INVALID_SOCKET) return false;
@@ -127,8 +126,8 @@ void NetworkManager::SendPacket(const Packet& packet) {
 
     if (packet.type == PacketType::Movement) {
         // UDP for movement
-        if (m_remoteAddr) {
-            sendto(m_udpSocket, (const char*)&packet, sizeof(packet), 0, (struct sockaddr*)m_remoteAddr, sizeof(sockaddr_in));
+        if (m_hasRemoteAddr) {
+            sendto(m_udpSocket, (const char*)&packet, sizeof(packet), 0, (struct sockaddr*)&m_remoteAddr, sizeof(sockaddr_in));
         }
     } else {
         // TCP for clicks/sync
@@ -164,9 +163,9 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
     int result = recvfrom(m_udpSocket, (char*)&packet, sizeof(packet), 0, (struct sockaddr*)&fromAddr, &fromLen);
     if (result > 0) {
         // If we don't have a remote address yet, learn it from this UDP packet
-        if (!m_remoteAddr) {
-            m_remoteAddr = malloc(sizeof(sockaddr_in));
-            memcpy(m_remoteAddr, &fromAddr, sizeof(sockaddr_in));
+        if (!m_hasRemoteAddr) {
+            m_remoteAddr = fromAddr;
+            m_hasRemoteAddr = true;
         }
         return true;
     }
@@ -207,10 +206,7 @@ void NetworkManager::Shutdown() {
             closesocket(m_clientTcpSocket);
             m_clientTcpSocket = INVALID_SOCKET;
         }
-        if (m_remoteAddr) {
-            free(m_remoteAddr);
-            m_remoteAddr = nullptr;
-        }
+        m_hasRemoteAddr = false;
         m_running = false;
     }
 }

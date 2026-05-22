@@ -14,4 +14,8 @@ public:
 
 private:
     bool m_initialized;
+#ifdef _WIN32
+    void* m_client;
+    void* m_target;
+#endif
 };

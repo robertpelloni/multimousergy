@@ -24,11 +24,11 @@ Successfully transitioned **NetMux** from a skeletal scaffold to a functionally 
 - Input interception uses a hidden message-only window and optimized memory management (`std::vector`).
 - The main loop drains the network buffer by processing all pending packets in each iteration.
 - Cursor movement is tracked absolutely on the receiver side and clamped to screen bounds for rendering.
-- Local cursor suppression is active when boundaries are reached.
-- `PerformWarpClickRestore` is wired into the main loop for remote interaction.
+- Local cursor suppression and capture release logic is implemented in `MouseHookProc`.
+- `NetworkManager` is refactored for better type safety with typed address members.
+- `DriverInterface` contains structural handles for ViGEmBus integration.
 
 ## Successor Instructions
-- **Driver Integration**: Integrate the `DriverInterface` with the actual ViGEmBus C++ API to instantiate a virtual mouse.
-- **Crossover State Machine**: Implement logic to toggle network transmission only when the cursor is "captured" by the remote side to avoid dual-cursor movement.
+- **Driver Integration**: Integrate the `DriverInterface` with the actual ViGEmBus C++ API to instantiate a virtual mouse and replace `SendInput` calls to adhere to architecture constraints.
 - **Optimization**: Consider moving the GDI overlay to D3D11 if performance becomes an issue or for better alpha blending.
 - **Config GUI**: Start planning a simple Win32 or Qt/ImGui interface for easier configuration of IPs and boundaries.

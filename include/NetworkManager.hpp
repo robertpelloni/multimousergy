@@ -1,6 +1,12 @@
 #pragma once
 #include <string>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <netinet/in.h>
+#endif
+
 enum class PacketType {
     Movement,
     Click,
@@ -33,5 +39,6 @@ private:
     unsigned long long m_udpSocket; // Using unsigned long long to accommodate SOCKET on 64-bit Windows
     unsigned long long m_tcpSocket;
     unsigned long long m_clientTcpSocket;
-    void* m_remoteAddr; // sockaddr_in storage
+    sockaddr_in m_remoteAddr;
+    bool m_hasRemoteAddr;
 };
