@@ -25,7 +25,8 @@ LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
 }
 #endif
 
-bool InputEngine::Initialize() {
+bool InputEngine::Initialize(const Config& config) {
+    m_config = config;
     std::cout << "[Input] Initializing Raw Input and Hooks..." << std::endl;
 
 #ifdef _WIN32
@@ -53,6 +54,23 @@ void InputEngine::Update() {
 #ifdef _WIN32
     MSG msg;
     while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+        if (msg.message == WM_INPUT) {
+            HRAWINPUT hRawInput = (HRAWINPUT)msg.lParam;
+            UINT dwSize;
+            GetRawInputData(hRawInput, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
+            LPBYTE lpb = new BYTE[dwSize];
+            if (lpb != NULL) {
+                if (GetRawInputData(hRawInput, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) == dwSize) {
+                    RAWINPUT* raw = (RAWINPUT*)lpb;
+                    if (raw->header.dwType == RIM_TYPEMOUSE) {
+                        // Capture deltas
+                        // Packet pkt = { PacketType::Movement, raw->data.mouse.lLastX, raw->data.mouse.lLastY, 0, false };
+                        // m_pendingPackets.push(pkt);
+                    }
+                }
+                delete[] lpb;
+            }
+        }
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
@@ -73,8 +91,11 @@ void InputEngine::Shutdown() {
 }
 
 bool InputEngine::IsAtBoundary(int x, int y) {
-    // Basic logic for boundary detection
-    return false;
+    if (m_config.isLeft) {
+        return x <= m_config.boundaryX;
+    } else {
+        return x >= m_config.boundaryX;
+    }
 }
 
 bool InputEngine::GetPendingPacket(Packet& pkt) {

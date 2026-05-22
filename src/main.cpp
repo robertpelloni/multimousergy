@@ -13,6 +13,7 @@ int main(int argc, char* argv[]) {
     bool isServer = false;
     std::string remoteIp = "127.0.0.1";
     int port = 5555;
+    Config config = { 0, 0, false };
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -22,6 +23,10 @@ int main(int argc, char* argv[]) {
             remoteIp = argv[++i];
         } else if (arg == "--port" && i + 1 < argc) {
             port = std::stoi(argv[++i]);
+        } else if (arg == "--boundary-x" && i + 1 < argc) {
+            config.boundaryX = std::stoi(argv[++i]);
+        } else if (arg == "--left") {
+            config.isLeft = true;
         }
     }
 
@@ -42,7 +47,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if (!driver.Initialize() || !input.Initialize() || !overlay.Initialize()) {
+    if (!driver.Initialize() || !input.Initialize(config) || !overlay.Initialize()) {
         std::cerr << "Failed to initialize core components." << std::endl;
         return 1;
     }
