@@ -27,6 +27,8 @@ Successfully transitioned **NetMux** from a skeletal scaffold to a functionally 
 - Local cursor suppression and capture release logic is implemented in `MouseHookProc`.
 - `NetworkManager` is refactored for better type safety with typed address members.
 - `DriverInterface` contains structural handles for ViGEmBus integration.
+- `ConfigManager` and `ConfigGUI` provide settings persistence and interactive configuration.
+- `OverlayEngine` is optimized with pre-allocated GDI resources and flicker-free `UpdateLayeredWindow` updates.
 
 ## Successor Instructions
 - **Driver Integration**: Integrate the `DriverInterface` with the actual ViGEmBus C++ API to instantiate a virtual mouse and replace `SendInput` calls to adhere to architecture constraints.

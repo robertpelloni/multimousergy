@@ -10,6 +10,8 @@ set(LIB_SOURCES
     src/InputEngine.cpp
     src/NetworkManager.cpp
     src/OverlayEngine.cpp
+    src/ConfigManager.cpp
+    src/ConfigGUI.cpp
 )
 
 # Include directories

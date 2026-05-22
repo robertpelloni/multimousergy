@@ -4,6 +4,8 @@
 #include "InputEngine.hpp"
 #include "NetworkManager.hpp"
 #include "OverlayEngine.hpp"
+#include "ConfigManager.hpp"
+#include "ConfigGUI.hpp"
 
 #include <thread>
 #include <chrono>
@@ -11,23 +13,29 @@
 int main(int argc, char* argv[]) {
     std::cout << "NetMux starting..." << std::endl;
 
-    bool isServer = false;
-    std::string remoteIp = "127.0.0.1";
-    int port = 5555;
-    Config config = { 0, 0, false };
+    ConfigManager configManager("netmux.cfg");
+    AppSettings settings = { false, "127.0.0.1", 5555, {0, 0, false} };
 
+    if (!configManager.Load(settings)) {
+        std::cout << "No configuration file found. Using defaults." << std::endl;
+    }
+
+    // Override with command line arguments if any
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--server") {
-            isServer = true;
+            settings.isServer = true;
         } else if (arg == "--client" && i + 1 < argc) {
-            remoteIp = argv[++i];
+            settings.remoteIp = argv[++i];
         } else if (arg == "--port" && i + 1 < argc) {
-            port = std::stoi(argv[++i]);
+            settings.port = std::stoi(argv[++i]);
         } else if (arg == "--boundary-x" && i + 1 < argc) {
-            config.boundaryX = std::stoi(argv[++i]);
+            settings.inputConfig.boundaryX = std::stoi(argv[++i]);
         } else if (arg == "--left") {
-            config.isLeft = true;
+            settings.inputConfig.isLeft = true;
+        } else if (arg == "--gui") {
+            if (!ConfigGUI::ShowDialog(settings)) return 0;
+            configManager.Save(settings);
         }
     }
 
@@ -36,19 +44,19 @@ int main(int argc, char* argv[]) {
     DriverInterface driver;
     OverlayEngine overlay;
 
-    if (isServer) {
-        if (!network.StartServer(port)) {
-            std::cerr << "Failed to start server on port " << port << std::endl;
+    if (settings.isServer) {
+        if (!network.StartServer(settings.port)) {
+            std::cerr << "Failed to start server on port " << settings.port << std::endl;
             return 1;
         }
     } else {
-        if (!network.Connect(remoteIp, port)) {
-            std::cerr << "Failed to connect to " << remoteIp << ":" << port << std::endl;
+        if (!network.Connect(settings.remoteIp, settings.port)) {
+            std::cerr << "Failed to connect to " << settings.remoteIp << ":" << settings.port << std::endl;
             return 1;
         }
     }
 
-    if (!driver.Initialize() || !input.Initialize(config) || !overlay.Initialize()) {
+    if (!driver.Initialize() || !input.Initialize(settings.inputConfig) || !overlay.Initialize()) {
         std::cerr << "Failed to initialize core components." << std::endl;
         return 1;
     }

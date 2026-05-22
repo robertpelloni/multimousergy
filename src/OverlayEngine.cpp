@@ -21,6 +21,11 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 OverlayEngine::OverlayEngine() : m_active(false) {
 #ifdef _WIN32
     m_hwnd = nullptr;
+    m_hdcMem = nullptr;
+    m_hBitmap = nullptr;
+    m_hOldBitmap = nullptr;
+    m_screenWidth = 0;
+    m_screenHeight = 0;
 #endif
 }
 
@@ -52,6 +57,15 @@ bool OverlayEngine::Initialize() {
     // Use a color key for transparency (e.g., black is transparent)
     SetLayeredWindowAttributes((HWND)m_hwnd, RGB(0, 0, 0), 0, LWA_COLORKEY);
     ShowWindow((HWND)m_hwnd, SW_SHOW);
+
+    // Pre-allocate resources for flicker-free rendering
+    m_screenWidth = GetSystemMetrics(SM_CXSCREEN);
+    m_screenHeight = GetSystemMetrics(SM_CYSCREEN);
+    HDC hdcScreen = GetDC(NULL);
+    m_hdcMem = CreateCompatibleDC(hdcScreen);
+    m_hBitmap = CreateCompatibleBitmap(hdcScreen, m_screenWidth, m_screenHeight);
+    m_hOldBitmap = SelectObject((HDC)m_hdcMem, (HBITMAP)m_hBitmap);
+    ReleaseDC(NULL, hdcScreen);
 #endif
 
     m_active = true;
@@ -63,17 +77,11 @@ void OverlayEngine::Render(int cursorX, int cursorY) {
 
 #ifdef _WIN32
     HWND hwnd = (HWND)m_hwnd;
+    HDC hdcMem = (HDC)m_hdcMem;
     HDC hdcScreen = GetDC(NULL);
-    HDC hdcMem = CreateCompatibleDC(hdcScreen);
 
-    int screenWidth = GetSystemMetrics(SM_CXSCREEN);
-    int screenHeight = GetSystemMetrics(SM_CYSCREEN);
-
-    HBITMAP hBitmap = CreateCompatibleBitmap(hdcScreen, screenWidth, screenHeight);
-    HBITMAP hOldBitmap = (HBITMAP)SelectObject(hdcMem, hBitmap);
-
-    // Fill with transparent color (black + color key)
-    RECT rect = { 0, 0, screenWidth, screenHeight };
+    // Clear with transparent color (black + color key)
+    RECT rect = { 0, 0, m_screenWidth, m_screenHeight };
     HBRUSH hBrush = CreateSolidBrush(RGB(0, 0, 0));
     FillRect(hdcMem, &rect, hBrush);
     DeleteObject(hBrush);
@@ -84,15 +92,11 @@ void OverlayEngine::Render(int cursorX, int cursorY) {
 
     POINT ptSrc = { 0, 0 };
     POINT ptDest = { 0, 0 };
-    SIZE size = { screenWidth, screenHeight };
+    SIZE size = { m_screenWidth, m_screenHeight };
     BLENDFUNCTION blend = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
 
-    // UpdateLayeredWindow with alpha or just simple transparency
     UpdateLayeredWindow(hwnd, hdcScreen, &ptDest, &size, hdcMem, &ptSrc, RGB(0,0,0), &blend, ULW_COLORKEY);
 
-    SelectObject(hdcMem, hOldBitmap);
-    DeleteObject(hBitmap);
-    DeleteDC(hdcMem);
     ReleaseDC(NULL, hdcScreen);
 #endif
 }
@@ -101,6 +105,11 @@ void OverlayEngine::Shutdown() {
     if (m_active) {
         std::cout << "[Overlay] Shutting down overlay..." << std::endl;
 #ifdef _WIN32
+        if (m_hdcMem) {
+            SelectObject((HDC)m_hdcMem, (HBITMAP)m_hOldBitmap);
+            DeleteObject((HBITMAP)m_hBitmap);
+            DeleteDC((HDC)m_hdcMem);
+        }
         if (m_hwnd) {
             DestroyWindow((HWND)m_hwnd);
             m_hwnd = nullptr;
