@@ -16,7 +16,11 @@ bool InputEngine::Initialize() {
 
 void InputEngine::Update() {
     if (!m_active) return;
-    // Process input messages
+
+    // Stub: Simulate mouse movement detection
+    static int lastX = 0, lastY = 0;
+    // In a real Windows app, we would use GetCursorPos or Raw Input data here.
+    // std::cout << "[Input] Updating..." << std::endl;
 }
 
 void InputEngine::Shutdown() {
