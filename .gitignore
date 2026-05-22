@@ -1,0 +1,34 @@
+# CMake artifacts
+CMakeCache.txt
+CMakeFiles/
+CMakeLists.txt.user
+CMakeLists.txt.tmp
+cmake_install.cmake
+Makefile
+Testing/
+CTestTestfile.cmake
+
+# Build artifacts
+NetMux
+NetMuxTests
+libNetMuxLib.a
+*.o
+*.a
+*.exe
+*.obj
+*.lib
+*.dll
+*.pdb
+*.suo
+*.user
+*.ncb
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+# Binaries
+bin/
+build/
+dist/
+out/
