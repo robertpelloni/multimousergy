@@ -51,12 +51,29 @@ void DriverInterface::Shutdown() {
 
 bool DriverInterface::SendMouseMovement(long dx, long dy) {
     if (!m_initialized) return false;
-    // std::cout << "[Driver] Moving mouse: " << dx << ", " << dy << std::endl;
+
+    m_lastX += dx;
+    m_lastY += dy;
+
+#ifdef _WIN32
+    // Pseudo-code for updating virtual HID state
+    // vigem_target_x360_update(m_client, m_target, report);
+#endif
+
     return true;
 }
 
 bool DriverInterface::SendMouseButton(int button, bool down) {
     if (!m_initialized) return false;
-    std::cout << "[Driver] Button " << button << (down ? " down" : " up") << std::endl;
+
+    if (down) m_buttonState |= (1 << button);
+    else m_buttonState &= ~(1 << button);
+
+    std::cout << "[Driver] Button " << button << (down ? " down" : " up") << " (State: " << m_buttonState << ")" << std::endl;
+
+#ifdef _WIN32
+    // Pseudo-code for updating virtual HID buttons
+#endif
+
     return true;
 }

@@ -198,6 +198,19 @@ bool NetworkManager::ListenForPeers(DiscoveryPacket& pkt) {
     return false;
 }
 
+bool NetworkManager::PollDiscovery(DiscoveryPacket& pkt) {
+    if (m_udpSocket == INVALID_SOCKET) return false;
+
+    sockaddr_in fromAddr;
+    socklen_t fromLen = sizeof(fromAddr);
+    int result = recvfrom(m_udpSocket, (char*)&pkt, sizeof(pkt), 0, (struct sockaddr*)&fromAddr, &fromLen);
+
+    if (result > 0) {
+        return true;
+    }
+    return false;
+}
+
 bool NetworkManager::ReceivePacket(Packet& packet) {
     if (!m_running) return false;
 

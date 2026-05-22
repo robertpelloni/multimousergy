@@ -40,6 +40,7 @@ public:
 
     bool BroadcastDiscovery(int port);
     bool ListenForPeers(DiscoveryPacket& pkt);
+    bool PollDiscovery(DiscoveryPacket& pkt);
 
     void Shutdown();
 

@@ -48,12 +48,17 @@ int main(int argc, char* argv[]) {
 
     // Optional Peer Discovery Phase
     if (firstRun) {
-        std::cout << "Searching for peers..." << std::endl;
-        DiscoveryPacket dpkt;
-        if (network.ListenForPeers(dpkt)) {
-            std::cout << "Found peer: " << dpkt.hostname << " on port " << dpkt.port << std::endl;
-            settings.remoteIp = dpkt.hostname; // Simplified
-            settings.port = dpkt.port;
+        std::cout << "Searching for peers (5 seconds)..." << std::endl;
+        auto start = std::chrono::steady_clock::now();
+        while (std::chrono::steady_clock::now() - start < std::chrono::seconds(5)) {
+            DiscoveryPacket dpkt;
+            if (network.PollDiscovery(dpkt)) {
+                std::cout << "Found peer: " << dpkt.hostname << " on port " << dpkt.port << std::endl;
+                settings.remoteIp = dpkt.hostname;
+                settings.port = dpkt.port;
+                break;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
     }
 

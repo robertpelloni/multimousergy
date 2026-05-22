@@ -1,6 +1,12 @@
 #pragma once
 #include <string>
 
+enum class MouseButton {
+    Left = 0,
+    Right = 1,
+    Middle = 2
+};
+
 class DriverInterface {
 public:
     DriverInterface();
@@ -14,6 +20,10 @@ public:
 
 private:
     bool m_initialized;
+    long m_lastX = 0;
+    long m_lastY = 0;
+    int m_buttonState = 0; // bitmask
+
 #ifdef _WIN32
     void* m_client;
     void* m_target;

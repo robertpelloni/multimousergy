@@ -32,9 +32,11 @@ Successfully transitioned **NetMux** from a skeletal scaffold to a functionally 
 - `OverlayEngine` supports custom cursor colors and renders a crosshair proxy.
 - `PerformWarpClickRestore` is enhanced with `WindowFromPoint` and `SetForegroundWindow` for better focus handling.
 - `run_server.bat` and `run_client.bat` are provided for automated testing.
-- `NetworkManager` implements automated peer discovery via UDP broadcasting.
+- `NetworkManager` implements automated peer discovery with a non-blocking timed polling loop.
+- `DriverInterface` is refined with `MouseButton` enum and internal HID state tracking (m_lastX, m_lastY, m_buttonState).
+- `NetworkManager` uses typed `sockaddr_in` for improved type safety and remove manual memory management for addresses.
 
 ## Successor Instructions
 - **Driver Integration**: Integrate the `DriverInterface` with the actual ViGEmBus C++ API to instantiate a virtual mouse and replace `SendInput` calls to adhere to architecture constraints.
-- **Optimization**: Consider moving the GDI overlay to D3D11 if performance becomes an issue or for better alpha blending.
-- **Config GUI**: Start planning a simple Win32 or Qt/ImGui interface for easier configuration of IPs and boundaries.
+- **Optimization**: Move GDI rendering objects (Pens, Brushes) to class members in `OverlayEngine` to avoid repeated allocations in the rendering loop.
+- **Config GUI**: Improve `ConfigGUI` with a proper dialog resource or more robust Win32 layout management.
