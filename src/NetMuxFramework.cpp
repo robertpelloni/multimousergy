@@ -84,6 +84,7 @@ void NetMuxFramework::ProcessOutgoingPackets() {
     Packet outPkt;
     while (m_input.GetPendingPacket(outPkt)) {
         if (m_input.IsCaptured()) {
+            outPkt.senderId = 0; // Local sender ID is 0 for alpha
             m_network.SendPacket(outPkt);
         }
     }
@@ -92,13 +93,14 @@ void NetMuxFramework::ProcessOutgoingPackets() {
 void NetMuxFramework::ProcessIncomingPackets() {
     Packet inPkt;
     while (m_network.ReceivePacket(inPkt)) {
-        // For now, assuming DeviceID is passed in button field or similar for multiple cursors
-        // In a real implementation, Packet structure should include SenderID.
-        // For alpha multi-cursor demonstration, we treat each session as one peer.
-        unsigned long long peerId = 0;
+        unsigned long long peerId = inPkt.senderId;
 
         if (inPkt.type == PacketType::Movement) {
             PeerCursor& peer = m_peers[peerId];
+
+            // ARCHITECTURE NOTE:
+            // For now we use relative deltas. In a future step, we will implement
+            // 0-65535 absolute normalization to handle different monitor resolutions.
             peer.x += inPkt.x;
             peer.y += inPkt.y;
 
@@ -138,7 +140,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
 
 void NetMuxFramework::PerformLatencySync() {
     if (m_loopTimer.ElapsedMilliseconds() - m_lastSyncTime > 1000.0) {
-        Packet syncPkt = { PacketType::Sync, 0, 0, 0, false };
+        Packet syncPkt = { 0, PacketType::Sync, 0, 0, 0, false };
         m_network.SendPacket(syncPkt);
         m_syncTimer.Reset();
         m_lastSyncTime = m_loopTimer.ElapsedMilliseconds();

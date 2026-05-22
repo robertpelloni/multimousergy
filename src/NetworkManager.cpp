@@ -12,13 +12,14 @@
     #include <unistd.h>
     #include <fcntl.h>
     #include <cstring>
+    #include <algorithm>
     typedef int SOCKET;
     #define INVALID_SOCKET -1
     #define SOCKET_ERROR -1
     #define closesocket close
 #endif
 
-NetworkManager::NetworkManager() : m_running(false), m_udpSocket(INVALID_SOCKET), m_tcpSocket(INVALID_SOCKET), m_clientTcpSocket(INVALID_SOCKET), m_hasRemoteAddr(false) {
+NetworkManager::NetworkManager() : m_running(false), m_udpSocket(INVALID_SOCKET), m_tcpSocket(INVALID_SOCKET), m_hasRemoteAddr(false) {
 #ifdef _WIN32
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -131,9 +132,12 @@ void NetworkManager::SendPacket(const Packet& packet) {
         }
     } else {
         // TCP for clicks/sync
-        SOCKET targetTcp = (m_clientTcpSocket != INVALID_SOCKET) ? m_clientTcpSocket : m_tcpSocket;
-        if (targetTcp != INVALID_SOCKET) {
-            send(targetTcp, (const char*)&packet, sizeof(packet), 0);
+        if (!m_clientTcpSockets.empty()) {
+            for (auto client : m_clientTcpSockets) {
+                send(client, (const char*)&packet, sizeof(packet), 0);
+            }
+        } else if (m_tcpSocket != INVALID_SOCKET) {
+            send(m_tcpSocket, (const char*)&packet, sizeof(packet), 0);
         }
     }
 }
@@ -233,18 +237,19 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
     if (!m_running) return false;
 
     // Handle incoming TCP connections if we are a server
-    if (m_tcpSocket != INVALID_SOCKET && m_clientTcpSocket == INVALID_SOCKET) {
+    if (m_tcpSocket != INVALID_SOCKET) {
         sockaddr_in clientAddr;
         socklen_t clientAddrLen = sizeof(clientAddr);
-        m_clientTcpSocket = accept(m_tcpSocket, (struct sockaddr*)&clientAddr, &clientAddrLen);
-        if (m_clientTcpSocket != INVALID_SOCKET) {
+        SOCKET newClient = accept(m_tcpSocket, (struct sockaddr*)&clientAddr, &clientAddrLen);
+        if (newClient != INVALID_SOCKET) {
             std::cout << "[Network] Accepted new TCP connection." << std::endl;
 #ifdef _WIN32
             unsigned long mode = 1;
-            ioctlsocket(m_clientTcpSocket, FIONBIO, &mode);
+            ioctlsocket(newClient, FIONBIO, &mode);
 #else
-            fcntl(m_clientTcpSocket, F_SETFL, O_NONBLOCK);
+            fcntl(newClient, F_SETFL, O_NONBLOCK);
 #endif
+            m_clientTcpSockets.push_back(newClient);
         }
     }
 
@@ -271,28 +276,34 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
     }
 #endif
 
-    // Then check TCP (the accepted client socket if we are server, or m_tcpSocket if we are client)
-    SOCKET targetTcp = INVALID_SOCKET;
-    if (m_clientTcpSocket != INVALID_SOCKET) {
-        targetTcp = m_clientTcpSocket;
+    // Then check TCP (accepted client sockets if we are server, or m_tcpSocket if we are client)
+    std::vector<unsigned long long> targets;
+    if (!m_clientTcpSockets.empty()) {
+        targets = m_clientTcpSockets;
     } else if (m_tcpSocket != INVALID_SOCKET && m_remoteAddr.sin_family != 0) {
-        // If we are a client, m_tcpSocket is the connection.
-        // A simple check: if we called Connect, we are client.
-        targetTcp = m_tcpSocket;
+        targets.push_back(m_tcpSocket);
     }
 
-    if (targetTcp != INVALID_SOCKET) {
+    for (auto it = targets.begin(); it != targets.end(); ) {
+        SOCKET targetTcp = *it;
         char tempBuf[sizeof(Packet)];
         result = recv(targetTcp, tempBuf, sizeof(tempBuf), 0);
         if (result > 0) {
             m_tcpBuffer.insert(m_tcpBuffer.end(), tempBuf, tempBuf + result);
+            break; // Process one packet at a time for now
         } else if (result == 0) {
-            // Connection closed by peer
             std::cout << "[Network] Peer closed TCP connection." << std::endl;
             closesocket(targetTcp);
-            if (m_clientTcpSocket != INVALID_SOCKET) m_clientTcpSocket = INVALID_SOCKET;
-            else m_tcpSocket = INVALID_SOCKET;
+            if (!m_clientTcpSockets.empty()) {
+                auto clientIt = std::find(m_clientTcpSockets.begin(), m_clientTcpSockets.end(), targetTcp);
+                if (clientIt != m_clientTcpSockets.end()) m_clientTcpSockets.erase(clientIt);
+            } else {
+                m_tcpSocket = INVALID_SOCKET;
+            }
+            it = targets.erase(it);
+            continue;
         }
+        ++it;
     }
 
     if (m_tcpBuffer.size() >= sizeof(Packet)) {
@@ -315,10 +326,10 @@ void NetworkManager::Shutdown() {
             closesocket(m_tcpSocket);
             m_tcpSocket = INVALID_SOCKET;
         }
-        if (m_clientTcpSocket != INVALID_SOCKET) {
-            closesocket(m_clientTcpSocket);
-            m_clientTcpSocket = INVALID_SOCKET;
+        for (auto client : m_clientTcpSockets) {
+            closesocket(client);
         }
+        m_clientTcpSockets.clear();
         m_hasRemoteAddr = false;
         m_running = false;
     }

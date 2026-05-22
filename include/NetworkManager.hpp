@@ -16,6 +16,7 @@ enum class PacketType {
 };
 
 struct Packet {
+    unsigned long long senderId;
     PacketType type;
     int x;
     int y;
@@ -49,7 +50,7 @@ private:
     bool m_running;
     unsigned long long m_udpSocket; // Using unsigned long long to accommodate SOCKET on 64-bit Windows
     unsigned long long m_tcpSocket;
-    unsigned long long m_clientTcpSocket;
+    std::vector<unsigned long long> m_clientTcpSockets;
     sockaddr_in m_remoteAddr;
     bool m_hasRemoteAddr;
 

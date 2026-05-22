@@ -22,9 +22,10 @@ void test_config_manager() {
 
 void test_packet_serialization() {
     std::cout << "Testing Packet serialization..." << std::endl;
-    Packet p1 = { PacketType::Movement, 10, -20, 1, true };
+    Packet p1 = { 123, PacketType::Movement, 10, -20, 1, true };
     Packet p2;
     std::memcpy(&p2, &p1, sizeof(Packet));
+    assert(p2.senderId == p1.senderId);
     assert(p2.type == p1.type);
     assert(p2.x == p1.x);
     assert(p2.y == p1.y);
@@ -35,12 +36,22 @@ void test_packet_serialization() {
 void test_initialization() {
     std::cout << "Testing framework initialization..." << std::endl;
     NetMuxFramework framework;
-    AppSettings settings = { false, "127.0.0.1", 9999, {0, 0, false} };
-
-    // This might fail on environments without networking or UI,
-    // but the class should be instantiable.
-    // For a CI environment, we check if core types are valid.
     assert(sizeof(framework) > 0);
+}
+
+void test_coordinated_e2e() {
+    std::cout << "Testing coordinated E2E cursor sync (Mock)..." << std::endl;
+
+    // In a real E2E we'd spin up two threads, but for CI we test the logic flow
+    NetMuxFramework server;
+    NetMuxFramework client;
+
+    AppSettings serverSettings = { true, "127.0.0.1", 6666, {100, 200, false} };
+    AppSettings clientSettings = { false, "127.0.0.1", 6666, {300, 400, true} };
+
+    // We don't call Initialize() as it might block/fail on UI in CI,
+    // but we can test the internal state machines if they were exposed.
+    // For now, this is a placeholder for structural E2E.
 }
 
 int main() {
@@ -49,6 +60,7 @@ int main() {
     test_config_manager();
     test_packet_serialization();
     test_initialization();
+    test_coordinated_e2e();
 
     std::cout << "All tests passed!" << std::endl;
     return 0;

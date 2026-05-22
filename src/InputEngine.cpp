@@ -122,6 +122,7 @@ void InputEngine::Update() {
                             }
 
                             Packet pkt;
+                            pkt.senderId = 0;
                             pkt.type = PacketType::Movement;
                             pkt.x = raw->data.mouse.lLastX;
                             pkt.y = raw->data.mouse.lLastY;
