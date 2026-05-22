@@ -86,9 +86,21 @@ void OverlayEngine::Render(int cursorX, int cursorY) {
     FillRect(hdcMem, &rect, hBrush);
     DeleteObject(hBrush);
 
-    // Draw a standard mouse cursor icon
-    HCURSOR hCursor = LoadCursor(NULL, IDC_ARROW);
-    DrawIcon(hdcMem, cursorX, cursorY, hCursor);
+    // Draw a colorized crosshair or proxy
+    HBRUSH hBrushColor = CreateSolidBrush(RGB(m_colorR, m_colorG, m_colorB));
+    RECT cursorRect = { cursorX - 5, cursorY - 5, cursorX + 5, cursorY + 5 };
+    FillRect(hdcMem, &cursorRect, hBrushColor);
+
+    HPEN hPen = CreatePen(PS_SOLID, 2, RGB(255, 255, 255));
+    HPEN hOldPen = (HPEN)SelectObject(hdcMem, hPen);
+    MoveToEx(hdcMem, cursorX - 10, cursorY, NULL);
+    LineTo(hdcMem, cursorX + 10, cursorY);
+    MoveToEx(hdcMem, cursorX, cursorY - 10, NULL);
+    LineTo(hdcMem, cursorX, cursorY + 10);
+
+    SelectObject(hdcMem, hOldPen);
+    DeleteObject(hPen);
+    DeleteObject(hBrushColor);
 
     POINT ptSrc = { 0, 0 };
     POINT ptDest = { 0, 0 };

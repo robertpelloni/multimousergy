@@ -29,9 +29,12 @@ Successfully transitioned **NetMux** from a skeletal scaffold to a functionally 
 - `DriverInterface` contains structural handles for ViGEmBus integration.
 - `ConfigManager` and `ConfigGUI` provide settings persistence and a programmatic Win32 interactive configuration window.
 - `OverlayEngine` is optimized with pre-allocated GDI resources and flicker-free `UpdateLayeredWindow` updates.
+- `OverlayEngine` supports custom cursor colors and renders a crosshair proxy.
+- `PerformWarpClickRestore` is enhanced with `WindowFromPoint` and `SetForegroundWindow` for better focus handling.
+- `run_server.bat` and `run_client.bat` are provided for automated testing.
+- `NetworkManager` implements automated peer discovery via UDP broadcasting.
 
 ## Successor Instructions
 - **Driver Integration**: Integrate the `DriverInterface` with the actual ViGEmBus C++ API to instantiate a virtual mouse and replace `SendInput` calls to adhere to architecture constraints.
-- **Error Handling**: Add robust input validation to `ConfigGUI` fields (e.g., handling `std::stoi` exceptions for non-numeric input).
 - **Optimization**: Consider moving the GDI overlay to D3D11 if performance becomes an issue or for better alpha blending.
 - **Config GUI**: Start planning a simple Win32 or Qt/ImGui interface for easier configuration of IPs and boundaries.

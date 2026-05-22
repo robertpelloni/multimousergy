@@ -177,8 +177,17 @@ void InputEngine::PerformWarpClickRestore(int targetX, int targetY, int button, 
     POINT oldPos;
     GetCursorPos(&oldPos);
 
+    // Identify window at target point
+    POINT ptTarget = { targetX, targetY };
+    HWND hwndTarget = WindowFromPoint(ptTarget);
+
     // Snap to remote cursor position
     SetCursorPos(targetX, targetY);
+
+    // If it's a button down event, ensure the target window has focus
+    if (down && hwndTarget) {
+        SetForegroundWindow(hwndTarget);
+    }
 
     // Inject click
     INPUT input = {0};

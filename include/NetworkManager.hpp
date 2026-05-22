@@ -10,7 +10,8 @@
 enum class PacketType {
     Movement,
     Click,
-    Sync
+    Sync,
+    Discovery
 };
 
 struct Packet {
@@ -19,6 +20,11 @@ struct Packet {
     int y;
     int button;
     bool down;
+};
+
+struct DiscoveryPacket {
+    char hostname[64];
+    int port;
 };
 
 class NetworkManager {
@@ -31,6 +37,9 @@ public:
 
     void SendPacket(const Packet& packet);
     bool ReceivePacket(Packet& packet);
+
+    bool BroadcastDiscovery(int port);
+    bool ListenForPeers(DiscoveryPacket& pkt);
 
     void Shutdown();
 

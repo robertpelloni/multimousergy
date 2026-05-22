@@ -16,6 +16,7 @@ int main(int argc, char* argv[]) {
     ConfigManager configManager("netmux.cfg");
     AppSettings settings = { false, "127.0.0.1", 5555, {0, 0, false} };
 
+    unsigned char colorR = 255, colorG = 0, colorB = 0;
     bool firstRun = !configManager.Load(settings);
     if (firstRun) {
         std::cout << "No configuration file found. Using defaults." << std::endl;
@@ -36,6 +37,23 @@ int main(int argc, char* argv[]) {
             settings.inputConfig.isLeft = true;
         } else if (arg == "--gui") {
             firstRun = true;
+        } else if (arg == "--color" && i + 3 < argc) {
+            colorR = (unsigned char)std::stoi(argv[++i]);
+            colorG = (unsigned char)std::stoi(argv[++i]);
+            colorB = (unsigned char)std::stoi(argv[++i]);
+        }
+    }
+
+    NetworkManager network;
+
+    // Optional Peer Discovery Phase
+    if (firstRun) {
+        std::cout << "Searching for peers..." << std::endl;
+        DiscoveryPacket dpkt;
+        if (network.ListenForPeers(dpkt)) {
+            std::cout << "Found peer: " << dpkt.hostname << " on port " << dpkt.port << std::endl;
+            settings.remoteIp = dpkt.hostname; // Simplified
+            settings.port = dpkt.port;
         }
     }
 
@@ -43,8 +61,6 @@ int main(int argc, char* argv[]) {
         if (!ConfigGUI::ShowDialog(settings)) return 0;
         configManager.Save(settings);
     }
-
-    NetworkManager network;
     InputEngine input;
     DriverInterface driver;
     OverlayEngine overlay;
@@ -65,6 +81,8 @@ int main(int argc, char* argv[]) {
         std::cerr << "Failed to initialize core components." << std::endl;
         return 1;
     }
+
+    overlay.SetColor(colorR, colorG, colorB);
 
     // Basic loop for demonstration
     bool running = true;

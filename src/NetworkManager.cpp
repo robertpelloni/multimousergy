@@ -138,6 +138,66 @@ void NetworkManager::SendPacket(const Packet& packet) {
     }
 }
 
+bool NetworkManager::BroadcastDiscovery(int port) {
+    if (m_udpSocket == INVALID_SOCKET) {
+        m_udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        if (m_udpSocket == INVALID_SOCKET) return false;
+    }
+
+#ifdef _WIN32
+    BOOL broadcast = TRUE;
+    setsockopt(m_udpSocket, SOL_SOCKET, SO_BROADCAST, (const char*)&broadcast, sizeof(broadcast));
+#else
+    int broadcast = 1;
+    setsockopt(m_udpSocket, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast));
+#endif
+
+    sockaddr_in broadcastAddr;
+    broadcastAddr.sin_family = AF_INET;
+    broadcastAddr.sin_port = htons(port);
+    broadcastAddr.sin_addr.s_addr = INADDR_BROADCAST;
+
+    DiscoveryPacket pkt = {0};
+    gethostname(pkt.hostname, 64);
+    pkt.port = port;
+
+    sendto(m_udpSocket, (const char*)&pkt, sizeof(pkt), 0, (struct sockaddr*)&broadcastAddr, sizeof(broadcastAddr));
+    return true;
+}
+
+bool NetworkManager::ListenForPeers(DiscoveryPacket& pkt) {
+    if (m_udpSocket == INVALID_SOCKET) {
+        m_udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        if (m_udpSocket == INVALID_SOCKET) return false;
+
+        sockaddr_in addr;
+        addr.sin_family = AF_INET;
+        addr.sin_addr.s_addr = INADDR_ANY;
+        addr.sin_port = htons(5556); // Discovery port
+        bind(m_udpSocket, (struct sockaddr*)&addr, sizeof(addr));
+
+#ifdef _WIN32
+        unsigned long mode = 1;
+        ioctlsocket(m_udpSocket, FIONBIO, &mode);
+#else
+        fcntl(m_udpSocket, F_SETFL, O_NONBLOCK);
+#endif
+    }
+
+    sockaddr_in fromAddr;
+    socklen_t fromLen = sizeof(fromAddr);
+    int result = recvfrom(m_udpSocket, (char*)&pkt, sizeof(pkt), 0, (struct sockaddr*)&fromAddr, &fromLen);
+
+    if (result > 0) {
+        if (!m_hasRemoteAddr) {
+            m_remoteAddr = fromAddr;
+            m_hasRemoteAddr = true;
+        }
+        return true;
+    }
+    return false;
+}
+
 bool NetworkManager::ReceivePacket(Packet& packet) {
     if (!m_running) return false;
 
