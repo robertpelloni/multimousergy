@@ -33,19 +33,25 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
         case WM_COMMAND:
             if (LOWORD(wParam) == 1) {
-                s_currentSettings->isServer = (SendMessage(s_hwndServer, BM_GETCHECK, 0, 0) == BST_CHECKED);
-
                 char buffer[256];
-                GetWindowText(s_hwndIp, buffer, 256);
-                s_currentSettings->remoteIp = buffer;
+                try {
+                    GetWindowText(s_hwndPort, buffer, 256);
+                    int port = std::stoi(buffer);
 
-                GetWindowText(s_hwndPort, buffer, 256);
-                s_currentSettings->port = std::stoi(buffer);
+                    GetWindowText(s_hwndBoundary, buffer, 256);
+                    int boundaryX = std::stoi(buffer);
 
-                GetWindowText(s_hwndBoundary, buffer, 256);
-                s_currentSettings->inputConfig.boundaryX = std::stoi(buffer);
+                    s_currentSettings->isServer = (SendMessage(s_hwndServer, BM_GETCHECK, 0, 0) == BST_CHECKED);
 
-                PostQuitMessage(1);
+                    GetWindowText(s_hwndIp, buffer, 256);
+                    s_currentSettings->remoteIp = buffer;
+                    s_currentSettings->port = port;
+                    s_currentSettings->inputConfig.boundaryX = boundaryX;
+
+                    PostQuitMessage(1);
+                } catch (const std::exception&) {
+                    MessageBox(hwnd, "Please enter valid numeric values for Port and Boundary.", "Input Error", MB_OK | MB_ICONERROR);
+                }
             }
             break;
 

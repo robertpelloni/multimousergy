@@ -181,7 +181,14 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
 #endif
 
     // Then check TCP (the accepted client socket if we are server, or m_tcpSocket if we are client)
-    SOCKET targetTcp = (m_clientTcpSocket != INVALID_SOCKET) ? m_clientTcpSocket : m_tcpSocket;
+    SOCKET targetTcp = INVALID_SOCKET;
+    if (m_clientTcpSocket != INVALID_SOCKET) {
+        targetTcp = m_clientTcpSocket;
+    } else if (m_tcpSocket != INVALID_SOCKET && m_remoteAddr.sin_family != 0) {
+        // If we are a client, m_tcpSocket is the connection.
+        // A simple check: if we called Connect, we are client.
+        targetTcp = m_tcpSocket;
+    }
 
     if (targetTcp != INVALID_SOCKET) {
         result = recv(targetTcp, (char*)&packet, sizeof(packet), 0);

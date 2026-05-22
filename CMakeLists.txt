@@ -14,15 +14,14 @@ set(LIB_SOURCES
     src/ConfigGUI.cpp
 )
 
-# Include directories
-include_directories(include)
-
 # Library
 add_library(NetMuxLib STATIC ${LIB_SOURCES})
+target_include_directories(NetMuxLib PUBLIC include)
 
 # Executable
 add_executable(NetMux src/main.cpp)
 target_link_libraries(NetMux NetMuxLib)
+target_include_directories(NetMux PRIVATE include)
 
 # Windows specific libraries
 if(WIN32)
