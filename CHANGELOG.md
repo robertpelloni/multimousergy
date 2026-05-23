@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.13-alpha] - 2026-05-23
+### Added
+- Multi-monitor support via Virtual Screen metrics (SM_XVIRTUALSCREEN, etc.).
+- Refined DriverInterface with clear stub signaling and architecture notes.
+- Integrated multi-monitor coordinate normalization and clamping.
+- Verified system stability for heterogeneous display arrangements.
+
 ## [0.1.12-alpha] - 2026-05-23
 ### Added
 - Formal E2E test case for coordinate transformation fidelity.

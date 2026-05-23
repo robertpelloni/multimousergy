@@ -35,13 +35,17 @@ void SyncModule::UpdatePeer(unsigned long long id, int normX, int normY) {
     peer.normalizedY = target.ny;
 
     int screenWidth = 1920, screenHeight = 1080;
+    int screenLeft = 0, screenTop = 0;
 #ifdef _WIN32
-    screenWidth = GetSystemMetrics(SM_CXSCREEN);
-    screenHeight = GetSystemMetrics(SM_CYSCREEN);
+    // Handle Virtual Screen (Multi-Monitor)
+    screenLeft = GetSystemMetrics(SM_XVIRTUALSCREEN);
+    screenTop = GetSystemMetrics(SM_YVIRTUALSCREEN);
+    screenWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+    screenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 #endif
 
-    int newTargetX = Denormalize(peer.normalizedX, screenWidth);
-    int newTargetY = Denormalize(peer.normalizedY, screenHeight);
+    int newTargetX = screenLeft + Denormalize(peer.normalizedX, screenWidth);
+    int newTargetY = screenTop + Denormalize(peer.normalizedY, screenHeight);
 
     // Calculate velocity for prediction
     double dt = timestamp - peer.lastSeen;

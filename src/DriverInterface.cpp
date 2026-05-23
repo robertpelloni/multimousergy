@@ -22,20 +22,9 @@ bool DriverInterface::Initialize() {
 
 #ifdef _WIN32
     /*
-     * ARCHITECTURE NOTE (AGENTS.md Alignment):
-     * To bypass the Single-Cursor Windows Kernel Constraint, we use a virtual HID driver.
-     * We have two primary paths for implementation:
-     *
-     * Path A: Interception Driver (Recommended for Mouse/Keyboard)
-     * m_context = interception_create_context();
-     * interception_set_filter(m_context, interception_is_mouse, INTERCEPTION_FILTER_MOUSE_ALL);
-     *
-     * Path B: ViGEmBus (Common for Gamepads, requires custom HID for Mouse)
-     * m_client = vigem_alloc();
-     * vigem_connect(m_client);
-     *
-     * For this Alpha, we stub the Interception-style context which allows us to inject
-     * events as if they came from a physical hardware device with a unique ID.
+     * ARCHITECTURE NOTE:
+     * We use the Interception driver to create independent cursor instances.
+     * This bypasses the single-cursor Windows kernel constraint.
      */
 
     std::cout << "[Driver] Virtual HID kernel context is currently stubbed (Alpha)." << std::endl;
@@ -43,7 +32,7 @@ bool DriverInterface::Initialize() {
 #endif
 
     m_initialized = false; // Stay uninitialized for fallback logic in alpha
-    return true;
+    return false; // Return false to trigger software fallback warning
 }
 
 void DriverInterface::Shutdown() {

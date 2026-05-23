@@ -129,18 +129,20 @@ void InputEngine::Update() {
                                 pkt.senderId = 0;
                                 pkt.type = PacketType::AbsoluteMovement;
 
-                                // Normalized coordinates 0-65535
-                                int screenWidth = GetSystemMetrics(SM_CXSCREEN);
-                                int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+                                // Normalized coordinates 0-65535 (Virtual Screen)
+                                int screenLeft = GetSystemMetrics(SM_XVIRTUALSCREEN);
+                                int screenTop = GetSystemMetrics(SM_YVIRTUALSCREEN);
+                                int screenWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+                                int screenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 
-                                // Clamp virtual coords
-                                if (m_virtualX < 0) m_virtualX = 0;
-                                if (m_virtualX >= screenWidth) m_virtualX = screenWidth - 1;
-                                if (m_virtualY < 0) m_virtualY = 0;
-                                if (m_virtualY >= screenHeight) m_virtualY = screenHeight - 1;
+                                // Clamp virtual coords to virtual screen
+                                if (m_virtualX < screenLeft) m_virtualX = screenLeft;
+                                if (m_virtualX >= screenLeft + screenWidth) m_virtualX = screenLeft + screenWidth - 1;
+                                if (m_virtualY < screenTop) m_virtualY = screenTop;
+                                if (m_virtualY >= screenTop + screenHeight) m_virtualY = screenTop + screenHeight - 1;
 
-                                pkt.x = (m_virtualX * 65535) / (screenWidth - 1);
-                                pkt.y = (m_virtualY * 65535) / (screenHeight - 1);
+                                pkt.x = ((m_virtualX - screenLeft) * 65535) / (screenWidth - 1);
+                                pkt.y = ((m_virtualY - screenTop) * 65535) / (screenHeight - 1);
                                 pkt.button = 0;
                                 pkt.down = false;
                                 m_pendingPackets.push(pkt);
