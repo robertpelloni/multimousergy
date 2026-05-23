@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.22-alpha] - 2025-01-24
+### Added
+- Automated stress tests for SyncModule and NetworkManager.
+- Final end-to-end performance benchmarking and validation.
+- Stability audit for high-frequency concurrent traffic.
+- Updated PERFORMANCE.md with v0.1.22-alpha metrics.
+
 ## [0.1.21-alpha] - 2025-01-24
 ### Added
 - Dynamic cursor scaling via ConfigGUI.

@@ -34,6 +34,6 @@ endif()
 
 # Tests
 enable_testing()
-add_executable(NetMuxTests tests/test_main.cpp tests/test_multi_client.cpp)
+add_executable(NetMuxTests tests/test_main.cpp tests/test_multi_client.cpp tests/test_stress.cpp)
 target_link_libraries(NetMuxTests NetMuxLib)
 add_test(NAME CoreTests COMMAND NetMuxTests)

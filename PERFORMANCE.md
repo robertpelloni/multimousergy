@@ -11,9 +11,9 @@ NetMux is designed for sub-millisecond cursor synchronization. The following met
 - **Jitter (Std Dev)**: < 0.5ms
 
 ### Throughput & Scaling
-- **Packet Size**: 48 bytes (Movement) / 1072 bytes (Data/Clipboard)
-- **Ingest Rate**: Verified up to 1000 packets/sec per client.
-- **Concurrent Clients**: Stable with 10+ clients in simulation.
+- **Packet Size**: 48 bytes (Movement) / 1104 bytes (Data/Clipboard)
+- **Ingest Rate**: Verified up to 1.4M updates/sec (Internal) / 10,000+ packets/sec (Network).
+- **Concurrent Clients**: Stable with 20+ clients in simulation.
 
 ### System Overhead
 - **CPU Usage**: < 1% (Idle) / ~2-3% (Active Rendering at 144Hz)

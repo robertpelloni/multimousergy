@@ -11,6 +11,10 @@
 void test_concurrent_cursor_sync();
 void test_network_concurrency();
 
+// External declarations from test_stress.cpp
+void test_sync_stress();
+void test_network_stress();
+
 void test_sync_module_interpolation() {
     std::cout << "Testing SyncModule interpolation..." << std::endl;
     SyncModule sync;
@@ -160,6 +164,8 @@ int main() {
     test_concurrent_cursor_sync();
     test_network_concurrency();
     test_clipboard_module();
+    test_sync_stress();
+    test_network_stress();
 
     std::cout << "All tests passed!" << std::endl;
     return 0;
