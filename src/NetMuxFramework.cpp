@@ -2,6 +2,7 @@
 #include <iostream>
 #include <algorithm>
 #include <thread>
+#include <cstring>
 #include <chrono>
 
 #ifdef _WIN32
@@ -57,6 +58,7 @@ void NetMuxFramework::Run() {
 
         PerformLatencySync();
         PerformDiscoveryBroadcast();
+        PerformClipboardSync();
         ProcessOutgoingPackets();
         ProcessIncomingPackets();
 
@@ -164,6 +166,13 @@ void NetMuxFramework::ProcessIncomingPackets() {
                 // Rebroadcast heartbeat to all clients for clock sync
                 m_network.SendPacket(inPkt);
             }
+        } else if (inPkt.type == PacketType::ClipboardSync) {
+            std::string text(inPkt.payload, inPkt.payloadSize);
+            m_clipboard.SetText(text);
+
+            if (m_settings.isServer) {
+                m_network.SendPacket(inPkt);
+            }
         }
     }
 }
@@ -195,5 +204,17 @@ void NetMuxFramework::PerformDiscoveryBroadcast() {
     if (m_settings.isServer && m_loopTimer.ElapsedMilliseconds() - lastBroadcast > 3000.0) {
         m_network.BroadcastDiscovery(5556); // Use dedicated discovery port
         lastBroadcast = m_loopTimer.ElapsedMilliseconds();
+    }
+}
+
+void NetMuxFramework::PerformClipboardSync() {
+    if (m_clipboard.HasChanged()) {
+        std::string text = m_clipboard.GetText();
+        if (text.size() < 1024) {
+            Packet pkt = { 0, PacketType::ClipboardSync, 0, 0, 0, false };
+            memcpy(pkt.payload, text.c_str(), text.size());
+            pkt.payloadSize = (int)text.size();
+            m_network.SendPacket(pkt);
+        }
     }
 }

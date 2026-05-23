@@ -4,6 +4,7 @@
 #include "DriverInterface.hpp"
 #include "OverlayEngine.hpp"
 #include "SyncModule.hpp"
+#include "ClipboardModule.hpp"
 #include "ConfigManager.hpp"
 #include "Timer.hpp"
 #include <map>
@@ -26,12 +27,14 @@ private:
     void ProcessIncomingPackets();
     void PerformLatencySync();
     void PerformDiscoveryBroadcast();
+    void PerformClipboardSync();
 
     NetworkManager m_network;
     InputEngine m_input;
     DriverInterface m_driver;
     OverlayEngine m_overlay;
     SyncModule m_sync;
+    ClipboardModule m_clipboard;
 
     AppSettings m_settings;
     bool m_running;

@@ -14,7 +14,8 @@ enum class PacketType {
     Click,
     Sync,
     Discovery,
-    Heartbeat
+    Heartbeat,
+    ClipboardSync
 };
 
 struct Packet {
@@ -24,6 +25,8 @@ struct Packet {
     int y;
     int button;
     bool down;
+    char payload[1024]; // Dynamic data payload (e.g. clipboard text)
+    int payloadSize;
 };
 
 struct DiscoveryPacket {

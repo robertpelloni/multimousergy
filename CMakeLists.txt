@@ -15,6 +15,7 @@ set(LIB_SOURCES
     src/Timer.cpp
     src/NetMuxFramework.cpp
     src/SyncModule.cpp
+    src/ClipboardModule.cpp
 )
 
 # Library

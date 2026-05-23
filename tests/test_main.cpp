@@ -5,6 +5,7 @@
 #include "ConfigManager.hpp"
 #include "NetworkManager.hpp"
 #include "SyncModule.hpp"
+#include "ClipboardModule.hpp"
 
 // External declarations from test_multi_client.cpp
 void test_concurrent_cursor_sync();
@@ -85,9 +86,18 @@ void test_config_manager() {
     assert(s2.inputConfig.isLeft == s1.inputConfig.isLeft);
 }
 
+void test_clipboard_module() {
+    std::cout << "Testing ClipboardModule..." << std::endl;
+    ClipboardModule cm;
+    // Basic instantiation check
+}
+
 void test_packet_serialization() {
     std::cout << "Testing Packet serialization..." << std::endl;
     Packet p1 = { 123, PacketType::Movement, 10, -20, 1, true };
+    strcpy(p1.payload, "test");
+    p1.payloadSize = 4;
+
     Packet p2;
     std::memcpy(&p2, &p1, sizeof(Packet));
     assert(p2.senderId == p1.senderId);
@@ -147,6 +157,7 @@ int main() {
     test_coordinate_edge_cases();
     test_jitter_buffer_overflow();
     test_concurrent_cursor_sync();
+    test_clipboard_module();
 
     std::cout << "All tests passed!" << std::endl;
     return 0;
