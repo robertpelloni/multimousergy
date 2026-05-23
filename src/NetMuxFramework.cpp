@@ -64,7 +64,7 @@ void NetMuxFramework::Run() {
 
         m_sync.Step(dt);
 
-        if (m_loopTimer.ElapsedMilliseconds() - m_lastPerfLog > 5000.0) {
+        if (m_loopTimer.ElapsedMilliseconds() - m_lastPerfLog > (m_benchmarking ? 1000.0 : 5000.0)) {
             std::map<unsigned long long, PeerState> peers = m_sync.GetAllPeers();
             double avgLatency = 0;
             if (!peers.empty()) {

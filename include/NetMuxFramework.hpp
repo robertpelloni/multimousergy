@@ -22,6 +22,8 @@ public:
         m_overlay.SetColor(r, g, b);
     }
 
+    void EnableBenchmarking(bool enable) { m_benchmarking = enable; }
+
 private:
     void ProcessOutgoingPackets();
     void ProcessIncomingPackets();
@@ -38,6 +40,7 @@ private:
 
     AppSettings m_settings;
     bool m_running;
+    bool m_benchmarking = false;
 
     Timer m_loopTimer;
     Timer m_syncTimer;

@@ -1,26 +1,33 @@
 # CHANGELOG.md
 
-## [0.1.15-alpha] - 2026-05-23
+## [0.1.16-alpha] - 2025-01-24
+### Added
+- Integrated benchmarking mode via `--bench` flag.
+- Detailed performance telemetry logging (jitter, frame statistics).
+- Generated PERFORMANCE.md with documented alpha benchmarks.
+- Cleaned up unused GDI resources in OverlayEngine.
+
+## [0.1.15-alpha] - 2025-01-24
 ### Added
 - Comprehensive E2E performance validation and metric logging.
 - Optimized NetworkManager socket buffer drainage for minimal input lag.
 - Enhanced performance instrumentation (frame time, peer latency, user count).
 - Validated system stability under concurrent multi-client high-frequency load.
 
-## [0.1.14-alpha] - 2026-05-23
+## [0.1.14-alpha] - 2025-01-24
 ### Added
 - Cross-network clipboard synchronization (text-based).
 - Expanded Packet structure with 1024-byte data payloads.
 - Integrated clipboard polling and remote update application.
 
-## [0.1.13-alpha] - 2026-05-23
+## [0.1.13-alpha] - 2025-01-24
 ### Added
 - Multi-monitor support via Virtual Screen metrics (SM_XVIRTUALSCREEN, etc.).
 - Refined DriverInterface with clear stub signaling and architecture notes.
 - Integrated multi-monitor coordinate normalization and clamping.
 - Verified system stability for heterogeneous display arrangements.
 
-## [0.1.12-alpha] - 2026-05-23
+## [0.1.12-alpha] - 2025-01-24
 ### Added
 - Formal E2E test case for coordinate transformation fidelity.
 - Optimized zero-latency routing for AbsoluteMovement packets.

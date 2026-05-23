@@ -13,6 +13,7 @@ int main(int argc, char* argv[]) {
     AppSettings settings = { false, "127.0.0.1", 5555, {0, 0, false} };
 
     unsigned char colorR = 255, colorG = 0, colorB = 0;
+    bool benchMode = false;
     bool firstRun = !configManager.Load(settings);
     if (firstRun) {
         std::cout << "No configuration file found. Using defaults." << std::endl;
@@ -37,6 +38,8 @@ int main(int argc, char* argv[]) {
             colorR = (unsigned char)std::stoi(argv[++i]);
             colorG = (unsigned char)std::stoi(argv[++i]);
             colorB = (unsigned char)std::stoi(argv[++i]);
+        } else if (arg == "--bench") {
+            benchMode = true;
         }
     }
 
@@ -71,6 +74,11 @@ int main(int argc, char* argv[]) {
 
     // Set custom color if provided via CLI
     framework.SetCursorColor(colorR, colorG, colorB);
+
+    if (benchMode) {
+        std::cout << "[Bench] Benchmarking mode enabled." << std::endl;
+        framework.EnableBenchmarking(true);
+    }
 
     framework.Run();
 
