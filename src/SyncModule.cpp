@@ -109,10 +109,29 @@ int SyncModule::Denormalize(int val, int max) {
     return (val * (max - 1)) / 65535;
 }
 
-bool SyncModule::ResolveConflict(unsigned long long id, int normX, int normY, double timestamp) {
-    // Basic conflict resolution logic (e.g., Server is always right)
-    // For alpha, we assume inbound packets from server (rebroadcasts) take precedence.
-    return true;
+bool SyncModule::ResolveConflict(unsigned long long id, double timestamp) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    // First-to-Claim priority for interaction (clicks)
+    if (m_activePeerId == 0) {
+        m_activePeerId = id;
+        m_lastActiveSwitch = timestamp;
+        return true;
+    }
+
+    if (m_activePeerId == id) {
+        m_lastActiveSwitch = timestamp;
+        return true;
+    }
+
+    // If another peer is active, check for 2-second interaction timeout
+    if (timestamp - m_lastActiveSwitch > 2000.0) {
+        m_activePeerId = id;
+        m_lastActiveSwitch = timestamp;
+        return true;
+    }
+
+    return false; // Conflict: Focus is owned by someone else
 }
 
 void SyncModule::SetActivePeer(unsigned long long id) {

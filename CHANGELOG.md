@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## [0.1.25-alpha] - 2025-01-24
+### Added
+- Focus-based Conflict Resolution in SyncModule (First-to-Claim model).
+- PacketType::FocusUpdate for global focus consistency across clients.
+- Visual focus ownership highlights in OverlayEngine (Active Peer turns white).
+- 2-second interaction timeout for automatic focus release.
+- Server-side rebroadcasting of focus ownership changes.
+
 ## [0.1.24-alpha] - 2025-01-24
 ### Added
 - D3D11 hardware-accelerated overlay backend for ultra-smooth rendering.

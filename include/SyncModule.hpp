@@ -44,8 +44,8 @@ public:
     static int Normalize(int val, int max);
     static int Denormalize(int val, int max);
 
-    // Conflict Resolution: returns true if local state should be overridden
-    bool ResolveConflict(unsigned long long id, int normX, int normY, double timestamp);
+    // Conflict Resolution: returns true if interaction is permitted
+    bool ResolveConflict(unsigned long long id, double timestamp);
 
     // Interpolation step
     void Step(double deltaTime);

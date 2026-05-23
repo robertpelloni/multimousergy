@@ -112,7 +112,7 @@ void NetMuxFramework::Run() {
             for (auto const& [id, peer] : peers) {
                 overlayPeers[id] = { (int)peer.x, (int)peer.y, peer.colorR, peer.colorG, peer.colorB };
 
-                // Active cursor visual indicator (border or different color)
+                // Active cursor visual indicator (White for owner, original for others)
                 if (id == activeId) {
                     overlayPeers[id].r = 255; overlayPeers[id].g = 255; overlayPeers[id].b = 255;
                 }
@@ -179,14 +179,21 @@ void NetMuxFramework::ProcessIncomingPackets() {
         } else if (inPkt.type == PacketType::Click) {
             PeerState peer;
             if (m_sync.GetPeerState(peerId, peer)) {
-                // Ensure peer is allowed to click (e.g. they are the active peer or everyone is allowed)
-                // For Alpha, the first one to click becomes 'active' if no one else is active.
-                if (m_sync.GetActivePeer() == 0) m_sync.SetActivePeer(peerId);
+                unsigned long long previousOwner = m_sync.GetActivePeer();
 
-                if (m_sync.GetActivePeer() == peerId) {
+                if (m_sync.ResolveConflict(peerId, m_loopTimer.ElapsedMilliseconds())) {
                     if (!m_driver.SendMouseButton(inPkt.button, inPkt.down)) {
                         m_input.PerformWarpClickRestore((int)peer.x, (int)peer.y, inPkt.button, inPkt.down);
                     }
+
+                    // Rebroadcast focus update if owner changed
+                    if (m_settings.isServer && previousOwner != peerId) {
+                        Packet focusPkt = { m_localId, 0, PacketType::FocusUpdate, 0, 0, 0, false, "", 0 };
+                        focusPkt.button = (int)peerId; // Reuse button field for peer ID
+                        m_network.SendPacket(focusPkt);
+                    }
+                } else {
+                    std::cout << "[Conflict] Peer " << peerId << " denied focus ownership." << std::endl;
                 }
 
                 if (!inPkt.down) {
@@ -225,6 +232,10 @@ void NetMuxFramework::ProcessIncomingPackets() {
                 reply.payloadSize = (int)strlen(reply.payload);
                 m_network.SendPacket(reply);
             }
+        } else if (inPkt.type == PacketType::FocusUpdate) {
+            unsigned long long newOwner = (unsigned long long)inPkt.button;
+            m_sync.SetActivePeer(newOwner);
+            std::cout << "[Sync] Focus ownership transferred to peer " << newOwner << std::endl;
         }
     }
 }

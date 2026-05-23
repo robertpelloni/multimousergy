@@ -17,7 +17,8 @@ enum class PacketType {
     Discovery,
     Heartbeat,
     ClipboardSync,
-    Handshake
+    Handshake,
+    FocusUpdate
 };
 
 struct Packet {
