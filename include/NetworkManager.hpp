@@ -23,6 +23,7 @@ enum class PacketType {
 
 struct Packet {
     unsigned long long senderId;
+    unsigned int groupId;
     double localTimestamp; // To measure E2E latency
     PacketType type;
     int x;

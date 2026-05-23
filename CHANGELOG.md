@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.26-alpha] - 2025-01-24
+### Added
+- Dynamic Cursor Grouping support across the entire stack.
+- Group-based visibility and interaction filtering.
+- Visual differentiation for cursors based on Group ID.
+- Configurable Group ID in GUI and persistence layer.
+
 ## [0.1.25-alpha] - 2025-01-24
 ### Added
 - Focus-based Conflict Resolution in SyncModule (First-to-Claim model).

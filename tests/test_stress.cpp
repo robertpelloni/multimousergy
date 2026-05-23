@@ -15,7 +15,7 @@ void test_sync_stress() {
     Timer timer;
     for (int i = 0; i < updatesPerPeer; ++i) {
         for (int p = 1; p <= numPeers; ++p) {
-            sync.UpdatePeer(p, (i + p) % 65535, (i * p) % 65535);
+            sync.UpdatePeer(p, (p % 2), (i + p) % 65535, (i * p) % 65535);
         }
         sync.Step(1.0); // 1ms steps
     }
@@ -31,7 +31,7 @@ void test_network_stress() {
     std::cout << "Starting NetworkManager stress test (Simulated)..." << std::endl;
     // Simulated stress check for packet structure stability
     for (int i = 0; i < 10000; ++i) {
-        Packet p = { (unsigned long long)i, 0, PacketType::AbsoluteMovement, i, i, 0, false, "stress_payload", 14 };
+        Packet p = { (unsigned long long)i, 0, 0, PacketType::AbsoluteMovement, i, i, 0, false, "stress_payload", 14 };
         assert(p.senderId == (unsigned long long)i);
     }
 }

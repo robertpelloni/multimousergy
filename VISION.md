@@ -10,3 +10,4 @@ NetMux provides true cursor isolation by presenting remote inputs as independent
 2. **Hardware-Level Injection**: Bypassing high-level OS limitations by using virtual HID drivers (ViGEmBus/Interception).
 3. **Seamless Experience**: Zero-latency feel for remote cursor movement and clicks.
 4. **Multiplexing**: Intelligent warp-click-restore logic to maintain window focus and interaction without stealing local cursor context.
+5. **Secure Isolation (Grouping)**: Intelligent cursor grouping to allow multiple independent teams or workspaces to coexist on the same network without cross-interaction.

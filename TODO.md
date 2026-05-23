@@ -9,3 +9,4 @@
 - [x] Setup unit testing framework.
 - [x] Create automated test scripts (`run_server.bat`, `run_client.bat`).
 - [x] Refactor `OverlayEngine` to support cursor sprite rendering (v0.1.3+).
+- [x] Implement Dynamic Cursor Grouping across all modules.

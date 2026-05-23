@@ -18,12 +18,14 @@ static HWND s_hwndLatency = nullptr;
 static HWND s_hwndActiveUser = nullptr;
 static HWND s_hwndCursorScale = nullptr;
 static HWND s_hwndUseD3D11 = nullptr;
+static HWND s_hwndGroupId = nullptr;
 
 enum ControlIDs {
     ID_SAVE_BUTTON = 1,
     ID_PEER_LIST = 2,
     ID_CURSOR_SCALE = 3,
-    ID_USE_D3D11 = 4
+    ID_USE_D3D11 = 4,
+    ID_GROUP_ID = 5
 };
 
 LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -55,6 +57,9 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
             s_hwndUseD3D11 = CreateWindow("BUTTON", "Hardware Acceleration (D3D11)", WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX, 10, 300, 250, 20, hwnd, (HMENU)ID_USE_D3D11, NULL, NULL);
             if (s_currentSettings->useD3D11) SendMessage(s_hwndUseD3D11, BM_SETCHECK, BST_CHECKED, 0);
+
+            CreateWindow("STATIC", "Group ID:", WS_VISIBLE | WS_CHILD, 10, 330, 100, 20, hwnd, NULL, NULL, NULL);
+            s_hwndGroupId = CreateWindow("EDIT", std::to_string(s_currentSettings->groupId).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 110, 330, 50, 20, hwnd, (HMENU)ID_GROUP_ID, NULL, NULL);
             break;
 
         case WM_COMMAND:
@@ -81,6 +86,9 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
                     s_currentSettings->isServer = (SendMessage(s_hwndServer, BM_GETCHECK, 0, 0) == BST_CHECKED);
                     s_currentSettings->useD3D11 = (SendMessage(s_hwndUseD3D11, BM_GETCHECK, 0, 0) == BST_CHECKED);
+
+                    GetWindowText(s_hwndGroupId, buffer, 256);
+                    s_currentSettings->groupId = (unsigned int)std::stoul(buffer);
 
                     GetWindowText(s_hwndIp, buffer, 256);
                     s_currentSettings->remoteIp = buffer;

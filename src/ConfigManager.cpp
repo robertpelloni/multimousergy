@@ -14,6 +14,7 @@ bool ConfigManager::Load(AppSettings& settings) {
     file >> settings.inputConfig.boundaryX;
     file >> settings.inputConfig.boundaryY;
     file >> settings.inputConfig.isLeft;
+    file >> settings.groupId;
 
     return true;
 }
@@ -28,6 +29,7 @@ bool ConfigManager::Save(const AppSettings& settings) {
     file << settings.inputConfig.boundaryX << "\n";
     file << settings.inputConfig.boundaryY << "\n";
     file << settings.inputConfig.isLeft << "\n";
+    file << settings.groupId << "\n";
 
     return true;
 }

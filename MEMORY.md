@@ -10,3 +10,4 @@
 - Modern C++ (C++17+) for performance and safety.
 - Decoupled modules for Networking, Input, Driver, and UI.
 - UDP for cursor updates to minimize latency.
+- **Grouping Architecture**: `groupId` is propagated through all layers (Network Packet -> Framework -> SyncModule -> Overlay) to ensure consistent isolation and visual feedback.

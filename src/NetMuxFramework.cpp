@@ -37,7 +37,7 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
         }
 
         // Handshake: Send initial metadata
-        Packet handshake = { m_localId, 0, PacketType::Handshake, 0, 0, 0, false, "", 0 };
+        Packet handshake = { m_localId, m_settings.groupId, 0.0, PacketType::Handshake, 0, 0, 0, false, "", 0 };
         gethostname(handshake.payload, sizeof(handshake.payload));
         handshake.payloadSize = (int)strlen(handshake.payload);
         m_network.SendPacket(handshake);
@@ -110,7 +110,7 @@ void NetMuxFramework::Run() {
             unsigned long long activeId = m_sync.GetActivePeer();
 
             for (auto const& [id, peer] : peers) {
-                overlayPeers[id] = { (int)peer.x, (int)peer.y, peer.colorR, peer.colorG, peer.colorB };
+                overlayPeers[id] = { (int)peer.x, (int)peer.y, peer.colorR, peer.colorG, peer.colorB, peer.groupId };
 
                 // Active cursor visual indicator (White for owner, original for others)
                 if (id == activeId) {
@@ -140,6 +140,7 @@ void NetMuxFramework::ProcessOutgoingPackets() {
     while (m_input.GetPendingPacket(outPkt)) {
         if (m_input.IsCaptured()) {
             outPkt.senderId = m_localId;
+            outPkt.groupId = m_settings.groupId;
             outPkt.localTimestamp = m_loopTimer.ElapsedMilliseconds();
             m_network.SendPacket(outPkt);
         }
@@ -151,6 +152,12 @@ void NetMuxFramework::ProcessIncomingPackets() {
     while (m_network.ReceivePacket(inPkt)) {
         unsigned long long peerId = inPkt.senderId;
 
+        // Group Filtering: Ignore packets from other groups unless we are the server
+        // (Server rebroadcasts everything for global orchestration)
+        if (!m_settings.isServer && inPkt.groupId != m_settings.groupId) {
+            continue;
+        }
+
         if (inPkt.type == PacketType::Movement) {
             // Deprecated: Movement packets are handled by SyncModule if converted to absolute
             m_driver.SendMouseMovement(inPkt.x, inPkt.y);
@@ -160,7 +167,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
             PeerState oldPeer;
             m_sync.GetPeerState(peerId, oldPeer);
 
-            m_sync.UpdatePeer(peerId, inPkt.x, inPkt.y, inPkt.localTimestamp);
+            m_sync.UpdatePeer(peerId, inPkt.groupId, inPkt.x, inPkt.y, inPkt.localTimestamp);
 
             PeerState newPeer;
             m_sync.GetPeerState(peerId, newPeer);
@@ -188,7 +195,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
 
                     // Rebroadcast focus update if owner changed
                     if (m_settings.isServer && previousOwner != peerId) {
-                        Packet focusPkt = { m_localId, 0, PacketType::FocusUpdate, 0, 0, 0, false, "", 0 };
+                        Packet focusPkt = { m_localId, m_settings.groupId, 0.0, PacketType::FocusUpdate, 0, 0, 0, false, "", 0 };
                         focusPkt.button = (int)peerId; // Reuse button field for peer ID
                         m_network.SendPacket(focusPkt);
                     }
@@ -227,7 +234,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
 
             if (m_settings.isServer) {
                 // Server replies with its own handshake
-                Packet reply = { m_localId, 0, PacketType::Handshake, 0, 0, 0, false, "", 0 };
+                Packet reply = { m_localId, m_settings.groupId, 0.0, PacketType::Handshake, 0, 0, 0, false, "", 0 };
                 gethostname(reply.payload, sizeof(reply.payload));
                 reply.payloadSize = (int)strlen(reply.payload);
                 m_network.SendPacket(reply);
@@ -243,7 +250,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
 void NetMuxFramework::PerformLatencySync() {
     // Regular RTT sync
     if (m_loopTimer.ElapsedMilliseconds() - m_lastSyncTime > 1000.0) {
-        Packet syncPkt = { m_localId, 0, PacketType::Sync, 0, 0, 0, false, "", 0 };
+        Packet syncPkt = { m_localId, m_settings.groupId, 0.0, PacketType::Sync, 0, 0, 0, false, "", 0 };
         m_network.SendPacket(syncPkt);
         m_syncTimer.Reset();
         m_lastSyncTime = m_loopTimer.ElapsedMilliseconds();
@@ -252,7 +259,7 @@ void NetMuxFramework::PerformLatencySync() {
     // High-precision Heartbeat (Clock Sync)
     static double lastHeartbeat = 0;
     if (m_loopTimer.ElapsedMilliseconds() - lastHeartbeat > 100.0) {
-        Packet hbPkt = { m_localId, 0, PacketType::Heartbeat, 0, 0, 0, false, "", 0 };
+        Packet hbPkt = { m_localId, m_settings.groupId, 0.0, PacketType::Heartbeat, 0, 0, 0, false, "", 0 };
         // We pack current local timestamp into coordinates for precision
         unsigned int now = (unsigned int)m_loopTimer.ElapsedMilliseconds();
         hbPkt.x = (int)(now & 0xFFFF);
@@ -274,7 +281,7 @@ void NetMuxFramework::PerformClipboardSync() {
     if (m_clipboard.HasChanged()) {
         std::string text = m_clipboard.GetText();
         if (text.size() < 1024) {
-            Packet pkt = { m_localId, 0, PacketType::ClipboardSync, 0, 0, 0, false, "", 0 };
+            Packet pkt = { m_localId, m_settings.groupId, 0.0, PacketType::ClipboardSync, 0, 0, 0, false, "", 0 };
             memcpy(pkt.payload, text.c_str(), text.size());
             pkt.payloadSize = (int)text.size();
             m_network.SendPacket(pkt);

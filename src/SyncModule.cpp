@@ -10,10 +10,11 @@
 SyncModule::SyncModule() {}
 SyncModule::~SyncModule() {}
 
-void SyncModule::UpdatePeer(unsigned long long id, int normX, int normY, double packetTimestamp) {
+void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp) {
     std::lock_guard<std::mutex> lock(m_mutex);
     PeerState& peer = m_peers[id];
     peer.id = id;
+    peer.groupId = groupId;
 
     // Add to jitter buffer with current local timestamp
     static auto startTime = std::chrono::steady_clock::now();

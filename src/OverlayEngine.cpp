@@ -116,7 +116,7 @@ bool OverlayEngine::Initialize() {
 
 void OverlayEngine::Render(int cursorX, int cursorY) {
     std::map<unsigned long long, RemoteCursorState> peers;
-    peers[0] = { cursorX, cursorY, m_colorR, m_colorG, m_colorB };
+    peers[0] = { cursorX, cursorY, m_colorR, m_colorG, m_colorB, 0 };
     RenderPeers(peers);
 }
 
@@ -153,8 +153,23 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
 
         // Also draw a small colorized indicator
         HBRUSH hBrushColor = CreateSolidBrush(RGB(peer.r, peer.g, peer.b));
-        RECT indicatorRect = { peer.x, peer.y, peer.x + 4, peer.y + 4 };
-        FillRect(hdcMem, &indicatorRect, hBrushColor);
+
+        // Group-based visual differentiation:
+        // Group 0 (default) is square, others are circles or offset
+        if (peer.groupId == 0) {
+            RECT indicatorRect = { (int)peer.x, (int)peer.y, (int)peer.x + 4, (int)peer.y + 4 };
+            FillRect(hdcMem, &indicatorRect, hBrushColor);
+        } else {
+            // Draw a diamond for non-zero groups
+            POINT pts[4] = {
+                {(int)peer.x + 4, (int)peer.y},
+                {(int)peer.x + 8, (int)peer.y + 4},
+                {(int)peer.x + 4, (int)peer.y + 8},
+                {(int)peer.x, (int)peer.y + 4}
+            };
+            SelectObject(hdcMem, hBrushColor);
+            Polygon(hdcMem, pts, 4);
+        }
         DeleteObject(hBrushColor);
     }
 
