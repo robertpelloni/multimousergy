@@ -1,12 +1,21 @@
 #pragma once
 #include <map>
 #include <mutex>
+#include <vector>
 #include "NetworkManager.hpp"
+
+struct HistoryPoint {
+    int nx;
+    int ny;
+    double timestamp;
+};
 
 struct PeerState {
     unsigned long long id;
-    int x; // Denormalized screen coordinate
+    int x; // Current denormalized screen coordinate
     int y;
+    int targetX; // Target denormalized coordinate for interpolation
+    int targetY;
     int normalizedX; // 0-65535
     int normalizedY;
     unsigned char colorR;
@@ -14,6 +23,7 @@ struct PeerState {
     unsigned char colorB;
     double lastSeen;
     double latency;
+    std::vector<HistoryPoint> jitterBuffer;
 };
 
 class SyncModule {
@@ -32,6 +42,9 @@ public:
 
     // Conflict Resolution: returns true if local state should be overridden
     bool ResolveConflict(unsigned long long id, int normX, int normY, double timestamp);
+
+    // Interpolation step
+    void Step(double deltaTime);
 
     void SetActivePeer(unsigned long long id) { m_activePeerId = id; }
     unsigned long long GetActivePeer() const { return m_activePeerId; }

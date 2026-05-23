@@ -47,13 +47,19 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
 }
 
 void NetMuxFramework::Run() {
+    Timer frameTimer;
     while (m_running) {
+        double dt = frameTimer.ElapsedMilliseconds();
+        frameTimer.Reset();
+
         m_input.Update();
 
         PerformLatencySync();
         PerformDiscoveryBroadcast();
         ProcessOutgoingPackets();
         ProcessIncomingPackets();
+
+        m_sync.Step(dt);
 
         // Throttle Overlay Rendering to ~144Hz (approx 7ms)
         if (m_overlayDirty && m_renderTimer.ElapsedMilliseconds() > 7.0) {

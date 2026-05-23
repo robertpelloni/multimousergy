@@ -1,5 +1,6 @@
 #include "SyncModule.hpp"
 #include <chrono>
+#include <algorithm>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -12,8 +13,25 @@ void SyncModule::UpdatePeer(unsigned long long id, int normX, int normY) {
     std::lock_guard<std::mutex> lock(m_mutex);
     PeerState& peer = m_peers[id];
     peer.id = id;
-    peer.normalizedX = normX;
-    peer.normalizedY = normY;
+
+    // Add to jitter buffer with current local timestamp
+    static auto startTime = std::chrono::steady_clock::now();
+    auto now = std::chrono::steady_clock::now();
+    double timestamp = std::chrono::duration<double, std::milli>(now - startTime).count();
+
+    peer.jitterBuffer.push_back({normX, normY, timestamp});
+
+    // Keep buffer small (e.g. 5 points)
+    if (peer.jitterBuffer.size() > 5) {
+        peer.jitterBuffer.erase(peer.jitterBuffer.begin());
+    }
+
+    // Use the oldest point in the buffer for a consistent delay
+    // This acts as a jitter compensation mechanism.
+    HistoryPoint target = peer.jitterBuffer.front();
+
+    peer.normalizedX = target.nx;
+    peer.normalizedY = target.ny;
 
     int screenWidth = 1920, screenHeight = 1080;
 #ifdef _WIN32
@@ -21,8 +39,14 @@ void SyncModule::UpdatePeer(unsigned long long id, int normX, int normY) {
     screenHeight = GetSystemMetrics(SM_CYSCREEN);
 #endif
 
-    peer.x = Denormalize(normX, screenWidth);
-    peer.y = Denormalize(normY, screenHeight);
+    peer.targetX = Denormalize(peer.normalizedX, screenWidth);
+    peer.targetY = Denormalize(peer.normalizedY, screenHeight);
+
+    // If it's the first update, snap immediately
+    if (peer.x == 0 && peer.y == 0) {
+        peer.x = peer.targetX;
+        peer.y = peer.targetY;
+    }
 
     // Assign a default color based on ID if not set
     if (peer.colorR == 0 && peer.colorG == 0 && peer.colorB == 0) {
@@ -67,4 +91,16 @@ bool SyncModule::ResolveConflict(unsigned long long id, int normX, int normY, do
     // Basic conflict resolution logic (e.g., Server is always right)
     // For alpha, we assume inbound packets from server (rebroadcasts) take precedence.
     return true;
+}
+
+void SyncModule::Step(double deltaTime) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    // Simple linear interpolation toward target
+    const float lerpFactor = 0.3f; // Adjust for smoothness vs responsiveness
+
+    for (auto& [id, peer] : m_peers) {
+        peer.x += (int)((peer.targetX - peer.x) * lerpFactor);
+        peer.y += (int)((peer.targetY - peer.y) * lerpFactor);
+    }
 }

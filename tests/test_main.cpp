@@ -4,6 +4,32 @@
 #include "NetMuxFramework.hpp"
 #include "ConfigManager.hpp"
 #include "NetworkManager.hpp"
+#include "SyncModule.hpp"
+
+void test_sync_module_interpolation() {
+    std::cout << "Testing SyncModule interpolation..." << std::endl;
+    SyncModule sync;
+    unsigned long long peerId = 1;
+
+    // Initial update
+    sync.UpdatePeer(peerId, 32768, 32768); // Center 0.5, 0.5
+    PeerState s;
+    sync.GetPeerState(peerId, s);
+    int startX = s.x;
+
+    // Because of the jitter buffer, we need multiple updates or
+    // to fill the buffer to see movement in the interpolated 'target'
+    for(int i=0; i<6; ++i) {
+        sync.UpdatePeer(peerId, 65535, 65535);
+    }
+
+    // Step and check movement
+    sync.Step(16.0);
+    sync.GetPeerState(peerId, s);
+
+    assert(s.x > startX);
+    assert(s.x <= s.targetX);
+}
 
 void test_config_manager() {
     std::cout << "Testing ConfigManager..." << std::endl;
@@ -61,6 +87,7 @@ int main() {
     test_packet_serialization();
     test_initialization();
     test_coordinated_e2e();
+    test_sync_module_interpolation();
 
     std::cout << "All tests passed!" << std::endl;
     return 0;
