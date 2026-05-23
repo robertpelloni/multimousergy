@@ -11,3 +11,5 @@
 - Decoupled modules for Networking, Input, Driver, and UI.
 - UDP for cursor updates to minimize latency.
 - **Grouping Architecture**: `groupId` is propagated through all layers (Network Packet -> Framework -> SyncModule -> Overlay) to ensure consistent isolation and visual feedback.
+- **Multiplexing Optimization**: The server-side multiplexer uses group-aware routing to minimize network traffic by only rebroadcasting updates to peers in the same `groupId`.
+- **Interaction Sequencing**: Remote clicks are queued and processed sequentially to prevent race conditions during the "Warp-Click-Restore" cycle, maintaining system focus integrity.

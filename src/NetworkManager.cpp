@@ -122,6 +122,16 @@ bool NetworkManager::Connect(const std::string& address, int port) {
     return true;
 }
 
+void NetworkManager::SendPacketToGroup(const Packet& packet, unsigned int groupId) {
+    if (!m_running || m_udpSocket == INVALID_SOCKET || !m_isServer) return;
+
+    for (auto const& [id, peer] : m_udpPeerMap) {
+        if (peer.groupId == groupId) {
+            sendto(m_udpSocket, (const char*)&packet, sizeof(packet), 0, (struct sockaddr*)&peer.addr, sizeof(sockaddr_in));
+        }
+    }
+}
+
 void NetworkManager::SendPacket(const Packet& packet) {
     if (!m_running || m_udpSocket == INVALID_SOCKET) return;
 
@@ -129,8 +139,8 @@ void NetworkManager::SendPacket(const Packet& packet) {
         // UDP for movement (Low Latency)
         if (m_isServer) {
             // Server broadcasts movement to all known UDP peers
-            for (auto const& [id, addr] : m_udpPeerMap) {
-                sendto(m_udpSocket, (const char*)&packet, sizeof(packet), 0, (struct sockaddr*)&addr, sizeof(sockaddr_in));
+            for (auto const& [id, peer] : m_udpPeerMap) {
+                sendto(m_udpSocket, (const char*)&packet, sizeof(packet), 0, (struct sockaddr*)&peer.addr, sizeof(sockaddr_in));
             }
         } else if (m_hasRemoteAddr) {
             sendto(m_udpSocket, (const char*)&packet, sizeof(packet), 0, (struct sockaddr*)&m_remoteAddr, sizeof(sockaddr_in));
@@ -265,7 +275,7 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
     if (result >= (int)sizeof(Packet)) {
         if (m_isServer) {
             // Update/Add peer to UDP routing map
-            m_udpPeerMap[packet.senderId] = fromAddr;
+            m_udpPeerMap[packet.senderId] = { fromAddr, packet.groupId };
         }
 
         if (!m_hasRemoteAddr) {

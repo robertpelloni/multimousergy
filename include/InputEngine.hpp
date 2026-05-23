@@ -21,6 +21,7 @@ public:
     bool IsAtBoundary(int x, int y);
     bool GetPendingPacket(Packet& pkt);
     void PerformWarpClickRestore(int targetX, int targetY, int button, bool down);
+    bool IsLocalUserActive() const;
 
     bool IsCaptured() const { return m_isCaptured; }
 
@@ -30,6 +31,7 @@ private:
     long m_accumulatedX;
     int m_virtualX;
     int m_virtualY;
+    double m_lastLocalActivity;
     Config m_config;
     std::queue<Packet> m_pendingPackets;
 #ifdef _WIN32

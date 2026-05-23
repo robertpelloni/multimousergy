@@ -56,6 +56,7 @@ public:
 
     void SetIsServer(bool isServer) { m_isServer = isServer; }
     void SendPacket(const Packet& packet);
+    void SendPacketToGroup(const Packet& packet, unsigned int groupId);
     bool ReceivePacket(Packet& packet);
 
     bool BroadcastDiscovery(int port);
@@ -69,7 +70,11 @@ private:
     unsigned long long m_udpSocket; // Using unsigned long long to accommodate SOCKET on 64-bit Windows
     unsigned long long m_tcpSocket;
     std::vector<ClientConnection> m_clients; // Per-client state to prevent interleaving
-    std::map<unsigned long long, sockaddr_in> m_udpPeerMap; // Multi-client UDP routing
+    struct PeerInfo {
+        sockaddr_in addr;
+        unsigned int groupId;
+    };
+    std::map<unsigned long long, PeerInfo> m_udpPeerMap; // Multi-client UDP routing
     sockaddr_in m_remoteAddr;
     bool m_isServer;
     bool m_hasRemoteAddr;

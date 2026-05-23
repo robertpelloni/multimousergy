@@ -6,6 +6,9 @@
 - Group-based visibility and interaction filtering.
 - Visual differentiation for cursors based on Group ID.
 - Configurable Group ID in GUI and persistence layer.
+- **Group-Aware Multiplexing**: Optimized UDP rebroadcasting restricted to relevant peer groups.
+- **Interaction Queuing**: Thread-safe queuing of remote clicks to ensure sequential, artifact-free execution.
+- **Local Priority Multiplexing**: "Warp-Click-Restore" now defers to local user activity to prevent jitter.
 
 ## [0.1.25-alpha] - 2025-01-24
 ### Added

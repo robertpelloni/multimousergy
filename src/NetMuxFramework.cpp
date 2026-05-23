@@ -72,6 +72,7 @@ void NetMuxFramework::Run() {
         PerformClipboardSync();
         ProcessOutgoingPackets();
         ProcessIncomingPackets();
+        ProcessInteractionQueue();
 
         m_sync.Step(dt);
 
@@ -135,6 +136,34 @@ void NetMuxFramework::Shutdown() {
     }
 }
 
+void NetMuxFramework::ProcessInteractionQueue() {
+    std::lock_guard<std::mutex> lock(m_interactionMutex);
+    while (!m_interactionQueue.empty()) {
+        auto event = m_interactionQueue.front();
+        m_interactionQueue.pop();
+
+        PeerState peer;
+        if (m_sync.GetPeerState(event.peerId, peer)) {
+            unsigned long long previousOwner = m_sync.GetActivePeer();
+
+            if (m_sync.ResolveConflict(event.peerId, m_loopTimer.ElapsedMilliseconds())) {
+                if (!m_driver.SendMouseButton(event.button, event.down)) {
+                    m_input.PerformWarpClickRestore((int)peer.x, (int)peer.y, event.button, event.down);
+                }
+
+                // Rebroadcast focus update if owner changed
+                if (m_settings.isServer && previousOwner != event.peerId) {
+                    Packet focusPkt = { m_localId, m_settings.groupId, 0.0, PacketType::FocusUpdate, 0, 0, 0, false, "", 0 };
+                    focusPkt.button = (int)event.peerId; // Reuse button field for peer ID
+                    m_network.SendPacket(focusPkt);
+                }
+            } else {
+                std::cout << "[Conflict] Peer " << event.peerId << " denied focus ownership." << std::endl;
+            }
+        }
+    }
+}
+
 void NetMuxFramework::ProcessOutgoingPackets() {
     Packet outPkt;
     while (m_input.GetPendingPacket(outPkt)) {
@@ -179,35 +208,13 @@ void NetMuxFramework::ProcessIncomingPackets() {
             m_driver.SendMouseMovement(dx, dy);
 
             // OPTIMIZED REBROADCAST:
-            // In server mode, immediately propagate the absolute position to all other peers.
+            // In server mode, immediately propagate the absolute position to all peers in the SAME group.
             if (m_settings.isServer) {
-                m_network.SendPacket(inPkt);
+                m_network.SendPacketToGroup(inPkt, inPkt.groupId);
             }
         } else if (inPkt.type == PacketType::Click) {
-            PeerState peer;
-            if (m_sync.GetPeerState(peerId, peer)) {
-                unsigned long long previousOwner = m_sync.GetActivePeer();
-
-                if (m_sync.ResolveConflict(peerId, m_loopTimer.ElapsedMilliseconds())) {
-                    if (!m_driver.SendMouseButton(inPkt.button, inPkt.down)) {
-                        m_input.PerformWarpClickRestore((int)peer.x, (int)peer.y, inPkt.button, inPkt.down);
-                    }
-
-                    // Rebroadcast focus update if owner changed
-                    if (m_settings.isServer && previousOwner != peerId) {
-                        Packet focusPkt = { m_localId, m_settings.groupId, 0.0, PacketType::FocusUpdate, 0, 0, 0, false, "", 0 };
-                        focusPkt.button = (int)peerId; // Reuse button field for peer ID
-                        m_network.SendPacket(focusPkt);
-                    }
-                } else {
-                    std::cout << "[Conflict] Peer " << peerId << " denied focus ownership." << std::endl;
-                }
-
-                if (!inPkt.down) {
-                    // Release active lock if no buttons are down (optional/configurable)
-                    // m_sync.SetActivePeer(0);
-                }
-            }
+            std::lock_guard<std::mutex> lock(m_interactionMutex);
+            m_interactionQueue.push({peerId, inPkt.button, inPkt.down, inPkt.groupId});
         } else if (inPkt.type == PacketType::Sync) {
             if (m_settings.isServer) {
                 m_network.SendPacket(inPkt);

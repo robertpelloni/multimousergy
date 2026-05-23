@@ -1,12 +1,13 @@
 #include "InputEngine.hpp"
 #include <iostream>
+#include <chrono>
 
 #ifdef _WIN32
 #include <windows.h>
 static InputEngine* s_instance = nullptr;
 #endif
 
-InputEngine::InputEngine() : m_active(false), m_isCaptured(false), m_accumulatedX(0), m_virtualX(0), m_virtualY(0) {
+InputEngine::InputEngine() : m_active(false), m_isCaptured(false), m_accumulatedX(0), m_virtualX(0), m_virtualY(0), m_lastLocalActivity(0) {
 #ifdef _WIN32
     m_mouseHook = nullptr;
     m_hwnd = nullptr;
@@ -25,6 +26,11 @@ LRESULT CALLBACK InputWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode >= 0 && s_instance) {
         MSLLHOOKSTRUCT* mouseInfo = (MSLLHOOKSTRUCT*)lParam;
+
+        // Update local activity timestamp
+        static auto startTime = std::chrono::steady_clock::now();
+        auto now = std::chrono::steady_clock::now();
+        s_instance->m_lastLocalActivity = std::chrono::duration<double, std::milli>(now - startTime).count();
 
         // Ignore injected events to allow Warp-Click-Restore to function
         if (mouseInfo->flags & LLMHF_INJECTED) {
@@ -218,8 +224,21 @@ bool InputEngine::GetPendingPacket(Packet& pkt) {
     return true;
 }
 
+bool InputEngine::IsLocalUserActive() const {
+    static auto startTime = std::chrono::steady_clock::now();
+    auto now = std::chrono::steady_clock::now();
+    double currentMs = std::chrono::duration<double, std::milli>(now - startTime).count();
+
+    // Local user is considered active if they moved the mouse in the last 500ms
+    return (currentMs - m_lastLocalActivity < 500.0);
+}
+
 void InputEngine::PerformWarpClickRestore(int targetX, int targetY, int button, bool down) {
 #ifdef _WIN32
+    if (IsLocalUserActive()) {
+        std::cout << "[Input] Local activity detected. Deferring remote interaction." << std::endl;
+        return;
+    }
     /*
      * SOFTWARE FALLBACK INTERACTION LOGIC:
      * This method snatches the local system cursor, warps it to the target remote coordinate,
