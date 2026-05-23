@@ -33,6 +33,7 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             s_hwndBoundary = CreateWindowEx(WS_EX_CLIENTEDGE, "EDIT", std::to_string(s_currentSettings->inputConfig.boundaryX).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER, 110, 100, 150, 20, hwnd, NULL, NULL, NULL);
 
             CreateWindow("BUTTON", "Save & Start", WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 80, 140, 120, 30, hwnd, (HMENU)ID_SAVE_BUTTON, NULL, NULL);
+            CreateWindow("STATIC", "Active User:", WS_VISIBLE | WS_CHILD, 10, 240, 100, 20, hwnd, NULL, NULL, NULL);
             break;
 
         case WM_COMMAND:

@@ -14,6 +14,7 @@ set(LIB_SOURCES
     src/ConfigGUI.cpp
     src/Timer.cpp
     src/NetMuxFramework.cpp
+    src/SyncModule.cpp
 )
 
 # Library

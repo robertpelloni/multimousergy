@@ -58,7 +58,8 @@ void NetMuxFramework::Run() {
         // Throttle Overlay Rendering to ~144Hz (approx 7ms)
         if (m_overlayDirty && m_renderTimer.ElapsedMilliseconds() > 7.0) {
             std::map<unsigned long long, RemoteCursorState> overlayPeers;
-            for (auto const& [id, peer] : m_peers) {
+            auto peers = m_sync.GetAllPeers();
+            for (auto const& [id, peer] : peers) {
                 overlayPeers[id] = { peer.x, peer.y, peer.colorR, peer.colorG, peer.colorB };
             }
             m_overlay.RenderPeers(overlayPeers);
@@ -96,50 +97,43 @@ void NetMuxFramework::ProcessIncomingPackets() {
         unsigned long long peerId = inPkt.senderId;
 
         if (inPkt.type == PacketType::Movement) {
-            PeerCursor& peer = m_peers[peerId];
-            peer.x += inPkt.x;
-            peer.y += inPkt.y;
-
-            // Clamp to screen bounds
-#ifdef _WIN32
-            peer.x = std::max(0, std::min(peer.x, (int)GetSystemMetrics(SM_CXSCREEN)));
-            peer.y = std::max(0, std::min(peer.y, (int)GetSystemMetrics(SM_CYSCREEN)));
-#endif
-            m_overlayDirty = true;
+            // Deprecated: Movement packets are handled by SyncModule if converted to absolute
             m_driver.SendMouseMovement(inPkt.x, inPkt.y);
         } else if (inPkt.type == PacketType::AbsoluteMovement) {
-            PeerCursor& peer = m_peers[peerId];
+            PeerState oldPeer;
+            m_sync.GetPeerState(peerId, oldPeer);
 
-            int screenWidth = 1920, screenHeight = 1080;
-#ifdef _WIN32
-            screenWidth = GetSystemMetrics(SM_CXSCREEN);
-            screenHeight = GetSystemMetrics(SM_CYSCREEN);
-#endif
-            int newX = Denormalize(inPkt.x, screenWidth);
-            int newY = Denormalize(inPkt.y, screenHeight);
+            m_sync.UpdatePeer(peerId, inPkt.x, inPkt.y);
 
-            long dx = newX - peer.x;
-            long dy = newY - peer.y;
+            PeerState newPeer;
+            m_sync.GetPeerState(peerId, newPeer);
 
-            peer.x = newX;
-            peer.y = newY;
+            long dx = newPeer.x - oldPeer.x;
+            long dy = newPeer.y - oldPeer.y;
 
             m_overlayDirty = true;
             m_driver.SendMouseMovement(dx, dy);
 
-            // SERVER-SIDE BROADCAST (Conflict Resolution)
-            // If we are server, rebroadcast absolute position of this peer to all other peers
             if (m_settings.isServer) {
                 m_network.SendPacket(inPkt);
             }
         } else if (inPkt.type == PacketType::Click) {
-            PeerCursor& peer = m_peers[peerId];
+            PeerState peer;
+            if (m_sync.GetPeerState(peerId, peer)) {
+                // Ensure peer is allowed to click (e.g. they are the active peer or everyone is allowed)
+                // For Alpha, the first one to click becomes 'active' if no one else is active.
+                if (m_sync.GetActivePeer() == 0) m_sync.SetActivePeer(peerId);
 
-            // Use driver-level hardware injection for clicks first.
-            if (!m_driver.SendMouseButton(inPkt.button, inPkt.down)) {
-                // FALLBACK: If driver injection is unavailable, we use the "Warp-Click-Restore"
-                // cycle as a software-level fallback to ensure basic functionality.
-                m_input.PerformWarpClickRestore(peer.x, peer.y, inPkt.button, inPkt.down);
+                if (m_sync.GetActivePeer() == peerId) {
+                    if (!m_driver.SendMouseButton(inPkt.button, inPkt.down)) {
+                        m_input.PerformWarpClickRestore(peer.x, peer.y, inPkt.button, inPkt.down);
+                    }
+                }
+
+                if (!inPkt.down) {
+                    // Release active lock if no buttons are down (optional/configurable)
+                    // m_sync.SetActivePeer(0);
+                }
             }
         } else if (inPkt.type == PacketType::Sync) {
             if (m_settings.isServer) {

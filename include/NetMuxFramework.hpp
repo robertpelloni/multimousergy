@@ -3,17 +3,10 @@
 #include "InputEngine.hpp"
 #include "DriverInterface.hpp"
 #include "OverlayEngine.hpp"
+#include "SyncModule.hpp"
 #include "ConfigManager.hpp"
 #include "Timer.hpp"
 #include <map>
-
-struct PeerCursor {
-    int x;
-    int y;
-    unsigned char colorR;
-    unsigned char colorG;
-    unsigned char colorB;
-};
 
 class NetMuxFramework {
 public:
@@ -30,25 +23,14 @@ private:
     void PerformLatencySync();
     void PerformDiscoveryBroadcast();
 
-    static int Normalize(int val, int max) {
-        if (max <= 1) return 0;
-        return (val * 65535) / (max - 1);
-    }
-
-    static int Denormalize(int val, int max) {
-        if (max <= 1) return 0;
-        return (val * (max - 1)) / 65535;
-    }
-
     NetworkManager m_network;
     InputEngine m_input;
     DriverInterface m_driver;
     OverlayEngine m_overlay;
+    SyncModule m_sync;
 
     AppSettings m_settings;
     bool m_running;
-
-    std::map<unsigned long long, PeerCursor> m_peers;
 
     Timer m_loopTimer;
     Timer m_syncTimer;
