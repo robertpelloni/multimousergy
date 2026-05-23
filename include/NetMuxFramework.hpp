@@ -26,6 +26,10 @@ public:
         m_overlay.SetScale(scale);
     }
 
+    void SetUseD3D11(bool enable) {
+        m_overlay.SetBackend(enable ? OverlayBackend::D3D11 : OverlayBackend::GDI);
+    }
+
     void EnableBenchmarking(bool enable) { m_benchmarking = enable; }
 
 private:

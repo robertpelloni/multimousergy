@@ -17,11 +17,13 @@ static HWND s_hwndPeerList = nullptr;
 static HWND s_hwndLatency = nullptr;
 static HWND s_hwndActiveUser = nullptr;
 static HWND s_hwndCursorScale = nullptr;
+static HWND s_hwndUseD3D11 = nullptr;
 
 enum ControlIDs {
     ID_SAVE_BUTTON = 1,
     ID_PEER_LIST = 2,
-    ID_CURSOR_SCALE = 3
+    ID_CURSOR_SCALE = 3,
+    ID_USE_D3D11 = 4
 };
 
 LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -50,6 +52,9 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
             CreateWindow("STATIC", "Cursor Scale:", WS_VISIBLE | WS_CHILD, 10, 270, 100, 20, hwnd, NULL, NULL, NULL);
             s_hwndCursorScale = CreateWindow("EDIT", "100", WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 110, 270, 50, 20, hwnd, (HMENU)ID_CURSOR_SCALE, NULL, NULL);
+
+            s_hwndUseD3D11 = CreateWindow("BUTTON", "Hardware Acceleration (D3D11)", WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX, 10, 300, 250, 20, hwnd, (HMENU)ID_USE_D3D11, NULL, NULL);
+            if (s_currentSettings->useD3D11) SendMessage(s_hwndUseD3D11, BM_SETCHECK, BST_CHECKED, 0);
             break;
 
         case WM_COMMAND:
@@ -75,6 +80,7 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                     s_currentSettings->cursorScale = (float)std::stoi(buffer) / 100.0f;
 
                     s_currentSettings->isServer = (SendMessage(s_hwndServer, BM_GETCHECK, 0, 0) == BST_CHECKED);
+                    s_currentSettings->useD3D11 = (SendMessage(s_hwndUseD3D11, BM_GETCHECK, 0, 0) == BST_CHECKED);
 
                     GetWindowText(s_hwndIp, buffer, 256);
                     s_currentSettings->remoteIp = buffer;
@@ -109,7 +115,7 @@ bool ConfigGUI::ShowDialog(AppSettings& settings) {
     wc.lpszClassName = "NetMuxSettings";
     RegisterClass(&wc);
 
-    HWND hwnd = CreateWindow("NetMuxSettings", "NetMux Settings", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 300, 350, NULL, NULL, GetModuleHandle(NULL), NULL);
+    HWND hwnd = CreateWindow("NetMuxSettings", "NetMux Settings", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 300, 400, NULL, NULL, GetModuleHandle(NULL), NULL);
     if (!hwnd) return false;
 
     NetworkManager discoveryNetwork;

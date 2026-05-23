@@ -8,6 +8,7 @@ struct AppSettings {
     int port;
     Config inputConfig;
     float cursorScale = 1.0f;
+    bool useD3D11 = false;
 };
 
 class ConfigManager {

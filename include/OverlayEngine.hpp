@@ -1,6 +1,11 @@
 #pragma once
 #include <map>
 
+enum class OverlayBackend {
+    GDI,
+    D3D11
+};
+
 struct RemoteCursorState {
     int x;
     int y;
@@ -24,6 +29,7 @@ public:
     }
 
     void SetScale(float scale) { m_scale = scale; }
+    void SetBackend(OverlayBackend backend) { m_backend = backend; }
 
 private:
     bool m_active;
@@ -31,9 +37,11 @@ private:
     unsigned char m_colorG = 0;
     unsigned char m_colorB = 0;
     float m_scale = 1.0f;
+    OverlayBackend m_backend = OverlayBackend::GDI;
 
 #ifdef _WIN32
     void* m_hwnd;
+    void* m_d3dOverlay; // Reference to D3D11Overlay class
     void* m_hdcMem;
     void* m_hBitmap;
     void* m_hOldBitmap;

@@ -1,4 +1,5 @@
 #include "OverlayEngine.hpp"
+#include "D3D11Overlay.hpp"
 #include <iostream>
 
 #ifdef _WIN32
@@ -21,6 +22,7 @@ LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 OverlayEngine::OverlayEngine() : m_active(false) {
 #ifdef _WIN32
     m_hwnd = nullptr;
+    m_d3dOverlay = nullptr;
     m_hdcMem = nullptr;
     m_hBitmap = nullptr;
     m_hOldBitmap = nullptr;
@@ -58,6 +60,14 @@ bool OverlayEngine::Initialize() {
     );
 
     if (!m_hwnd) return false;
+
+    if (m_backend == OverlayBackend::D3D11) {
+        m_d3dOverlay = new D3D11Overlay();
+        if (!static_cast<D3D11Overlay*>(m_d3dOverlay)->Initialize((HWND)m_hwnd)) {
+            std::cout << "[Overlay] D3D11 Init failed, falling back to GDI." << std::endl;
+            m_backend = OverlayBackend::GDI;
+        }
+    }
 
     // Use a color key for transparency (e.g., black is transparent)
     SetLayeredWindowAttributes((HWND)m_hwnd, RGB(0, 0, 0), 0, LWA_COLORKEY);
@@ -114,6 +124,11 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
     if (!m_active) return;
 
 #ifdef _WIN32
+    if (m_backend == OverlayBackend::D3D11 && m_d3dOverlay) {
+        static_cast<D3D11Overlay*>(m_d3dOverlay)->Render(peers);
+        return;
+    }
+
     HWND hwnd = (HWND)m_hwnd;
     HDC hdcMem = (HDC)m_hdcMem;
     HDC hdcScreen = GetDC(NULL);
@@ -165,6 +180,11 @@ void OverlayEngine::Shutdown() {
             if (m_hBrush) DeleteObject((HBRUSH)m_hBrush);
             if (m_hCursorBitmap) DeleteObject((HBITMAP)m_hCursorBitmap);
             DeleteDC((HDC)m_hdcMem);
+        }
+        if (m_d3dOverlay) {
+            static_cast<D3D11Overlay*>(m_d3dOverlay)->Shutdown();
+            delete static_cast<D3D11Overlay*>(m_d3dOverlay);
+            m_d3dOverlay = nullptr;
         }
         if (m_hwnd) {
             DestroyWindow((HWND)m_hwnd);

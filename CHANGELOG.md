@@ -1,5 +1,18 @@
 # CHANGELOG.md
 
+## [0.1.24-alpha] - 2025-01-24
+### Added
+- D3D11 hardware-accelerated overlay backend for ultra-smooth rendering.
+- Refactored OverlayEngine to support multiple rendering backends (GDI/D3D11).
+- Backend selection toggle in ConfigGUI.
+- High-refresh rate support (144Hz+) via hardware acceleration.
+
+## [0.1.23-alpha] - 2025-01-24
+### Added
+- E2E latency benchmarking and telemetry (RTT/E2E metrics).
+- CSV export for performance data (BENCHMARK_RESULTS.csv).
+- Switched SyncModule to floating-point coordinates for precision.
+
 ## [0.1.22-alpha] - 2025-01-24
 ### Added
 - Automated stress tests for SyncModule and NetworkManager.

@@ -78,6 +78,7 @@ int main(int argc, char* argv[]) {
     // Set custom settings from ConfigGUI
     framework.SetCursorColor(colorR, colorG, colorB);
     framework.SetCursorScale(settings.cursorScale);
+    framework.SetUseD3D11(settings.useD3D11);
 
     if (benchMode) {
         std::cout << "[Bench] Benchmarking mode enabled." << std::endl;
