@@ -16,10 +16,12 @@ static HWND s_hwndBoundary = nullptr;
 static HWND s_hwndPeerList = nullptr;
 static HWND s_hwndLatency = nullptr;
 static HWND s_hwndActiveUser = nullptr;
+static HWND s_hwndCursorScale = nullptr;
 
 enum ControlIDs {
     ID_SAVE_BUTTON = 1,
-    ID_PEER_LIST = 2
+    ID_PEER_LIST = 2,
+    ID_CURSOR_SCALE = 3
 };
 
 LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -45,6 +47,9 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
             s_hwndLatency = CreateWindow("STATIC", "Latency: --- ms", WS_VISIBLE | WS_CHILD, 10, 210, 200, 20, hwnd, NULL, NULL, NULL);
             s_hwndActiveUser = CreateWindow("STATIC", "Active User: 0", WS_VISIBLE | WS_CHILD, 10, 240, 200, 20, hwnd, NULL, NULL, NULL);
+
+            CreateWindow("STATIC", "Cursor Scale:", WS_VISIBLE | WS_CHILD, 10, 270, 100, 20, hwnd, NULL, NULL, NULL);
+            s_hwndCursorScale = CreateWindow("EDIT", "100", WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 110, 270, 50, 20, hwnd, (HMENU)ID_CURSOR_SCALE, NULL, NULL);
             break;
 
         case WM_COMMAND:
@@ -65,6 +70,9 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
                     GetWindowText(s_hwndBoundary, buffer, 256);
                     int boundaryX = std::stoi(buffer);
+
+                    GetWindowText(s_hwndCursorScale, buffer, 256);
+                    s_currentSettings->cursorScale = (float)std::stoi(buffer) / 100.0f;
 
                     s_currentSettings->isServer = (SendMessage(s_hwndServer, BM_GETCHECK, 0, 0) == BST_CHECKED);
 
@@ -101,7 +109,7 @@ bool ConfigGUI::ShowDialog(AppSettings& settings) {
     wc.lpszClassName = "NetMuxSettings";
     RegisterClass(&wc);
 
-    HWND hwnd = CreateWindow("NetMuxSettings", "NetMux Settings", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 300, 320, NULL, NULL, GetModuleHandle(NULL), NULL);
+    HWND hwnd = CreateWindow("NetMuxSettings", "NetMux Settings", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 300, 350, NULL, NULL, GetModuleHandle(NULL), NULL);
     if (!hwnd) return false;
 
     NetworkManager discoveryNetwork;

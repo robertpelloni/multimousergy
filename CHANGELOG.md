@@ -1,5 +1,25 @@
 # CHANGELOG.md
 
+## [0.1.21-alpha] - 2025-01-24
+### Added
+- Dynamic cursor scaling via ConfigGUI.
+- Enhanced ConfigGUI with peer discovery list and active status.
+- Support for StretchBlt-based remote cursor scaling.
+- Final multi-terminal performance validation.
+
+## [0.1.20-alpha] - 2025-01-24
+### Added
+- Multi-client UDP routing map for high-frequency movement distribution.
+- Formal network handshake protocol for client metadata exchange.
+- Targeted UDP transmission support for multi-user sessions.
+- Verified system stability for concurrent movement and state sync.
+
+## [0.1.17-alpha] - 2025-01-24
+### Added
+- Final comprehensive E2E validation and stability audit.
+- Full roadmap synchronization and task finalization.
+- Integrated multi-user concurrency and clipboard sync verification.
+
 ## [0.1.16-alpha] - 2025-01-24
 ### Added
 - Integrated benchmarking mode via `--bench` flag.

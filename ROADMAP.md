@@ -23,3 +23,4 @@
 - [x] Multi-monitor coordinate scaling and clamping.
 - [x] High-precision synchronization protocol (v0.1.11+).
 - [x] Integrated benchmarking and telemetry (v0.1.16+).
+ - [x] Dynamic Cursor Scaling and Peer Selection (v0.1.21+).

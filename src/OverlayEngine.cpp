@@ -128,9 +128,11 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
         SelectObject(hdcCursor, (HBITMAP)m_hCursorBitmap);
 
         // Alpha blending or simple BitBlt with color keying
-        // Since we are using a simple color key, we can use TransparentBlt if available,
-        // or just BitBlt if we don't mind the black background (which is color-keyed anyway)
-        BitBlt(hdcMem, peer.x, peer.y, m_cursorWidth, m_cursorHeight, hdcCursor, 0, 0, SRCPAINT);
+        if (m_scale == 1.0f) {
+            BitBlt(hdcMem, peer.x, peer.y, m_cursorWidth, m_cursorHeight, hdcCursor, 0, 0, SRCPAINT);
+        } else {
+            StretchBlt(hdcMem, peer.x, peer.y, (int)(m_cursorWidth * m_scale), (int)(m_cursorHeight * m_scale), hdcCursor, 0, 0, m_cursorWidth, m_cursorHeight, SRCPAINT);
+        }
 
         DeleteDC(hdcCursor);
 

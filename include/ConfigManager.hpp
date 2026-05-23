@@ -7,6 +7,7 @@ struct AppSettings {
     std::string remoteIp;
     int port;
     Config inputConfig;
+    float cursorScale = 1.0f;
 };
 
 class ConfigManager {

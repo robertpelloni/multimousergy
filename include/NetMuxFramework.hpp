@@ -22,6 +22,10 @@ public:
         m_overlay.SetColor(r, g, b);
     }
 
+    void SetCursorScale(float scale) {
+        m_overlay.SetScale(scale);
+    }
+
     void EnableBenchmarking(bool enable) { m_benchmarking = enable; }
 
 private:

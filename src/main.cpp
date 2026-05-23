@@ -75,8 +75,9 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    // Set custom color if provided via CLI
+    // Set custom settings from ConfigGUI
     framework.SetCursorColor(colorR, colorG, colorB);
+    framework.SetCursorScale(settings.cursorScale);
 
     if (benchMode) {
         std::cout << "[Bench] Benchmarking mode enabled." << std::endl;

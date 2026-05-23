@@ -23,11 +23,14 @@ public:
         m_colorR = r; m_colorG = g; m_colorB = b;
     }
 
+    void SetScale(float scale) { m_scale = scale; }
+
 private:
     bool m_active;
     unsigned char m_colorR = 255;
     unsigned char m_colorG = 0;
     unsigned char m_colorB = 0;
+    float m_scale = 1.0f;
 
 #ifdef _WIN32
     void* m_hwnd;
