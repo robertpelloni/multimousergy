@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <map>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -15,7 +16,8 @@ enum class PacketType {
     Sync,
     Discovery,
     Heartbeat,
-    ClipboardSync
+    ClipboardSync,
+    Handshake
 };
 
 struct Packet {
@@ -64,6 +66,7 @@ private:
     unsigned long long m_udpSocket; // Using unsigned long long to accommodate SOCKET on 64-bit Windows
     unsigned long long m_tcpSocket;
     std::vector<ClientConnection> m_clients; // Per-client state to prevent interleaving
+    std::map<unsigned long long, sockaddr_in> m_udpPeerMap; // Multi-client UDP routing
     sockaddr_in m_remoteAddr;
     bool m_isServer;
     bool m_hasRemoteAddr;

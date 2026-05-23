@@ -7,6 +7,8 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#else
+#include <unistd.h>
 #endif
 
 NetMuxFramework::NetMuxFramework()
@@ -30,6 +32,12 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
             std::cerr << "Failed to connect to " << m_settings.remoteIp << ":" << m_settings.port << std::endl;
             return false;
         }
+
+    // Handshake: Send initial metadata
+    Packet handshake = { 0, PacketType::Handshake, 0, 0, 0, false, "", 0 };
+    gethostname(handshake.payload, sizeof(handshake.payload));
+    handshake.payloadSize = (int)strlen(handshake.payload);
+    m_network.SendPacket(handshake);
     }
 
     if (!m_input.Initialize(m_settings.inputConfig) || !m_overlay.Initialize()) {
@@ -186,6 +194,17 @@ void NetMuxFramework::ProcessIncomingPackets() {
 
             if (m_settings.isServer) {
                 m_network.SendPacket(inPkt);
+            }
+        } else if (inPkt.type == PacketType::Handshake) {
+            std::string remoteHost(inPkt.payload, inPkt.payloadSize);
+            std::cout << "[Network] Handshake completed with peer: " << remoteHost << " (ID: " << peerId << ")" << std::endl;
+
+            if (m_settings.isServer) {
+                // Server replies with its own handshake
+                Packet reply = { 0, PacketType::Handshake, 0, 0, 0, false, "", 0 };
+                gethostname(reply.payload, sizeof(reply.payload));
+                reply.payloadSize = (int)strlen(reply.payload);
+                m_network.SendPacket(reply);
             }
         }
     }

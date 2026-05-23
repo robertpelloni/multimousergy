@@ -127,7 +127,12 @@ void NetworkManager::SendPacket(const Packet& packet) {
 
     if (packet.type == PacketType::Movement || packet.type == PacketType::AbsoluteMovement) {
         // UDP for movement (Low Latency)
-        if (m_hasRemoteAddr) {
+        if (m_isServer) {
+            // Server broadcasts movement to all known UDP peers
+            for (auto const& [id, addr] : m_udpPeerMap) {
+                sendto(m_udpSocket, (const char*)&packet, sizeof(packet), 0, (struct sockaddr*)&addr, sizeof(sockaddr_in));
+            }
+        } else if (m_hasRemoteAddr) {
             sendto(m_udpSocket, (const char*)&packet, sizeof(packet), 0, (struct sockaddr*)&m_remoteAddr, sizeof(sockaddr_in));
         }
     } else {
@@ -258,6 +263,11 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
     socklen_t fromLen = sizeof(fromAddr);
     int result = recvfrom(m_udpSocket, (char*)&packet, sizeof(packet), 0, (struct sockaddr*)&fromAddr, &fromLen);
     if (result >= (int)sizeof(Packet)) {
+        if (m_isServer) {
+            // Update/Add peer to UDP routing map
+            m_udpPeerMap[packet.senderId] = fromAddr;
+        }
+
         if (!m_hasRemoteAddr) {
             m_remoteAddr = fromAddr;
             m_hasRemoteAddr = true;

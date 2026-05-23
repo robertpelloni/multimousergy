@@ -7,6 +7,13 @@
 - Generated PERFORMANCE.md with documented alpha benchmarks.
 - Cleaned up unused GDI resources in OverlayEngine.
 
+## [0.1.20-alpha] - 2025-01-24
+### Added
+- Multi-client UDP routing map for high-frequency movement distribution.
+- Formal network handshake protocol for client metadata exchange.
+- Targeted UDP transmission support for multi-user sessions.
+- Verified system stability for concurrent movement and state sync.
+
 ## [0.1.17-alpha] - 2025-01-24
 ### Added
 - Final comprehensive E2E validation and stability audit.
