@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.10-alpha] - 2026-05-23
+### Added
+- Automated multi-client concurrency simulation test.
+- Stall detection mechanism in SyncModule (3s timeout).
+- Dynamic 'Active User' display in ConfigGUI.
+- Refined multi-peer activity tracking and status monitoring.
+
 ## [0.1.9-alpha] - 2026-05-23
 ### Added
 - Comprehensive edge-case unit tests for cursor handling.

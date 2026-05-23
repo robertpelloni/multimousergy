@@ -43,6 +43,9 @@ void SyncModule::UpdatePeer(unsigned long long id, int normX, int normY) {
     peer.targetX = Denormalize(peer.normalizedX, screenWidth);
     peer.targetY = Denormalize(peer.normalizedY, screenHeight);
 
+    peer.lastSeen = timestamp;
+    peer.isStalled = false;
+
     // If it's the first update, snap immediately
     if (peer.x == 0 && peer.y == 0) {
         peer.x = peer.targetX;
@@ -111,6 +114,10 @@ void SyncModule::SetActivePeer(unsigned long long id) {
 void SyncModule::Step(double deltaTime) {
     std::lock_guard<std::mutex> lock(m_mutex);
 
+    static auto startTime = std::chrono::steady_clock::now();
+    auto now = std::chrono::steady_clock::now();
+    double currentMs = std::chrono::duration<double, std::milli>(now - startTime).count();
+
     // Coordinated smoothing factor based on deltaTime
     // Ensuring frame-rate independent interpolation
     float lerpFactor = 1.0f - std::pow(0.01f, (float)deltaTime / 1000.0f);
@@ -118,6 +125,11 @@ void SyncModule::Step(double deltaTime) {
     if (lerpFactor < 0.1f) lerpFactor = 0.1f; // Minimum smoothing
 
     for (auto& [id, peer] : m_peers) {
+        // Stall detection (3 seconds timeout)
+        if (currentMs - peer.lastSeen > 3000.0) {
+            peer.isStalled = true;
+        }
+
         peer.x += (int)((peer.targetX - peer.x) * lerpFactor);
         peer.y += (int)((peer.targetY - peer.y) * lerpFactor);
     }

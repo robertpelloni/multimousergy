@@ -6,6 +6,9 @@
 #include "NetworkManager.hpp"
 #include "SyncModule.hpp"
 
+// External declarations from test_multi_client.cpp
+void test_concurrent_cursor_sync();
+
 void test_sync_module_interpolation() {
     std::cout << "Testing SyncModule interpolation..." << std::endl;
     SyncModule sync;
@@ -126,6 +129,7 @@ int main() {
     test_sync_module_interpolation();
     test_coordinate_edge_cases();
     test_jitter_buffer_overflow();
+    test_concurrent_cursor_sync();
 
     std::cout << "All tests passed!" << std::endl;
     return 0;

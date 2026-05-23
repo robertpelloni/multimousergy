@@ -1,5 +1,7 @@
 #include "ConfigGUI.hpp"
 #include <iostream>
+#include <thread>
+#include <string>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -11,9 +13,13 @@ static HWND s_hwndServer = nullptr;
 static HWND s_hwndIp = nullptr;
 static HWND s_hwndPort = nullptr;
 static HWND s_hwndBoundary = nullptr;
+static HWND s_hwndPeerList = nullptr;
+static HWND s_hwndLatency = nullptr;
+static HWND s_hwndActiveUser = nullptr;
 
 enum ControlIDs {
-    ID_SAVE_BUTTON = 1
+    ID_SAVE_BUTTON = 1,
+    ID_PEER_LIST = 2
 };
 
 LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -33,10 +39,24 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             s_hwndBoundary = CreateWindowEx(WS_EX_CLIENTEDGE, "EDIT", std::to_string(s_currentSettings->inputConfig.boundaryX).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER, 110, 100, 150, 20, hwnd, NULL, NULL, NULL);
 
             CreateWindow("BUTTON", "Save & Start", WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 80, 140, 120, 30, hwnd, (HMENU)ID_SAVE_BUTTON, NULL, NULL);
-            CreateWindow("STATIC", "Active User:", WS_VISIBLE | WS_CHILD, 10, 240, 100, 20, hwnd, NULL, NULL, NULL);
+
+            CreateWindow("STATIC", "Discovered Peers:", WS_VISIBLE | WS_CHILD, 10, 180, 120, 20, hwnd, NULL, NULL, NULL);
+            s_hwndPeerList = CreateWindow("COMBOBOX", "", WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST, 110, 180, 150, 100, hwnd, (HMENU)ID_PEER_LIST, NULL, NULL);
+
+            s_hwndLatency = CreateWindow("STATIC", "Latency: --- ms", WS_VISIBLE | WS_CHILD, 10, 210, 200, 20, hwnd, NULL, NULL, NULL);
+            s_hwndActiveUser = CreateWindow("STATIC", "Active User: 0", WS_VISIBLE | WS_CHILD, 10, 240, 200, 20, hwnd, NULL, NULL, NULL);
             break;
 
         case WM_COMMAND:
+            if (LOWORD(wParam) == ID_PEER_LIST && HIWORD(wParam) == CBN_SELCHANGE) {
+                char buffer[256];
+                int index = (int)SendMessage(s_hwndPeerList, CB_GETCURSEL, 0, 0);
+                if (index != CB_ERR) {
+                    SendMessage(s_hwndPeerList, CB_GETLBTEXT, index, (LPARAM)buffer);
+                    SetWindowText(s_hwndIp, buffer);
+                }
+            }
+
             if (LOWORD(wParam) == ID_SAVE_BUTTON) {
                 char buffer[256];
                 try {
@@ -81,13 +101,28 @@ bool ConfigGUI::ShowDialog(AppSettings& settings) {
     wc.lpszClassName = "NetMuxSettings";
     RegisterClass(&wc);
 
-    HWND hwnd = CreateWindow("NetMuxSettings", "NetMux Settings", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 300, 220, NULL, NULL, GetModuleHandle(NULL), NULL);
+    HWND hwnd = CreateWindow("NetMuxSettings", "NetMux Settings", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 300, 320, NULL, NULL, GetModuleHandle(NULL), NULL);
     if (!hwnd) return false;
 
+    NetworkManager discoveryNetwork;
+
     MSG msg;
-    while (GetMessage(&msg, NULL, 0, 0)) {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
+    while (true) {
+        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+            if (msg.message == WM_QUIT) break;
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        } else {
+            // Poll for discovery in the background
+            DiscoveryPacket dp;
+            if (discoveryNetwork.PollDiscovery(dp)) {
+                // If peer not in list, add it
+                if (SendMessage(s_hwndPeerList, CB_FINDSTRINGEXACT, -1, (LPARAM)dp.hostname) == CB_ERR) {
+                    SendMessage(s_hwndPeerList, CB_ADDSTRING, 0, (LPARAM)dp.hostname);
+                }
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
     }
 
     return (msg.wParam == 1);

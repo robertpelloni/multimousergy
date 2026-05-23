@@ -23,6 +23,7 @@ struct PeerState {
     unsigned char colorB;
     double lastSeen;
     double latency;
+    bool isStalled;
     std::vector<HistoryPoint> jitterBuffer;
 };
 
