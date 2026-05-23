@@ -46,11 +46,12 @@ public:
     // Interpolation step
     void Step(double deltaTime);
 
-    void SetActivePeer(unsigned long long id) { m_activePeerId = id; }
+    void SetActivePeer(unsigned long long id);
     unsigned long long GetActivePeer() const { return m_activePeerId; }
 
 private:
     std::map<unsigned long long, PeerState> m_peers;
     unsigned long long m_activePeerId = 0;
+    double m_lastActiveSwitch = 0;
     std::mutex m_mutex;
 };

@@ -9,7 +9,7 @@
 #endif
 
 NetMuxFramework::NetMuxFramework()
-    : m_running(false), m_lastSyncTime(0), m_overlayDirty(false) {}
+    : m_running(false), m_lastSyncTime(0), m_lastPerfLog(0), m_overlayDirty(false) {}
 
 NetMuxFramework::~NetMuxFramework() {
     Shutdown();
@@ -60,6 +60,11 @@ void NetMuxFramework::Run() {
         ProcessIncomingPackets();
 
         m_sync.Step(dt);
+
+        if (m_loopTimer.ElapsedMilliseconds() - m_lastPerfLog > 5000.0) {
+            std::cout << "[Perf] Frame Delta: " << dt << " ms" << std::endl;
+            m_lastPerfLog = m_loopTimer.ElapsedMilliseconds();
+        }
 
         // Throttle Overlay Rendering to ~144Hz (approx 7ms)
         if (m_overlayDirty && m_renderTimer.ElapsedMilliseconds() > 7.0) {

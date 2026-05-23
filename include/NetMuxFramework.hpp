@@ -35,6 +35,8 @@ private:
     Timer m_loopTimer;
     Timer m_syncTimer;
     Timer m_renderTimer;
+    Timer m_perfTimer;
     double m_lastSyncTime;
+    double m_lastPerfLog;
     bool m_overlayDirty;
 };

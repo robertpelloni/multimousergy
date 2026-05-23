@@ -1,6 +1,7 @@
 #include "SyncModule.hpp"
 #include <chrono>
 #include <algorithm>
+#include <cmath>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -93,11 +94,28 @@ bool SyncModule::ResolveConflict(unsigned long long id, int normX, int normY, do
     return true;
 }
 
+void SyncModule::SetActivePeer(unsigned long long id) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    // Master Lock: Prevent rapid switching (500ms cooldown)
+    static auto startTime = std::chrono::steady_clock::now();
+    auto now = std::chrono::steady_clock::now();
+    double currentMs = std::chrono::duration<double, std::milli>(now - startTime).count();
+
+    if (currentMs - m_lastActiveSwitch > 500.0) {
+        m_activePeerId = id;
+        m_lastActiveSwitch = currentMs;
+    }
+}
+
 void SyncModule::Step(double deltaTime) {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    // Simple linear interpolation toward target
-    const float lerpFactor = 0.3f; // Adjust for smoothness vs responsiveness
+    // Coordinated smoothing factor based on deltaTime
+    // Ensuring frame-rate independent interpolation
+    float lerpFactor = 1.0f - std::pow(0.01f, (float)deltaTime / 1000.0f);
+    if (lerpFactor > 1.0f) lerpFactor = 1.0f;
+    if (lerpFactor < 0.1f) lerpFactor = 0.1f; // Minimum smoothing
 
     for (auto& [id, peer] : m_peers) {
         peer.x += (int)((peer.targetX - peer.x) * lerpFactor);
