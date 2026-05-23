@@ -1,5 +1,18 @@
 # CHANGELOG.md
 
+## [0.1.15-alpha] - 2026-05-23
+### Added
+- Comprehensive E2E performance validation and metric logging.
+- Optimized NetworkManager socket buffer drainage for minimal input lag.
+- Enhanced performance instrumentation (frame time, peer latency, user count).
+- Validated system stability under concurrent multi-client high-frequency load.
+
+## [0.1.14-alpha] - 2026-05-23
+### Added
+- Cross-network clipboard synchronization (text-based).
+- Expanded Packet structure with 1024-byte data payloads.
+- Integrated clipboard polling and remote update application.
+
 ## [0.1.13-alpha] - 2026-05-23
 ### Added
 - Multi-monitor support via Virtual Screen metrics (SM_XVIRTUALSCREEN, etc.).

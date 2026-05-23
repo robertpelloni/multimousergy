@@ -65,7 +65,14 @@ void NetMuxFramework::Run() {
         m_sync.Step(dt);
 
         if (m_loopTimer.ElapsedMilliseconds() - m_lastPerfLog > 5000.0) {
-            std::cout << "[Perf] Frame Delta: " << dt << " ms" << std::endl;
+            std::map<unsigned long long, PeerState> peers = m_sync.GetAllPeers();
+            double avgLatency = 0;
+            if (!peers.empty()) {
+                for (auto const& [id, s] : peers) avgLatency += s.latency;
+                avgLatency /= peers.size();
+            }
+
+            std::cout << "[Perf] Frame: " << dt << "ms | Avg Peer Latency: " << avgLatency << "ms | Peers: " << peers.size() << std::endl;
             m_lastPerfLog = m_loopTimer.ElapsedMilliseconds();
         }
 

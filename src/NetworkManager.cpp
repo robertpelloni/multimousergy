@@ -236,6 +236,8 @@ bool NetworkManager::PollDiscovery(DiscoveryPacket& pkt) {
 bool NetworkManager::ReceivePacket(Packet& packet) {
     if (!m_running) return false;
 
+    // Drain entire socket buffer into m_tcpBuffer for minimal input lag
+
     // Handle incoming TCP connections if we are a server
     if (m_tcpSocket != INVALID_SOCKET) {
         sockaddr_in clientAddr;
@@ -287,11 +289,19 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
 
     for (auto it = targets.begin(); it != targets.end(); ) {
         SOCKET targetTcp = *it;
-        char tempBuf[sizeof(Packet) * 10]; // Receive multiple packets at once
-        result = recv(targetTcp, tempBuf, sizeof(tempBuf), 0);
-        if (result > 0) {
-            m_tcpBuffer.insert(m_tcpBuffer.end(), tempBuf, tempBuf + result);
-        } else if (result == 0) {
+        char tempBuf[sizeof(Packet) * 10];
+
+        // Loop to drain the specific socket
+        while(true) {
+            result = recv(targetTcp, tempBuf, sizeof(tempBuf), 0);
+            if (result > 0) {
+                m_tcpBuffer.insert(m_tcpBuffer.end(), tempBuf, tempBuf + result);
+            } else {
+                break;
+            }
+        }
+
+        if (result == 0) {
             std::cout << "[Network] Peer closed TCP connection." << std::endl;
             closesocket(targetTcp);
             if (!m_clientTcpSockets.empty()) {
