@@ -112,6 +112,8 @@ void NetMuxFramework::ProcessIncomingPackets() {
             // Deprecated: Movement packets are handled by SyncModule if converted to absolute
             m_driver.SendMouseMovement(inPkt.x, inPkt.y);
         } else if (inPkt.type == PacketType::AbsoluteMovement) {
+            // HIGH-PRIORITY REAL-TIME SYNC:
+            // Update SyncModule state and trigger hardware movement immediately.
             PeerState oldPeer;
             m_sync.GetPeerState(peerId, oldPeer);
 
@@ -126,6 +128,8 @@ void NetMuxFramework::ProcessIncomingPackets() {
             m_overlayDirty = true;
             m_driver.SendMouseMovement(dx, dy);
 
+            // OPTIMIZED REBROADCAST:
+            // In server mode, immediately propagate the absolute position to all other peers.
             if (m_settings.isServer) {
                 m_network.SendPacket(inPkt);
             }

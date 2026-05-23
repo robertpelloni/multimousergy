@@ -107,16 +107,33 @@ void test_initialization() {
 void test_coordinated_e2e() {
     std::cout << "Testing coordinated E2E cursor sync (Mock)..." << std::endl;
 
-    // In a real E2E we'd spin up two threads, but for CI we test the logic flow
-    NetMuxFramework server;
-    NetMuxFramework client;
+    // Test that our SyncModule and Packet system handle a full round-trip
+    // coordinate transformation correctly.
+    SyncModule serverSync;
 
-    AppSettings serverSettings = { true, "127.0.0.1", 6666, {100, 200, false} };
-    AppSettings clientSettings = { false, "127.0.0.1", 6666, {300, 400, true} };
+    // Client sends an absolute position (Normalized)
+    int clientResX = 1920;
+    int clientResY = 1080;
+    int clientPosX = 960;
+    int clientPosY = 540;
 
-    // We don't call Initialize() as it might block/fail on UI in CI,
-    // but we can test the internal state machines if they were exposed.
-    // For now, this is a placeholder for structural E2E.
+    int normX = SyncModule::Normalize(clientPosX, clientResX);
+    int normY = SyncModule::Normalize(clientPosY, clientResY);
+
+    // Packet arrives at server
+    Packet p = { 101, PacketType::AbsoluteMovement, normX, normY, 0, false };
+
+    // Server processes packet
+    serverSync.UpdatePeer(p.senderId, p.x, p.y);
+
+    PeerState s;
+    assert(serverSync.GetPeerState(101, s));
+
+    // The denormalized coordinate on server should match original (with small rounding margin)
+    // Server resolution is retrieved from GetSystemMetrics, but SyncModule falls back to 1920x1080
+    // if not on Windows.
+    assert(std::abs(s.x - clientPosX) <= 1);
+    assert(std::abs(s.y - clientPosY) <= 1);
 }
 
 int main() {

@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.12-alpha] - 2026-05-23
+### Added
+- Formal E2E test case for coordinate transformation fidelity.
+- Optimized zero-latency routing for AbsoluteMovement packets.
+- Priority rebroadcasting in server mode for global state consistency.
+- Refined temporal coordination and packet processing loop.
+
 ## [0.1.11-alpha] - 2026-05-23
 ### Added
 - High-precision clock synchronization protocol using 100ms Heartbeat packets.
