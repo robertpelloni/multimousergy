@@ -24,6 +24,8 @@ struct PeerState {
     double lastSeen;
     double latency;
     bool isStalled;
+    float vx; // Velocity pixels/ms
+    float vy;
     std::vector<HistoryPoint> jitterBuffer;
 };
 

@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## [0.1.11-alpha] - 2026-05-23
+### Added
+- High-precision clock synchronization protocol using 100ms Heartbeat packets.
+- Velocity-based Predictive Interpolation (Dead Reckoning) in SyncModule.
+- Optimized continuous rendering in OverlayEngine driven by the sync engine.
+- Enhanced RTT latency tracking and one-way network delay estimation.
+- Improved temporal coordination using deltaTime-adjusted interpolation.
+
 ## [0.1.10-alpha] - 2026-05-23
 ### Added
 - Automated multi-client concurrency simulation test.

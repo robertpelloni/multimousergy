@@ -13,7 +13,8 @@ enum class PacketType {
     AbsoluteMovement,
     Click,
     Sync,
-    Discovery
+    Discovery,
+    Heartbeat
 };
 
 struct Packet {

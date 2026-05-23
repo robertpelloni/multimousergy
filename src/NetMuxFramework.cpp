@@ -67,15 +67,15 @@ void NetMuxFramework::Run() {
             m_lastPerfLog = m_loopTimer.ElapsedMilliseconds();
         }
 
-        // Throttle Overlay Rendering to ~144Hz (approx 7ms)
-        if (m_overlayDirty && m_renderTimer.ElapsedMilliseconds() > 7.0) {
+        // Ultra-Smooth Rendering: Match monitor refresh or higher
+        // For alpha, we maintain ~144Hz (7ms) but ensure interpolation points are fresh.
+        if (m_renderTimer.ElapsedMilliseconds() > 7.0) {
             std::map<unsigned long long, RemoteCursorState> overlayPeers;
             auto peers = m_sync.GetAllPeers();
             for (auto const& [id, peer] : peers) {
                 overlayPeers[id] = { peer.x, peer.y, peer.colorR, peer.colorG, peer.colorB };
             }
             m_overlay.RenderPeers(overlayPeers);
-            m_overlayDirty = false;
             m_renderTimer.Reset();
         }
 
@@ -152,18 +152,37 @@ void NetMuxFramework::ProcessIncomingPackets() {
                 m_network.SendPacket(inPkt);
             } else {
                 double rtt = m_syncTimer.ElapsedMilliseconds();
+                m_sync.UpdateLatency(peerId, rtt);
                 std::cout << "[Latency] RTT: " << rtt << " ms" << std::endl;
+            }
+        } else if (inPkt.type == PacketType::Heartbeat) {
+            if (m_settings.isServer) {
+                // Rebroadcast heartbeat to all clients for clock sync
+                m_network.SendPacket(inPkt);
             }
         }
     }
 }
 
 void NetMuxFramework::PerformLatencySync() {
+    // Regular RTT sync
     if (m_loopTimer.ElapsedMilliseconds() - m_lastSyncTime > 1000.0) {
         Packet syncPkt = { 0, PacketType::Sync, 0, 0, 0, false };
         m_network.SendPacket(syncPkt);
         m_syncTimer.Reset();
         m_lastSyncTime = m_loopTimer.ElapsedMilliseconds();
+    }
+
+    // High-precision Heartbeat (Clock Sync)
+    static double lastHeartbeat = 0;
+    if (m_loopTimer.ElapsedMilliseconds() - lastHeartbeat > 100.0) {
+        Packet hbPkt = { 0, PacketType::Heartbeat, 0, 0, 0, false };
+        // We pack current local timestamp into coordinates for precision
+        unsigned int now = (unsigned int)m_loopTimer.ElapsedMilliseconds();
+        hbPkt.x = (int)(now & 0xFFFF);
+        hbPkt.y = (int)((now >> 16) & 0xFFFF);
+        m_network.SendPacket(hbPkt);
+        lastHeartbeat = m_loopTimer.ElapsedMilliseconds();
     }
 }
 

@@ -40,8 +40,18 @@ void SyncModule::UpdatePeer(unsigned long long id, int normX, int normY) {
     screenHeight = GetSystemMetrics(SM_CYSCREEN);
 #endif
 
-    peer.targetX = Denormalize(peer.normalizedX, screenWidth);
-    peer.targetY = Denormalize(peer.normalizedY, screenHeight);
+    int newTargetX = Denormalize(peer.normalizedX, screenWidth);
+    int newTargetY = Denormalize(peer.normalizedY, screenHeight);
+
+    // Calculate velocity for prediction
+    double dt = timestamp - peer.lastSeen;
+    if (dt > 0) {
+        peer.vx = (float)(newTargetX - peer.targetX) / (float)dt;
+        peer.vy = (float)(newTargetY - peer.targetY) / (float)dt;
+    }
+
+    peer.targetX = newTargetX;
+    peer.targetY = newTargetY;
 
     peer.lastSeen = timestamp;
     peer.isStalled = false;
@@ -128,9 +138,16 @@ void SyncModule::Step(double deltaTime) {
         // Stall detection (3 seconds timeout)
         if (currentMs - peer.lastSeen > 3000.0) {
             peer.isStalled = true;
+            peer.vx = 0; peer.vy = 0;
         }
 
-        peer.x += (int)((peer.targetX - peer.x) * lerpFactor);
-        peer.y += (int)((peer.targetY - peer.y) * lerpFactor);
+        // Apply Prediction (Dead Reckoning)
+        // Predict where the cursor should be based on velocity and estimated latency
+        float predictionMs = (float)peer.latency * 0.5f; // Predict half RTT into future
+        int predictedTargetX = peer.targetX + (int)(peer.vx * predictionMs);
+        int predictedTargetY = peer.targetY + (int)(peer.vy * predictionMs);
+
+        peer.x += (int)((predictedTargetX - peer.x) * lerpFactor);
+        peer.y += (int)((predictedTargetY - peer.y) * lerpFactor);
     }
 }
