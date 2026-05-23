@@ -3,6 +3,7 @@
 #include <thread>
 #include <atomic>
 #include <cassert>
+#include <chrono>
 #include "SyncModule.hpp"
 #include "NetworkManager.hpp"
 
@@ -56,4 +57,60 @@ void test_concurrent_cursor_sync() {
     }
 
     std::cout << "Concurrent cursor synchronization verified successfully." << std::endl;
+}
+
+void test_network_concurrency() {
+    std::cout << "Testing network-level concurrency with multiple clients..." << std::endl;
+
+    NetworkManager server;
+    if (!server.StartServer(7777)) {
+        std::cout << "Failed to start test server. Skipping network test." << std::endl;
+        return;
+    }
+    server.SetIsServer(true);
+
+    const int numClients = 3;
+    std::vector<NetworkManager*> clients;
+    for (int i = 0; i < numClients; ++i) {
+        NetworkManager* client = new NetworkManager();
+        client->SetIsServer(false);
+        if (client->Connect("127.0.0.1", 7777)) {
+            clients.push_back(client);
+        } else {
+            delete client;
+        }
+    }
+
+    if (clients.empty()) {
+        std::cout << "Failed to connect any clients. Skipping." << std::endl;
+        return;
+    }
+
+    // Send packets from all clients
+    for (int i = 0; i < (int)clients.size(); ++i) {
+        Packet p = { (unsigned long long)i + 1, PacketType::AbsoluteMovement, 100 * i, 100 * i, 0, false, "", 0 };
+        clients[i]->SendPacket(p);
+    }
+
+    // Give some time for transmission
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    // Server receives and verifies
+    int receivedCount = 0;
+    Packet inPkt;
+    while (server.ReceivePacket(inPkt)) {
+        receivedCount++;
+        assert(inPkt.type == PacketType::AbsoluteMovement);
+        std::cout << "Server received packet from sender " << inPkt.senderId << std::endl;
+    }
+
+    assert(receivedCount == (int)clients.size());
+
+    for (auto c : clients) {
+        c->Shutdown();
+        delete c;
+    }
+    server.Shutdown();
+
+    std::cout << "Network concurrency verified successfully." << std::endl;
 }

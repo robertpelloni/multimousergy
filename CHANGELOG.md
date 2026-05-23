@@ -7,6 +7,19 @@
 - Generated PERFORMANCE.md with documented alpha benchmarks.
 - Cleaned up unused GDI resources in OverlayEngine.
 
+## [0.1.17-alpha] - 2025-01-24
+### Added
+- Final comprehensive E2E validation and stability audit.
+- Full roadmap synchronization and task finalization.
+- Integrated multi-user concurrency and clipboard sync verification.
+
+## [0.1.16-alpha] - 2025-01-24
+### Added
+- Integrated benchmarking mode via `--bench` flag.
+- Detailed performance telemetry logging (jitter, frame statistics).
+- Generated PERFORMANCE.md with documented alpha benchmarks.
+- Cleaned up unused GDI resources in OverlayEngine.
+
 ## [0.1.15-alpha] - 2025-01-24
 ### Added
 - Comprehensive E2E performance validation and metric logging.

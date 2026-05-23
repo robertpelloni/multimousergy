@@ -9,6 +9,7 @@
 
 // External declarations from test_multi_client.cpp
 void test_concurrent_cursor_sync();
+void test_network_concurrency();
 
 void test_sync_module_interpolation() {
     std::cout << "Testing SyncModule interpolation..." << std::endl;
@@ -157,6 +158,7 @@ int main() {
     test_coordinate_edge_cases();
     test_jitter_buffer_overflow();
     test_concurrent_cursor_sync();
+    test_network_concurrency();
     test_clipboard_module();
 
     std::cout << "All tests passed!" << std::endl;

@@ -20,4 +20,6 @@
 ## Milestone 4: Polishing & UI
 - [x] Programmatic Win32 Configuration GUI.
 - [x] Automated peer discovery via UDP broadcasting.
-- [ ] Multi-monitor coordinate scaling and clamping.
+- [x] Multi-monitor coordinate scaling and clamping.
+- [x] High-precision synchronization protocol (v0.1.11+).
+- [x] Integrated benchmarking and telemetry (v0.1.16+).

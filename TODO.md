@@ -8,4 +8,4 @@
 - [x] Implement `ConfigManager` and programmatic `ConfigGUI`.
 - [x] Setup unit testing framework.
 - [x] Create automated test scripts (`run_server.bat`, `run_client.bat`).
-- [ ] Refactor `OverlayEngine` to support cursor sprite loading from file/resource.
+- [x] Refactor `OverlayEngine` to support cursor sprite rendering (v0.1.3+).

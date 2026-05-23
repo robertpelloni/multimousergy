@@ -36,6 +36,11 @@ struct DiscoveryPacket {
 
 struct AppSettings;
 
+struct ClientConnection {
+    unsigned long long socket;
+    std::vector<char> buffer;
+};
+
 class NetworkManager {
 public:
     NetworkManager();
@@ -58,10 +63,10 @@ private:
     bool m_running;
     unsigned long long m_udpSocket; // Using unsigned long long to accommodate SOCKET on 64-bit Windows
     unsigned long long m_tcpSocket;
-    std::vector<unsigned long long> m_clientTcpSockets;
+    std::vector<ClientConnection> m_clients; // Per-client state to prevent interleaving
     sockaddr_in m_remoteAddr;
     bool m_isServer;
     bool m_hasRemoteAddr;
 
-    std::vector<char> m_tcpBuffer;
+    std::vector<char> m_connectorBuffer; // Buffer for the client-side connector socket
 };

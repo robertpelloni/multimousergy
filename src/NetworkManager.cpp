@@ -132,11 +132,11 @@ void NetworkManager::SendPacket(const Packet& packet) {
         }
     } else {
         // TCP for clicks/sync
-        if (!m_clientTcpSockets.empty()) {
-            for (auto client : m_clientTcpSockets) {
-                send(client, (const char*)&packet, sizeof(packet), 0);
+        if (!m_clients.empty()) {
+            for (auto& client : m_clients) {
+                send(client.socket, (const char*)&packet, sizeof(packet), 0);
             }
-        } else if (m_tcpSocket != INVALID_SOCKET) {
+        } else if (m_tcpSocket != INVALID_SOCKET && !m_isServer) {
             send(m_tcpSocket, (const char*)&packet, sizeof(packet), 0);
         }
     }
@@ -236,10 +236,8 @@ bool NetworkManager::PollDiscovery(DiscoveryPacket& pkt) {
 bool NetworkManager::ReceivePacket(Packet& packet) {
     if (!m_running) return false;
 
-    // Drain entire socket buffer into m_tcpBuffer for minimal input lag
-
-    // Handle incoming TCP connections if we are a server
-    if (m_tcpSocket != INVALID_SOCKET) {
+    // 1. Accept new TCP connections
+    if (m_isServer && m_tcpSocket != INVALID_SOCKET) {
         sockaddr_in clientAddr;
         socklen_t clientAddrLen = sizeof(clientAddr);
         SOCKET newClient = accept(m_tcpSocket, (struct sockaddr*)&clientAddr, &clientAddrLen);
@@ -251,16 +249,15 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
 #else
             fcntl(newClient, F_SETFL, O_NONBLOCK);
 #endif
-            m_clientTcpSockets.push_back(newClient);
+            m_clients.push_back({(unsigned long long)newClient, {}});
         }
     }
 
-    // Check UDP first for movement
+    // 2. Check UDP movement (Low Latency)
     sockaddr_in fromAddr;
     socklen_t fromLen = sizeof(fromAddr);
     int result = recvfrom(m_udpSocket, (char*)&packet, sizeof(packet), 0, (struct sockaddr*)&fromAddr, &fromLen);
-    if (result > 0) {
-        // If we don't have a remote address yet, learn it from this UDP packet
+    if (result >= (int)sizeof(Packet)) {
         if (!m_hasRemoteAddr) {
             m_remoteAddr = fromAddr;
             m_hasRemoteAddr = true;
@@ -268,58 +265,50 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
         return true;
     }
 
-#ifdef _WIN32
-    if (result == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK) {
-        // Handle error
-    }
-#else
-    if (result == SOCKET_ERROR && errno != EWOULDBLOCK && errno != EAGAIN) {
-        // Handle error
-    }
-#endif
-
-    // Then check TCP (accepted client sockets if we are server, or m_tcpSocket if we are client)
-    std::vector<unsigned long long> targets;
-    if (!m_clientTcpSockets.empty()) {
-        targets = m_clientTcpSockets;
-    } else if (m_tcpSocket != INVALID_SOCKET && m_remoteAddr.sin_family != 0 && !m_isServer) {
-        // Only call recv on m_tcpSocket if we are NOT a server (i.e. we are the client connection)
-        targets.push_back(m_tcpSocket);
-    }
-
-    for (auto it = targets.begin(); it != targets.end(); ) {
-        SOCKET targetTcp = *it;
+    // 3. Process Per-Client TCP buffers to prevent interleaving
+    for (auto it = m_clients.begin(); it != m_clients.end(); ) {
         char tempBuf[sizeof(Packet) * 10];
-
-        // Loop to drain the specific socket
         while(true) {
-            result = recv(targetTcp, tempBuf, sizeof(tempBuf), 0);
+            result = recv(it->socket, tempBuf, sizeof(tempBuf), 0);
             if (result > 0) {
-                m_tcpBuffer.insert(m_tcpBuffer.end(), tempBuf, tempBuf + result);
-            } else {
-                break;
-            }
+                it->buffer.insert(it->buffer.end(), tempBuf, tempBuf + result);
+            } else break;
+        }
+
+        if (it->buffer.size() >= sizeof(Packet)) {
+            std::memcpy(&packet, it->buffer.data(), sizeof(Packet));
+            it->buffer.erase(it->buffer.begin(), it->buffer.begin() + sizeof(Packet));
+            return true;
         }
 
         if (result == 0) {
-            std::cout << "[Network] Peer closed TCP connection." << std::endl;
-            closesocket(targetTcp);
-            if (!m_clientTcpSockets.empty()) {
-                auto clientIt = std::find(m_clientTcpSockets.begin(), m_clientTcpSockets.end(), targetTcp);
-                if (clientIt != m_clientTcpSockets.end()) m_clientTcpSockets.erase(clientIt);
-            } else {
-                m_tcpSocket = INVALID_SOCKET;
-            }
-            it = targets.erase(it);
-            continue;
-        }
-        ++it;
+            std::cout << "[Network] Peer closed connection." << std::endl;
+            closesocket(it->socket);
+            it = m_clients.erase(it);
+        } else ++it;
     }
 
-    if (m_tcpBuffer.size() >= sizeof(Packet)) {
-        std::memcpy(&packet, m_tcpBuffer.data(), sizeof(Packet));
-        m_tcpBuffer.erase(m_tcpBuffer.begin(), m_tcpBuffer.begin() + sizeof(Packet));
-        return true;
+    // 4. Process Connector TCP buffer (Client-side)
+    if (!m_isServer && m_tcpSocket != INVALID_SOCKET && m_hasRemoteAddr) {
+        char tempBuf[sizeof(Packet) * 10];
+        while(true) {
+            result = recv(m_tcpSocket, tempBuf, sizeof(tempBuf), 0);
+            if (result > 0) {
+                m_connectorBuffer.insert(m_connectorBuffer.end(), tempBuf, tempBuf + result);
+            } else break;
+        }
+
+        if (m_connectorBuffer.size() >= sizeof(Packet)) {
+            std::memcpy(&packet, m_connectorBuffer.data(), sizeof(Packet));
+            m_connectorBuffer.erase(m_connectorBuffer.begin(), m_connectorBuffer.begin() + sizeof(Packet));
+            return true;
+        }
+
+        if (result == 0) {
+            std::cout << "[Network] Server closed connection." << std::endl;
+            closesocket(m_tcpSocket);
+            m_tcpSocket = INVALID_SOCKET;
+        }
     }
 
     return false;
@@ -336,10 +325,10 @@ void NetworkManager::Shutdown() {
             closesocket(m_tcpSocket);
             m_tcpSocket = INVALID_SOCKET;
         }
-        for (auto client : m_clientTcpSockets) {
-            closesocket(client);
+        for (auto& client : m_clients) {
+            closesocket(client.socket);
         }
-        m_clientTcpSockets.clear();
+        m_clients.clear();
         m_hasRemoteAddr = false;
         m_running = false;
     }
