@@ -31,6 +31,42 @@ void test_sync_module_interpolation() {
     assert(s.x <= s.targetX);
 }
 
+void test_coordinate_edge_cases() {
+    std::cout << "Testing coordinate normalization edge cases..." << std::endl;
+
+    // Extreme screen sizes
+    int maxNorm = 65535;
+    assert(SyncModule::Normalize(0, 1920) == 0);
+    assert(SyncModule::Normalize(1919, 1920) == maxNorm);
+    assert(SyncModule::Denormalize(0, 1920) == 0);
+    assert(SyncModule::Denormalize(maxNorm, 1920) == 1919);
+
+    // Ultra-wide
+    assert(SyncModule::Normalize(5119, 5120) == maxNorm);
+    assert(SyncModule::Denormalize(maxNorm, 5120) == 5119);
+
+    // Vertical
+    assert(SyncModule::Normalize(1079, 1080) == maxNorm);
+    assert(SyncModule::Denormalize(maxNorm, 1080) == 1079);
+}
+
+void test_jitter_buffer_overflow() {
+    std::cout << "Testing jitter buffer overflow..." << std::endl;
+    SyncModule sync;
+    unsigned long long peerId = 1;
+
+    // Fill and overflow buffer (size is 5)
+    for (int i = 0; i < 10; ++i) {
+        sync.UpdatePeer(peerId, i * 100, i * 100);
+    }
+
+    PeerState s;
+    assert(sync.GetPeerState(peerId, s));
+    assert(s.jitterBuffer.size() == 5);
+    // front should be the 6th point (index 5)
+    assert(s.jitterBuffer.front().nx == 500);
+}
+
 void test_config_manager() {
     std::cout << "Testing ConfigManager..." << std::endl;
     ConfigManager cm("test.cfg");
@@ -88,6 +124,8 @@ int main() {
     test_initialization();
     test_coordinated_e2e();
     test_sync_module_interpolation();
+    test_coordinate_edge_cases();
+    test_jitter_buffer_overflow();
 
     std::cout << "All tests passed!" << std::endl;
     return 0;

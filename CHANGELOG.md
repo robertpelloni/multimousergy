@@ -1,5 +1,49 @@
 # CHANGELOG.md
 
+## [0.1.9-alpha] - 2026-05-23
+### Added
+- Comprehensive edge-case unit tests for cursor handling.
+- Coordinate normalization tests for extreme resolutions.
+- Jitter buffer overflow protection and verification.
+- CLI color propagation to remote cursor overlay.
+- Robust NetworkManager receive logic for server-mode stability.
+
+## [0.1.8-alpha] - 2026-05-23
+### Added
+- Performance instrumentation logging frame deltas.
+- Coordinated smoothing using exponential decay interpolation.
+- Master Lock mechanism for active cursor switching.
+- Python-based E2E performance validation script.
+
+## [0.1.7-alpha] - 2026-05-23
+### Added
+- LERP interpolation in SyncModule for fluid cursor movement.
+- Jitter buffer for handling network delay and packet reordering.
+- Delta-time based temporal coordination in main loop.
+
+## [0.1.6-alpha] - 2026-05-23
+### Added
+- Dedicated SyncModule for centralized state management.
+- Cursor ownership and 'Active Peer' Designation.
+- Active User status indicator in ConfigGUI.
+
+## [0.1.5-alpha] - 2026-05-22
+### Added
+- Absolute coordinate normalization (0-65535).
+- Server-side state rebroadcasting for conflict resolution.
+- Optimized multi-packet network ingest.
+
+## [0.1.4-alpha] - 2026-05-22
+### Added
+- Interactive peer selection in ConfigGUI.
+- Real-time latency monitoring integration.
+
+## [0.1.3-alpha] - 2026-05-22
+### Added
+- Multi-peer support in NetworkManager.
+- Bitmap-based cursor rendering (arrow icons).
+- Capture-release safety mechanism using raw input deltas.
+
 ## [0.1.2-alpha] - 2026-05-22
 ### Added
 - Automated peer discovery via UDP broadcasting.

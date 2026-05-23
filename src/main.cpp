@@ -69,6 +69,9 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    // Set custom color if provided via CLI
+    framework.SetCursorColor(colorR, colorG, colorB);
+
     framework.Run();
 
     return 0;

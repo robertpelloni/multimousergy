@@ -17,6 +17,10 @@ public:
     void Run();
     void Shutdown();
 
+    void SetCursorColor(unsigned char r, unsigned char g, unsigned char b) {
+        m_overlay.SetColor(r, g, b);
+    }
+
 private:
     void ProcessOutgoingPackets();
     void ProcessIncomingPackets();

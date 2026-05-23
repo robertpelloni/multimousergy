@@ -208,6 +208,20 @@ bool InputEngine::GetPendingPacket(Packet& pkt) {
 
 void InputEngine::PerformWarpClickRestore(int targetX, int targetY, int button, bool down) {
 #ifdef _WIN32
+    /*
+     * SOFTWARE FALLBACK INTERACTION LOGIC:
+     * This method snatches the local system cursor, warps it to the target remote coordinate,
+     * injects a standard SendInput event, and restores the cursor.
+     *
+     * LIMITATIONS:
+     * 1. Focus fighting: If the local user moves their mouse during this cycle, jitter occurs.
+     * 2. Hover effects: Since the cursor only stays at the target for a few microseconds,
+     *    hover-based tooltips or highlights on the remote machine will not trigger.
+     *
+     * PURPOSE:
+     * This acts as a reliable fallback when a kernel-level virtual HID driver (which would
+     * create a genuine second hardware cursor) is not present.
+     */
     POINT oldPos;
     GetCursorPos(&oldPos);
 

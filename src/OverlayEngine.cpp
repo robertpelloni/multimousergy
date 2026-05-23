@@ -70,7 +70,7 @@ bool OverlayEngine::Initialize() {
     m_hdcMem = CreateCompatibleDC(hdcScreen);
     m_hBitmap = CreateCompatibleBitmap(hdcScreen, m_screenWidth, m_screenHeight);
     m_hOldBitmap = SelectObject((HDC)m_hdcMem, (HBITMAP)m_hBitmap);
-    m_hPen = CreatePen(PS_SOLID, 2, RGB(255, 255, 255));
+    m_hPen = nullptr; // Reserved for future crosshair mode
     m_hBrush = CreateSolidBrush(RGB(0, 0, 0));
 
     // Create a default cursor bitmap (simple arrow shape)

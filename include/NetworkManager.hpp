@@ -30,6 +30,8 @@ struct DiscoveryPacket {
     int port;
 };
 
+struct AppSettings;
+
 class NetworkManager {
 public:
     NetworkManager();
@@ -38,6 +40,7 @@ public:
     bool StartServer(int port);
     bool Connect(const std::string& address, int port);
 
+    void SetIsServer(bool isServer) { m_isServer = isServer; }
     void SendPacket(const Packet& packet);
     bool ReceivePacket(Packet& packet);
 
@@ -53,6 +56,7 @@ private:
     unsigned long long m_tcpSocket;
     std::vector<unsigned long long> m_clientTcpSockets;
     sockaddr_in m_remoteAddr;
+    bool m_isServer;
     bool m_hasRemoteAddr;
 
     std::vector<char> m_tcpBuffer;

@@ -125,8 +125,8 @@ bool NetworkManager::Connect(const std::string& address, int port) {
 void NetworkManager::SendPacket(const Packet& packet) {
     if (!m_running || m_udpSocket == INVALID_SOCKET) return;
 
-    if (packet.type == PacketType::Movement) {
-        // UDP for movement
+    if (packet.type == PacketType::Movement || packet.type == PacketType::AbsoluteMovement) {
+        // UDP for movement (Low Latency)
         if (m_hasRemoteAddr) {
             sendto(m_udpSocket, (const char*)&packet, sizeof(packet), 0, (struct sockaddr*)&m_remoteAddr, sizeof(sockaddr_in));
         }
@@ -280,7 +280,8 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
     std::vector<unsigned long long> targets;
     if (!m_clientTcpSockets.empty()) {
         targets = m_clientTcpSockets;
-    } else if (m_tcpSocket != INVALID_SOCKET && m_remoteAddr.sin_family != 0) {
+    } else if (m_tcpSocket != INVALID_SOCKET && m_remoteAddr.sin_family != 0 && !m_isServer) {
+        // Only call recv on m_tcpSocket if we are NOT a server (i.e. we are the client connection)
         targets.push_back(m_tcpSocket);
     }
 

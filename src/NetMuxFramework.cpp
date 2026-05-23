@@ -17,6 +17,7 @@ NetMuxFramework::~NetMuxFramework() {
 
 bool NetMuxFramework::Initialize(const AppSettings& settings) {
     m_settings = settings;
+    m_network.SetIsServer(m_settings.isServer);
 
     if (m_settings.isServer) {
         if (!m_network.StartServer(m_settings.port)) {
