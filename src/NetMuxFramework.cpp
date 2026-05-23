@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <thread>
 #include <cstring>
+#include <fstream>
 #include <chrono>
 
 #ifdef _WIN32
@@ -12,7 +13,9 @@
 #endif
 
 NetMuxFramework::NetMuxFramework()
-    : m_running(false), m_lastSyncTime(0), m_lastPerfLog(0), m_overlayDirty(false) {}
+    : m_running(false), m_lastSyncTime(0), m_lastPerfLog(0), m_overlayDirty(false) {
+    m_localId = (unsigned long long)std::chrono::system_clock::now().time_since_epoch().count();
+}
 
 NetMuxFramework::~NetMuxFramework() {
     Shutdown();
@@ -33,11 +36,11 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
             return false;
         }
 
-    // Handshake: Send initial metadata
-    Packet handshake = { 0, PacketType::Handshake, 0, 0, 0, false, "", 0 };
-    gethostname(handshake.payload, sizeof(handshake.payload));
-    handshake.payloadSize = (int)strlen(handshake.payload);
-    m_network.SendPacket(handshake);
+        // Handshake: Send initial metadata
+        Packet handshake = { m_localId, 0, PacketType::Handshake, 0, 0, 0, false, "", 0 };
+        gethostname(handshake.payload, sizeof(handshake.payload));
+        handshake.payloadSize = (int)strlen(handshake.payload);
+        m_network.SendPacket(handshake);
     }
 
     if (!m_input.Initialize(m_settings.inputConfig) || !m_overlay.Initialize()) {
@@ -75,12 +78,27 @@ void NetMuxFramework::Run() {
         if (m_loopTimer.ElapsedMilliseconds() - m_lastPerfLog > (m_benchmarking ? 1000.0 : 5000.0)) {
             std::map<unsigned long long, PeerState> peers = m_sync.GetAllPeers();
             double avgLatency = 0;
+            double avgE2ELatency = 0;
             if (!peers.empty()) {
-                for (auto const& [id, s] : peers) avgLatency += s.latency;
+                for (auto const& [id, s] : peers) {
+                    avgLatency += s.latency;
+                    avgE2ELatency += s.e2eLatency;
+                }
                 avgLatency /= peers.size();
+                avgE2ELatency /= peers.size();
             }
 
-            std::cout << "[Perf] Frame: " << dt << "ms | Avg Peer Latency: " << avgLatency << "ms | Peers: " << peers.size() << std::endl;
+            std::cout << "[Perf] Frame: " << dt << "ms | RTT: " << avgLatency << "ms | E2E: " << avgE2ELatency << "ms | Peers: " << peers.size() << std::endl;
+
+            if (m_benchmarking) {
+                bool exists = std::ifstream("BENCHMARK_RESULTS.csv").good();
+                std::ofstream benchFile("BENCHMARK_RESULTS.csv", std::ios::app);
+                if (benchFile.is_open()) {
+                    if (!exists) benchFile << "Timestamp(ms),FrameDelta(ms),AvgRTT(ms),AvgE2ELatency(ms),PeerCount\n";
+                    benchFile << m_loopTimer.ElapsedMilliseconds() << "," << dt << "," << avgLatency << "," << avgE2ELatency << "," << peers.size() << "\n";
+                }
+            }
+
             m_lastPerfLog = m_loopTimer.ElapsedMilliseconds();
         }
 
@@ -92,7 +110,7 @@ void NetMuxFramework::Run() {
             unsigned long long activeId = m_sync.GetActivePeer();
 
             for (auto const& [id, peer] : peers) {
-                overlayPeers[id] = { peer.x, peer.y, peer.colorR, peer.colorG, peer.colorB };
+                overlayPeers[id] = { (int)peer.x, (int)peer.y, peer.colorR, peer.colorG, peer.colorB };
 
                 // Active cursor visual indicator (border or different color)
                 if (id == activeId) {
@@ -121,7 +139,8 @@ void NetMuxFramework::ProcessOutgoingPackets() {
     Packet outPkt;
     while (m_input.GetPendingPacket(outPkt)) {
         if (m_input.IsCaptured()) {
-            outPkt.senderId = 0; // Local sender ID is 0 for alpha
+            outPkt.senderId = m_localId;
+            outPkt.localTimestamp = m_loopTimer.ElapsedMilliseconds();
             m_network.SendPacket(outPkt);
         }
     }
@@ -141,13 +160,13 @@ void NetMuxFramework::ProcessIncomingPackets() {
             PeerState oldPeer;
             m_sync.GetPeerState(peerId, oldPeer);
 
-            m_sync.UpdatePeer(peerId, inPkt.x, inPkt.y);
+            m_sync.UpdatePeer(peerId, inPkt.x, inPkt.y, inPkt.localTimestamp);
 
             PeerState newPeer;
             m_sync.GetPeerState(peerId, newPeer);
 
-            long dx = newPeer.x - oldPeer.x;
-            long dy = newPeer.y - oldPeer.y;
+            long dx = (long)(newPeer.x - oldPeer.x);
+            long dy = (long)(newPeer.y - oldPeer.y);
 
             m_overlayDirty = true;
             m_driver.SendMouseMovement(dx, dy);
@@ -166,7 +185,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
 
                 if (m_sync.GetActivePeer() == peerId) {
                     if (!m_driver.SendMouseButton(inPkt.button, inPkt.down)) {
-                        m_input.PerformWarpClickRestore(peer.x, peer.y, inPkt.button, inPkt.down);
+                        m_input.PerformWarpClickRestore((int)peer.x, (int)peer.y, inPkt.button, inPkt.down);
                     }
                 }
 
@@ -201,7 +220,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
 
             if (m_settings.isServer) {
                 // Server replies with its own handshake
-                Packet reply = { 0, PacketType::Handshake, 0, 0, 0, false, "", 0 };
+                Packet reply = { m_localId, 0, PacketType::Handshake, 0, 0, 0, false, "", 0 };
                 gethostname(reply.payload, sizeof(reply.payload));
                 reply.payloadSize = (int)strlen(reply.payload);
                 m_network.SendPacket(reply);
@@ -213,7 +232,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
 void NetMuxFramework::PerformLatencySync() {
     // Regular RTT sync
     if (m_loopTimer.ElapsedMilliseconds() - m_lastSyncTime > 1000.0) {
-        Packet syncPkt = { 0, PacketType::Sync, 0, 0, 0, false };
+        Packet syncPkt = { m_localId, 0, PacketType::Sync, 0, 0, 0, false, "", 0 };
         m_network.SendPacket(syncPkt);
         m_syncTimer.Reset();
         m_lastSyncTime = m_loopTimer.ElapsedMilliseconds();
@@ -222,7 +241,7 @@ void NetMuxFramework::PerformLatencySync() {
     // High-precision Heartbeat (Clock Sync)
     static double lastHeartbeat = 0;
     if (m_loopTimer.ElapsedMilliseconds() - lastHeartbeat > 100.0) {
-        Packet hbPkt = { 0, PacketType::Heartbeat, 0, 0, 0, false };
+        Packet hbPkt = { m_localId, 0, PacketType::Heartbeat, 0, 0, 0, false, "", 0 };
         // We pack current local timestamp into coordinates for precision
         unsigned int now = (unsigned int)m_loopTimer.ElapsedMilliseconds();
         hbPkt.x = (int)(now & 0xFFFF);
@@ -244,7 +263,7 @@ void NetMuxFramework::PerformClipboardSync() {
     if (m_clipboard.HasChanged()) {
         std::string text = m_clipboard.GetText();
         if (text.size() < 1024) {
-            Packet pkt = { 0, PacketType::ClipboardSync, 0, 0, 0, false };
+            Packet pkt = { m_localId, 0, PacketType::ClipboardSync, 0, 0, 0, false, "", 0 };
             memcpy(pkt.payload, text.c_str(), text.size());
             pkt.payloadSize = (int)text.size();
             m_network.SendPacket(pkt);

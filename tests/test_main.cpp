@@ -99,7 +99,7 @@ void test_clipboard_module() {
 
 void test_packet_serialization() {
     std::cout << "Testing Packet serialization..." << std::endl;
-    Packet p1 = { 123, PacketType::Movement, 10, -20, 1, true };
+    Packet p1 = { 123, 123.456, PacketType::Movement, 10, -20, 1, true };
     strcpy(p1.payload, "test");
     p1.payloadSize = 4;
 
@@ -136,7 +136,7 @@ void test_coordinated_e2e() {
     int normY = SyncModule::Normalize(clientPosY, clientResY);
 
     // Packet arrives at server
-    Packet p = { 101, PacketType::AbsoluteMovement, normX, normY, 0, false };
+    Packet p = { 101, 0, PacketType::AbsoluteMovement, normX, normY, 0, false };
 
     // Server processes packet
     serverSync.UpdatePeer(p.senderId, p.x, p.y);

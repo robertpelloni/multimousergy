@@ -12,10 +12,10 @@ struct HistoryPoint {
 
 struct PeerState {
     unsigned long long id;
-    int x; // Current denormalized screen coordinate
-    int y;
-    int targetX; // Target denormalized coordinate for interpolation
-    int targetY;
+    float x; // Current denormalized screen coordinate
+    float y;
+    float targetX; // Target denormalized coordinate for interpolation
+    float targetY;
     int normalizedX; // 0-65535
     int normalizedY;
     unsigned char colorR;
@@ -23,6 +23,7 @@ struct PeerState {
     unsigned char colorB;
     double lastSeen;
     double latency;
+    double e2eLatency;
     bool isStalled;
     float vx; // Velocity pixels/ms
     float vy;
@@ -34,7 +35,7 @@ public:
     SyncModule();
     ~SyncModule();
 
-    void UpdatePeer(unsigned long long id, int normX, int normY);
+    void UpdatePeer(unsigned long long id, int normX, int normY, double packetTimestamp = 0);
     void UpdateLatency(unsigned long long id, double latency);
 
     bool GetPeerState(unsigned long long id, PeerState& state);

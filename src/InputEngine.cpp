@@ -135,6 +135,7 @@ void InputEngine::Update() {
                                 // Send absolute position update instead of relative
                                 Packet pkt;
                                 pkt.senderId = 0;
+                                pkt.localTimestamp = 0; // Will be set in NetMuxFramework
                                 pkt.type = PacketType::AbsoluteMovement;
 
                                 // Normalized coordinates 0-65535 (Virtual Screen)
@@ -157,6 +158,7 @@ void InputEngine::Update() {
                             } else {
                                 Packet pkt;
                                 pkt.senderId = 0;
+                                pkt.localTimestamp = 0;
                                 pkt.type = PacketType::Movement;
                                 pkt.x = raw->data.mouse.lLastX;
                                 pkt.y = raw->data.mouse.lLastY;
@@ -168,12 +170,12 @@ void InputEngine::Update() {
 
                         // Button events
                         USHORT flags = raw->data.mouse.usButtonFlags;
-                        if (flags & RI_MOUSE_LEFT_BUTTON_DOWN)   m_pendingPackets.push({0, PacketType::Click, 0, 0, 0, true});
-                        if (flags & RI_MOUSE_LEFT_BUTTON_UP)     m_pendingPackets.push({0, PacketType::Click, 0, 0, 0, false});
-                        if (flags & RI_MOUSE_RIGHT_BUTTON_DOWN)  m_pendingPackets.push({0, PacketType::Click, 0, 0, 1, true});
-                        if (flags & RI_MOUSE_RIGHT_BUTTON_UP)    m_pendingPackets.push({0, PacketType::Click, 0, 0, 1, false});
-                        if (flags & RI_MOUSE_MIDDLE_BUTTON_DOWN) m_pendingPackets.push({0, PacketType::Click, 0, 0, 2, true});
-                        if (flags & RI_MOUSE_MIDDLE_BUTTON_UP)   m_pendingPackets.push({0, PacketType::Click, 0, 0, 2, false});
+                        if (flags & RI_MOUSE_LEFT_BUTTON_DOWN)   m_pendingPackets.push({0, 0, PacketType::Click, 0, 0, 0, true});
+                        if (flags & RI_MOUSE_LEFT_BUTTON_UP)     m_pendingPackets.push({0, 0, PacketType::Click, 0, 0, 0, false});
+                        if (flags & RI_MOUSE_RIGHT_BUTTON_DOWN)  m_pendingPackets.push({0, 0, PacketType::Click, 0, 0, 1, true});
+                        if (flags & RI_MOUSE_RIGHT_BUTTON_UP)    m_pendingPackets.push({0, 0, PacketType::Click, 0, 0, 1, false});
+                        if (flags & RI_MOUSE_MIDDLE_BUTTON_DOWN) m_pendingPackets.push({0, 0, PacketType::Click, 0, 0, 2, true});
+                        if (flags & RI_MOUSE_MIDDLE_BUTTON_UP)   m_pendingPackets.push({0, 0, PacketType::Click, 0, 0, 2, false});
                     }
                 }
             }

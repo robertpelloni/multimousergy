@@ -45,6 +45,7 @@ private:
     AppSettings m_settings;
     bool m_running;
     bool m_benchmarking = false;
+    unsigned long long m_localId;
 
     Timer m_loopTimer;
     Timer m_syncTimer;

@@ -88,7 +88,7 @@ void test_network_concurrency() {
 
     // Send packets from all clients
     for (int i = 0; i < (int)clients.size(); ++i) {
-        Packet p = { (unsigned long long)i + 1, PacketType::AbsoluteMovement, 100 * i, 100 * i, 0, false, "", 0 };
+        Packet p = { (unsigned long long)i + 1, 0, PacketType::AbsoluteMovement, 100 * i, 100 * i, 0, false, "", 0 };
         clients[i]->SendPacket(p);
     }
 

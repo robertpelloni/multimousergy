@@ -10,7 +10,7 @@
 SyncModule::SyncModule() {}
 SyncModule::~SyncModule() {}
 
-void SyncModule::UpdatePeer(unsigned long long id, int normX, int normY) {
+void SyncModule::UpdatePeer(unsigned long long id, int normX, int normY, double packetTimestamp) {
     std::lock_guard<std::mutex> lock(m_mutex);
     PeerState& peer = m_peers[id];
     peer.id = id;
@@ -44,8 +44,8 @@ void SyncModule::UpdatePeer(unsigned long long id, int normX, int normY) {
     screenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 #endif
 
-    int newTargetX = screenLeft + Denormalize(peer.normalizedX, screenWidth);
-    int newTargetY = screenTop + Denormalize(peer.normalizedY, screenHeight);
+    float newTargetX = (float)(screenLeft + Denormalize(peer.normalizedX, screenWidth));
+    float newTargetY = (float)(screenTop + Denormalize(peer.normalizedY, screenHeight));
 
     // Calculate velocity for prediction
     double dt = timestamp - peer.lastSeen;
@@ -59,6 +59,10 @@ void SyncModule::UpdatePeer(unsigned long long id, int normX, int normY) {
 
     peer.lastSeen = timestamp;
     peer.isStalled = false;
+
+    if (packetTimestamp > 0) {
+        peer.e2eLatency = timestamp - packetTimestamp;
+    }
 
     // If it's the first update, snap immediately
     if (peer.x == 0 && peer.y == 0) {
@@ -151,7 +155,7 @@ void SyncModule::Step(double deltaTime) {
         int predictedTargetX = peer.targetX + (int)(peer.vx * predictionMs);
         int predictedTargetY = peer.targetY + (int)(peer.vy * predictionMs);
 
-        peer.x += (int)((predictedTargetX - peer.x) * lerpFactor);
-        peer.y += (int)((predictedTargetY - peer.y) * lerpFactor);
+        peer.x += (predictedTargetX - peer.x) * lerpFactor;
+        peer.y += (predictedTargetY - peer.y) * lerpFactor;
     }
 }
