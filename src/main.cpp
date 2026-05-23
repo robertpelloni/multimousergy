@@ -14,6 +14,7 @@ int main(int argc, char* argv[]) {
 
     unsigned char colorR = 255, colorG = 0, colorB = 0;
     bool benchMode = false;
+    bool autoConnect = false;
     bool firstRun = !configManager.Load(settings);
     if (firstRun) {
         std::cout << "No configuration file found. Using defaults." << std::endl;
@@ -40,13 +41,15 @@ int main(int argc, char* argv[]) {
             colorB = (unsigned char)std::stoi(argv[++i]);
         } else if (arg == "--bench") {
             benchMode = true;
+        } else if (arg == "--auto-connect") {
+            autoConnect = true;
         }
     }
 
     NetMuxFramework framework;
 
     // Optional Peer Discovery Phase
-    if (firstRun) {
+    if (firstRun || autoConnect) {
         std::cout << "Searching for peers (5 seconds)..." << std::endl;
         auto start = std::chrono::steady_clock::now();
         NetworkManager tempNetwork;
@@ -63,7 +66,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if (firstRun) {
+    if (firstRun && !autoConnect) {
         if (!ConfigGUI::ShowDialog(settings)) return 0;
         configManager.Save(settings);
     }

@@ -26,6 +26,11 @@ LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode >= 0 && s_instance) {
         MSLLHOOKSTRUCT* mouseInfo = (MSLLHOOKSTRUCT*)lParam;
 
+        // Ignore injected events to allow Warp-Click-Restore to function
+        if (mouseInfo->flags & LLMHF_INJECTED) {
+            return CallNextHookEx(NULL, nCode, wParam, lParam);
+        }
+
         bool atBoundary = s_instance->IsAtBoundary(mouseInfo->pt.x, mouseInfo->pt.y);
 
         if (atBoundary && !s_instance->m_isCaptured) {
@@ -118,7 +123,10 @@ void InputEngine::Update() {
             if (GetRawInputData(hRawInput, RID_INPUT, lpb.data(), &dwSize, sizeof(RAWINPUTHEADER)) == dwSize) {
                 RAWINPUT* raw = (RAWINPUT*)lpb.data();
                 if (raw->header.dwType == RIM_TYPEMOUSE) {
-                        if (raw->data.mouse.usFlags & MOUSE_MOVE_RELATIVE) {
+                        // MOUSE_MOVE_RELATIVE is 0x00. Check for relative or absolute correctly.
+                        bool isRelative = !(raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE);
+
+                        if (isRelative) {
                             if (m_isCaptured) {
                                 m_accumulatedX += raw->data.mouse.lLastX;
                                 m_virtualX += raw->data.mouse.lLastX;

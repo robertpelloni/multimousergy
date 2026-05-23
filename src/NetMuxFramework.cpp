@@ -81,8 +81,15 @@ void NetMuxFramework::Run() {
         if (m_renderTimer.ElapsedMilliseconds() > 7.0) {
             std::map<unsigned long long, RemoteCursorState> overlayPeers;
             auto peers = m_sync.GetAllPeers();
+            unsigned long long activeId = m_sync.GetActivePeer();
+
             for (auto const& [id, peer] : peers) {
                 overlayPeers[id] = { peer.x, peer.y, peer.colorR, peer.colorG, peer.colorB };
+
+                // Active cursor visual indicator (border or different color)
+                if (id == activeId) {
+                    overlayPeers[id].r = 255; overlayPeers[id].g = 255; overlayPeers[id].b = 255;
+                }
             }
             m_overlay.RenderPeers(overlayPeers);
             m_renderTimer.Reset();
