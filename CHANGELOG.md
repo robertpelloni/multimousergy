@@ -9,6 +9,8 @@
 - **Group-Aware Multiplexing**: Optimized UDP rebroadcasting restricted to relevant peer groups.
 - **Interaction Queuing**: Thread-safe queuing of remote clicks to ensure sequential, artifact-free execution.
 - **Local Priority Multiplexing**: "Warp-Click-Restore" now defers to local user activity to prevent jitter.
+- **E2E Performance Validation**: Conducted full end-to-end latency and throughput audit (v0.1.26-alpha).
+- **CLI Fixes**: Resolved issue where `--client` flag incorrectly triggered server initialization.
 
 ## [0.1.25-alpha] - 2025-01-24
 ### Added

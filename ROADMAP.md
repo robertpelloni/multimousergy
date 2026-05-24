@@ -17,7 +17,7 @@
 - [x] Warp-Click-Restore with window focus handling.
 - [x] Crossover release mechanism for local cursor recovery.
 
-## Milestone 4: Polishing & UI
+## Milestone 4: Polishing & UI (COMPLETED)
 - [x] Programmatic Win32 Configuration GUI.
 - [x] Automated peer discovery via UDP broadcasting.
 - [x] Multi-monitor coordinate scaling and clamping.
