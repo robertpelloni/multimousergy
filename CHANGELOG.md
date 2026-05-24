@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.30-alpha] - 2025-01-24
+### Added
+- Comprehensive End-to-End Integration Validation.
+- Verified sub-millisecond cursor coordination and frame stability under 5-client load.
+- Validated Group Isolation and Session Metadata propagation in networked environments.
+- Optimized multi-client stress test coverage.
+
 ## [0.1.29-alpha] - 2025-01-24
 ### Added
 - Functional Kernel Driver Interface using Interception API logic.

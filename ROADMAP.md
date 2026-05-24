@@ -12,7 +12,7 @@
 - [x] Standard cursor icon and colorized crosshair rendering.
 - [x] D3D11 hardware-accelerated overlay implementation.
 
-## Milestone 3: Interaction & Multiplexing
+## Milestone 3: Interaction & Multiplexing (COMPLETED)
 - [x] TCP state sync for clicks and buttons.
 - [x] Warp-Click-Restore with window focus handling.
 - [x] Crossover release mechanism for local cursor recovery.
