@@ -70,6 +70,7 @@ void NetMuxFramework::Run() {
         PerformLatencySync();
         PerformDiscoveryBroadcast();
         PerformClipboardSync();
+        PerformMasterStateSync();
         ProcessOutgoingPackets();
         ProcessIncomingPackets();
         ProcessInteractionQueue();
@@ -239,6 +240,12 @@ void NetMuxFramework::ProcessIncomingPackets() {
             if (m_settings.isServer) {
                 // Rebroadcast heartbeat to all clients for clock sync
                 m_network.SendPacket(inPkt);
+            } else {
+                // Client uses heartbeat for clock sync
+                unsigned int remoteLow = (unsigned int)inPkt.x;
+                unsigned int remoteHigh = (unsigned int)inPkt.y;
+                double remoteTime = (double)(remoteLow | (remoteHigh << 16));
+                m_sync.UpdateClockOffset(peerId, remoteTime, m_loopTimer.ElapsedMilliseconds());
             }
         } else if (inPkt.type == PacketType::ClipboardSync) {
             std::string text(inPkt.payload, inPkt.payloadSize);
@@ -272,7 +279,27 @@ void NetMuxFramework::ProcessIncomingPackets() {
             if (m_settings.isServer) {
                 m_network.SendPacket(inPkt); // Rebroadcast
             }
+        } else if (inPkt.type == PacketType::MasterStateSync) {
+            if (!m_settings.isServer) {
+                // Client adopts server's authoritative position
+                m_sync.UpdatePeer(peerId, inPkt.groupId, inPkt.x, inPkt.y, inPkt.localTimestamp);
+            }
         }
+    }
+}
+
+void NetMuxFramework::PerformMasterStateSync() {
+    if (!m_settings.isServer) return;
+
+    static double lastMasterSync = 0;
+    if (m_loopTimer.ElapsedMilliseconds() - lastMasterSync > 500.0) { // Every 500ms
+        auto peers = m_sync.GetAllPeers();
+        for (auto const& [id, peer] : peers) {
+            Packet masterPkt = { id, peer.groupId, 0.0, PacketType::MasterStateSync, peer.normalizedX, peer.normalizedY, 0, false, "", 0 };
+            masterPkt.localTimestamp = m_loopTimer.ElapsedMilliseconds();
+            m_network.SendPacket(masterPkt);
+        }
+        lastMasterSync = m_loopTimer.ElapsedMilliseconds();
     }
 }
 

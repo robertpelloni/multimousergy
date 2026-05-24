@@ -1,187 +1,211 @@
 NetMux starting...
-No configuration file found. Using defaults.
-Searching for peers (5 seconds)...
-[GUI] Launching configuration dialog...
 [Network] Connecting to 127.0.0.1:9999...
 [Input] Initializing Raw Input and Hooks...
 [Overlay] Initializing Layered Window...
 [Driver] Initializing virtual HID device (Interception)...
 [Warning] Virtual HID Driver not available. Using software fallback.
 [Bench] Benchmarking mode enabled.
-[Perf] Frame: 0.000138ms | RTT: 0ms | E2E: 0ms | Peers: 0
-[Network] Handshake completed with peer: DefaultSession (ID: 1779596599060282110)
-[Latency] RTT: 1.53149 ms
-[Network] Handshake completed with peer: DefaultSession (ID: 1779596599060282110)
-[Latency] RTT: 1.55909 ms
-[Network] Handshake completed with peer: DefaultSession (ID: 1779596599060282110)
-[Latency] RTT: 1.72884 ms
-[Network] Handshake completed with peer: DefaultSession (ID: 1779596599060282110)
-[Latency] RTT: 1.74446 ms
-[Latency] RTT: 993.447 ms
-[Latency] RTT: 0.01184 ms
-[Latency] RTT: 0.041412 ms
-[Perf] Frame: 1.23211ms | RTT: 993.447ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 7.23745 ms
-[Latency] RTT: 7.26198 ms
-[Latency] RTT: 7.26849 ms
-[Latency] RTT: 992.724 ms
-[Latency] RTT: 0.011311 ms
-[Latency] RTT: 0.046711 ms
-[Latency] RTT: 0.056392 ms
-[Perf] Frame: 1.18971ms | RTT: 992.724ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 12.1712 ms
-[Latency] RTT: 12.1987 ms
-[Latency] RTT: 992.547 ms
-[Latency] RTT: 0.008206 ms
-[Latency] RTT: 0.045352 ms
-[Latency] RTT: 0.052056 ms
-[Perf] Frame: 1.12426ms | RTT: 992.547ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 17.2812 ms
-[Latency] RTT: 17.3133 ms
-[Latency] RTT: 991.34 ms
-[Latency] RTT: 999.245 ms
-[Latency] RTT: 0.00692 ms
-[Latency] RTT: 0.025149 ms
-[Perf] Frame: 1.14796ms | RTT: 991.34ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 23.8116 ms
-[Latency] RTT: 23.8439 ms
-[Latency] RTT: 992.688 ms
-[Latency] RTT: 999.644 ms
-[Latency] RTT: 0.007865 ms
-[Latency] RTT: 0.028179 ms
-[Perf] Frame: 1.16339ms | RTT: 992.688ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 29.1372 ms
-[Latency] RTT: 29.1628 ms
-[Latency] RTT: 992.489 ms
-[Latency] RTT: 999.384 ms
-[Latency] RTT: 0.007512 ms
-[Latency] RTT: 0.028525 ms
-[Perf] Frame: 1.20161ms | RTT: 992.489ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 35.0288 ms
-[Latency] RTT: 35.0621 ms
-[Latency] RTT: 992.991 ms
-[Latency] RTT: 998.675 ms
-[Latency] RTT: 0.008064 ms
-[Latency] RTT: 0.045443 ms
-[Perf] Frame: 1.13127ms | RTT: 992.991ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 40.0398 ms
-[Latency] RTT: 40.0667 ms
-[Latency] RTT: 991.877 ms
-[Latency] RTT: 997.653 ms
-[Latency] RTT: 0.00872 ms
-[Latency] RTT: 0.035431 ms
-[Perf] Frame: 1.19785ms | RTT: 991.877ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 44.2648 ms
-[Latency] RTT: 44.2992 ms
-[Latency] RTT: 992.846 ms
-[Latency] RTT: 999.765 ms
-[Latency] RTT: 0.007848 ms
-[Latency] RTT: 0.029624 ms
-[Perf] Frame: 1.14785ms | RTT: 992.846ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 47.2815 ms
-[Latency] RTT: 47.3121 ms
-[Latency] RTT: 1000.03 ms
-[Latency] RTT: 1000.06 ms
-[Latency] RTT: 1000.07 ms
-[Latency] RTT: 1000.08 ms
-[Latency] RTT: 0.006721 ms
-[Perf] Frame: 1.21212ms | RTT: 1000.03ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 1.24706 ms
-[Latency] RTT: 0.021397 ms
-[Latency] RTT: 0.04544 ms
-[Latency] RTT: 0.051964 ms
-[Latency] RTT: 0.057528 ms
-[Perf] Frame: 1.12303ms | RTT: 0.021397ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 42.2495 ms
-[Latency] RTT: 42.2791 ms
-[Latency] RTT: 0.014451 ms
-[Latency] RTT: 0.039517 ms
-[Latency] RTT: 0.046006 ms
-[Latency] RTT: 0.051667 ms
-[Latency] RTT: 0.057131 ms
-[Perf] Frame: 1.14131ms | RTT: 0.014451ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 42.0041 ms
-[Latency] RTT: 0.014487 ms
-[Latency] RTT: 0.039699 ms
-[Latency] RTT: 0.143708 ms
-[Latency] RTT: 0.155924 ms
-[Latency] RTT: 0.161776 ms
-[Perf] Frame: 1.12805ms | RTT: 0.014487ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 44.3241 ms
-[Latency] RTT: 0.014753 ms
-[Latency] RTT: 0.044717 ms
-[Latency] RTT: 0.052346 ms
-[Latency] RTT: 0.058087 ms
-[Perf] Frame: 1.21416ms | RTT: 0.014753ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 40.1884 ms
-[Latency] RTT: 40.2354 ms
-[Latency] RTT: 0.015478 ms
-[Latency] RTT: 0.054803 ms
-[Latency] RTT: 0.061775 ms
-[Latency] RTT: 0.07802 ms
-[Latency] RTT: 0.083397 ms
-[Perf] Frame: 1.24596ms | RTT: 0.015478ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 44.0327 ms
-[Latency] RTT: 0.015521 ms
-[Latency] RTT: 0.041201 ms
-[Latency] RTT: 0.047129 ms
-[Latency] RTT: 0.052117 ms
-[Latency] RTT: 0.05679 ms
-[Perf] Frame: 1.21249ms | RTT: 0.015521ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 43.1937 ms
-[Latency] RTT: 994.907 ms
-[Latency] RTT: 0.012486 ms
-[Latency] RTT: 0.037711 ms
-[Latency] RTT: 0.043535 ms
-[Latency] RTT: 0.04856 ms
-[Perf] Frame: 1.23644ms | RTT: 994.907ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 42.5938 ms
-[Latency] RTT: 0.017422 ms
-[Latency] RTT: 0.045329 ms
-[Latency] RTT: 0.051283 ms
-[Latency] RTT: 0.058385 ms
-[Latency] RTT: 0.063196 ms
-[Latency] RTT: 1.19059 ms
-[Perf] Frame: 1.1896ms | RTT: 0.017422ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 995.191 ms
-[Latency] RTT: 998.815 ms
-[Latency] RTT: 1000 ms
-[Latency] RTT: 1000.02 ms
-[Latency] RTT: 1000.03 ms
-[Perf] Frame: 1.16077ms | RTT: 995.191ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 5.88197 ms
-[Latency] RTT: 994.495 ms
-[Latency] RTT: 0.009302 ms
-[Latency] RTT: 0.070244 ms
-[Latency] RTT: 0.110664 ms
-[Latency] RTT: 0.124495 ms
-[Perf] Frame: 1.27378ms | RTT: 994.495ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 10.4231 ms
-[Latency] RTT: 994.22 ms
-[Latency] RTT: 0.008896 ms
-[Latency] RTT: 0.033064 ms
-[Latency] RTT: 0.039429 ms
-[Latency] RTT: 0.044982 ms
-[Perf] Frame: 1.21038ms | RTT: 994.22ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 16.0099 ms
-[Latency] RTT: 995.004 ms
-[Latency] RTT: 0.00851 ms
-[Latency] RTT: 0.052672 ms
-[Latency] RTT: 0.060045 ms
-[Latency] RTT: 0.066028 ms
-[Perf] Frame: 1.20639ms | RTT: 995.004ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 20.568 ms
-[Latency] RTT: 994.36 ms
-[Latency] RTT: 0.008209 ms
+[Network] Handshake completed with peer: DefaultSession (ID: 1779603003551024114)
+[Latency] RTT: 994.024 ms
+[Latency] RTT: 0.041568 ms
+[Latency] RTT: 0.063865 ms
+[Latency] RTT: 0.08489 ms
+[Latency] RTT: 0.093289 ms
+[Perf] Frame: 1.12336ms | RTT: 165.718ms | E2E: -1673.46ms | Peers: 6
+[Latency] RTT: 6.88942 ms
+[Latency] RTT: 993.428 ms
+[Latency] RTT: 0.014837 ms
+[Latency] RTT: 0.041144 ms
+[Latency] RTT: 0.108987 ms
+[Latency] RTT: 0.116645 ms
+[Perf] Frame: 1.15512ms | RTT: 166.767ms | E2E: -1674.18ms | Peers: 6
+[Latency] RTT: 13.5053 ms
+[Latency] RTT: 994.355 ms
+[Latency] RTT: 0.011081 ms
+[Latency] RTT: 0.037038 ms
+[Latency] RTT: 0.057851 ms
+[Latency] RTT: 0.06294 ms
+[Perf] Frame: 1.22007ms | RTT: 168.005ms | E2E: -1674.93ms | Peers: 6
+[Latency] RTT: 18.6611 ms
+[Latency] RTT: 994.603 ms
+[Latency] RTT: 0.010517 ms
 [Latency] RTT: 0.03303 ms
-[Latency] RTT: 0.046522 ms
-[Latency] RTT: 0.052556 ms
-[Perf] Frame: 1.21361ms | RTT: 994.36ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 27.1488 ms
-[Latency] RTT: 994.545 ms
-[Latency] RTT: 0.008908 ms
-[Latency] RTT: 0.033209 ms
-[Latency] RTT: 0.039879 ms
-[Latency] RTT: 0.045645 ms
-[Perf] Frame: 1.23445ms | RTT: 994.545ms | E2E: 0ms | Peers: 1
-[Latency] RTT: 32.3235 ms
+[Latency] RTT: 0.053813 ms
+[Latency] RTT: 0.058796 ms
+[Perf] Frame: 1.1001ms | RTT: 168.903ms | E2E: -1676.28ms | Peers: 6
+[Latency] RTT: 25.7577 ms
+[Latency] RTT: 995.524 ms
+[Latency] RTT: 0.011847 ms
+[Latency] RTT: 0.037993 ms
+[Latency] RTT: 0.059433 ms
+[Latency] RTT: 0.06434 ms
+[Perf] Frame: 1.12379ms | RTT: 170.243ms | E2E: -1676.23ms | Peers: 6
+[Latency] RTT: 29.5161 ms
+[Latency] RTT: 994.534 ms
+[Latency] RTT: 0.011108 ms
+[Latency] RTT: 0.038944 ms
+[Latency] RTT: 0.044925 ms
+[Perf] Frame: 1.12353ms | RTT: 170.702ms | E2E: -1676.92ms | Peers: 6
+[Latency] RTT: 35.7332 ms
+[Latency] RTT: 35.7651 ms
+[Latency] RTT: 994.615 ms
+[Latency] RTT: 0.012581 ms
+[Latency] RTT: 0.035355 ms
+[Latency] RTT: 0.041417 ms
+[Latency] RTT: 0.060612 ms
+[Perf] Frame: 1.11301ms | RTT: 171.755ms | E2E: -1677.41ms | Peers: 6
+[Latency] RTT: 40.2436 ms
+[Latency] RTT: 995.997 ms
+[Latency] RTT: 0.010816 ms
+[Latency] RTT: 0.033559 ms
+[Latency] RTT: 0.039369 ms
+[Perf] Frame: 1.12432ms | RTT: 172.731ms | E2E: -1677.8ms | Peers: 6
+[Latency] RTT: 42.1827 ms
+[Latency] RTT: 42.211 ms
+[Latency] RTT: 994.742 ms
+[Latency] RTT: 0.013313 ms
+[Latency] RTT: 0.04047 ms
+[Latency] RTT: 0.046926 ms
+[Latency] RTT: 0.069631 ms
+[Perf] Frame: 1.19293ms | RTT: 172.854ms | E2E: -1677.8ms | Peers: 6
+[Latency] RTT: 46.0633 ms
+[Latency] RTT: 0.023092 ms
+[Latency] RTT: 0.04849 ms
+[Latency] RTT: 0.054235 ms
+[Latency] RTT: 0.059399 ms
+[Latency] RTT: 0.173313 ms
+[Perf] Frame: 1.10267ms | RTT: 7.73697ms | E2E: -1678.12ms | Peers: 6
+[Latency] RTT: 44.2109 ms
+[Latency] RTT: 0.017429 ms
+[Latency] RTT: 0.043566 ms
+[Latency] RTT: 0.048815 ms
+[Latency] RTT: 0.05384 ms
+[Latency] RTT: 0.058699 ms
+[Perf] Frame: 1.17742ms | RTT: 7.40555ms | E2E: -1675.66ms | Peers: 6
+[Latency] RTT: 47.8083 ms
+[Latency] RTT: 0.013455 ms
+[Latency] RTT: 0.037172 ms
+[Latency] RTT: 0.04256 ms
+[Latency] RTT: 0.047513 ms
+[Latency] RTT: 0.052384 ms
+[Perf] Frame: 1.10356ms | RTT: 8.00023ms | E2E: -1676.41ms | Peers: 6
+[Latency] RTT: 43.5345 ms
+[Latency] RTT: 0.013786 ms
+[Latency] RTT: 0.038345 ms
+[Latency] RTT: 0.044043 ms
+[Latency] RTT: 0.048964 ms
+[Latency] RTT: 0.053986 ms
+[Perf] Frame: 1.10261ms | RTT: 7.28893ms | E2E: -1670.13ms | Peers: 6
+[Latency] RTT: 43.4111 ms
+[Latency] RTT: 0.01382 ms
+[Latency] RTT: 0.039668 ms
+[Latency] RTT: 0.045427 ms
+[Latency] RTT: 0.049967 ms
+[Perf] Frame: 1.14543ms | RTT: 7.269ms | E2E: -1660.65ms | Peers: 6
+[Latency] RTT: 42.9117 ms
+[Latency] RTT: 42.9962 ms
+[Latency] RTT: 0.013281 ms
+[Latency] RTT: 0.036583 ms
+[Latency] RTT: 0.041974 ms
+[Latency] RTT: 0.04649 ms
+[Perf] Frame: 1.16648ms | RTT: 14.341ms | E2E: -1657.89ms | Peers: 6
+[Latency] RTT: 46.607 ms
+[Latency] RTT: 46.6372 ms
+[Latency] RTT: 0.014057 ms
+[Latency] RTT: 0.039857 ms
+[Latency] RTT: 0.045737 ms
+[Latency] RTT: 0.050573 ms
+[Latency] RTT: 0.055409 ms
+[Perf] Frame: 1.10144ms | RTT: 7.80714ms | E2E: -1651.97ms | Peers: 6
+[Latency] RTT: 42.2142 ms
+[Latency] RTT: 997.712 ms
+[Latency] RTT: 997.805 ms
+[Latency] RTT: 0.007743 ms
+[Perf] Frame: 1.14943ms | RTT: 339.641ms | E2E: -1647.05ms | Peers: 6
+[Latency] RTT: 45.7169 ms
+[Latency] RTT: 45.7489 ms
+[Latency] RTT: 45.755 ms
+[Latency] RTT: 0.020746 ms
+[Latency] RTT: 0.051945 ms
+[Latency] RTT: 0.058061 ms
+[Perf] Frame: 1.13901ms | RTT: 22.8919ms | E2E: -1647.44ms | Peers: 6
+[Latency] RTT: 3.56132 ms
+[Latency] RTT: 3.58706 ms
+[Latency] RTT: 3.59284 ms
+[Latency] RTT: 0.016032 ms
+[Latency] RTT: 0.077878 ms
+[Latency] RTT: 0.086468 ms
+[Perf] Frame: 1.1253ms | RTT: 1.82027ms | E2E: -1677.41ms | Peers: 6
+[Latency] RTT: 9.02651 ms
+[Latency] RTT: 9.08149 ms
+[Latency] RTT: 9.08741 ms
+[Latency] RTT: 996.789 ms
+[Latency] RTT: 0.012073 ms
+[Latency] RTT: 0.032307 ms
+[Perf] Frame: 1.10503ms | RTT: 170.671ms | E2E: -1675.92ms | Peers: 6
+[Latency] RTT: 12.2932 ms
+[Latency] RTT: 12.3167 ms
+[Latency] RTT: 12.3225 ms
+[Latency] RTT: 997.032 ms
+[Latency] RTT: 0.008492 ms
+[Latency] RTT: 0.031281 ms
+[Perf] Frame: 1.14956ms | RTT: 172.334ms | E2E: -1672.86ms | Peers: 6
+[Latency] RTT: 17.4096 ms
+[Latency] RTT: 17.4384 ms
+[Latency] RTT: 17.4473 ms
+[Latency] RTT: 997.233 ms
+[Latency] RTT: 0.007775 ms
+[Latency] RTT: 0.033566 ms
+[Perf] Frame: 1.13818ms | RTT: 174.928ms | E2E: -1670ms | Peers: 6
+[Latency] RTT: 21.8775 ms
+[Latency] RTT: 21.9121 ms
+[Latency] RTT: 21.9194 ms
+[Latency] RTT: 996.605 ms
+[Latency] RTT: 0.04159 ms
+[Latency] RTT: 0.066884 ms
+[Perf] Frame: 1.13842ms | RTT: 177.07ms | E2E: -1677.81ms | Peers: 6
+[Latency] RTT: 25.7597 ms
+[Latency] RTT: 25.7927 ms
+[Latency] RTT: 25.8003 ms
+[Latency] RTT: 997.665 ms
+[Latency] RTT: 0.00824 ms
+[Latency] RTT: 0.035398 ms
+[Perf] Frame: 1.1457ms | RTT: 179.177ms | E2E: -1678.23ms | Peers: 6
+[Latency] RTT: 30.3438 ms
+[Latency] RTT: 30.3762 ms
+[Latency] RTT: 30.3826 ms
+[Latency] RTT: 997.199 ms
+[Latency] RTT: 0.008295 ms
+[Latency] RTT: 0.034039 ms
+[Perf] Frame: 1.11123ms | RTT: 181.391ms | E2E: -1678.01ms | Peers: 6
+[Latency] RTT: 35.3409 ms
+[Latency] RTT: 35.3802 ms
+[Latency] RTT: 35.389 ms
+[Latency] RTT: 996.055 ms
+[Latency] RTT: 0.010262 ms
+[Latency] RTT: 0.041106 ms
+[Perf] Frame: 1.1105ms | RTT: 183.703ms | E2E: -1677.53ms | Peers: 6
+[Latency] RTT: 41.2142 ms
+[Latency] RTT: 41.25 ms
+[Latency] RTT: 41.2563 ms
+[Latency] RTT: 996.203 ms
+[Latency] RTT: 999.624 ms
+[Latency] RTT: 0.00778 ms
+[Latency] RTT: 0.025764 ms
+[Perf] Frame: 1.17602ms | RTT: 346.389ms | E2E: -1677.63ms | Peers: 6
+[Latency] RTT: 40.757 ms
+[Latency] RTT: 40.7871 ms
+[Latency] RTT: 996.329 ms
+[Latency] RTT: 0.008436 ms
+[Latency] RTT: 0.025319 ms
+[Perf] Frame: 1.13759ms | RTT: 179.655ms | E2E: -1677.87ms | Peers: 6
+[Latency] RTT: 40.8733 ms
+[Latency] RTT: 40.9123 ms
+[Latency] RTT: 40.9226 ms
+[Latency] RTT: 0.015221 ms
+[Latency] RTT: 0.035622 ms
+[Perf] Frame: 1.0889ms | RTT: 20.4641ms | E2E: -1677.53ms | Peers: 6
+[Latency] RTT: 1.19787 ms
+[Latency] RTT: 44.1655 ms
+[Latency] RTT: 44.1907 ms
+[Latency] RTT: 44.1996 ms

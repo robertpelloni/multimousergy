@@ -91,6 +91,18 @@ void SyncModule::UpdateLatency(unsigned long long id, double latency) {
     }
 }
 
+void SyncModule::UpdateClockOffset(unsigned long long id, double remoteTime, double localTime) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_peers.count(id)) {
+        PeerState& peer = m_peers[id];
+        // RemoteTime arrived at LocalTime.
+        // Estimated travel time is latency/2 (half RTT).
+        double travelTime = peer.latency * 0.5;
+        double estimatedRemoteTimeAtArrival = remoteTime + travelTime;
+        peer.clockOffset = localTime - estimatedRemoteTimeAtArrival;
+    }
+}
+
 bool SyncModule::GetPeerState(unsigned long long id, PeerState& state) {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_peers.count(id)) {
@@ -118,26 +130,44 @@ int SyncModule::Denormalize(int val, int max) {
 bool SyncModule::ResolveConflict(unsigned long long id, double timestamp) {
     std::lock_guard<std::mutex> lock(m_mutex);
 
+    // Timestamp-First model for simultaneous interaction:
+    // We adjust the incoming remote timestamp by its clock offset
+    // to place it on our local unified timeline.
+    double adjustedTimestamp = timestamp;
+    if (m_peers.count(id)) {
+        adjustedTimestamp += m_peers[id].clockOffset;
+    }
+
     // First-to-Claim priority for interaction (clicks)
     if (m_activePeerId == 0) {
         m_activePeerId = id;
-        m_lastActiveSwitch = timestamp;
+        m_lastActiveSwitch = adjustedTimestamp;
         return true;
     }
 
     if (m_activePeerId == id) {
-        m_lastActiveSwitch = timestamp;
+        m_lastActiveSwitch = adjustedTimestamp;
+        return true;
+    }
+
+    // SIMULTANEOUS EDITING LOGIC:
+    // If a click arrives with an EARLIER adjusted timestamp than our
+    // current active owner's start time, and it's within a small 'race window' (e.g. 100ms),
+    // we allow the switch.
+    if (adjustedTimestamp < m_lastActiveSwitch && (m_lastActiveSwitch - adjustedTimestamp < 100.0)) {
+        m_activePeerId = id;
+        m_lastActiveSwitch = adjustedTimestamp;
         return true;
     }
 
     // If another peer is active, check for 2-second interaction timeout
-    if (timestamp - m_lastActiveSwitch > 2000.0) {
+    if (adjustedTimestamp - m_lastActiveSwitch > 2000.0) {
         m_activePeerId = id;
-        m_lastActiveSwitch = timestamp;
+        m_lastActiveSwitch = adjustedTimestamp;
         return true;
     }
 
-    return false; // Conflict: Focus is owned by someone else
+    return false; // Conflict: Focus is owned by someone else with earlier priority
 }
 
 void SyncModule::SetActivePeer(unsigned long long id) {
@@ -175,10 +205,15 @@ void SyncModule::Step(double deltaTime) {
         }
 
         // Apply Prediction (Dead Reckoning)
-        // Predict where the cursor should be based on velocity and estimated latency
-        float predictionMs = (float)peer.latency * 0.5f; // Predict half RTT into future
-        int predictedTargetX = peer.targetX + (int)(peer.vx * predictionMs);
-        int predictedTargetY = peer.targetY + (int)(peer.vy * predictionMs);
+        // Predict where the cursor should be based on velocity and synchronized latency.
+        // We use the clock offset to calculate exactly how 'old' the target coordinate is
+        // relative to the unified timeline.
+        double packetAge = currentMs - (peer.lastSeen + peer.clockOffset);
+        if (packetAge < 0) packetAge = 0;
+
+        float predictionMs = (float)packetAge + (float)peer.latency * 0.5f;
+        int predictedTargetX = (int)peer.targetX + (int)(peer.vx * predictionMs);
+        int predictedTargetY = (int)peer.targetY + (int)(peer.vy * predictionMs);
 
         peer.x += (predictedTargetX - peer.x) * lerpFactor;
         peer.y += (predictedTargetY - peer.y) * lerpFactor;

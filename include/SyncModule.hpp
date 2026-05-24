@@ -26,6 +26,7 @@ struct PeerState {
     double lastSeen;
     double latency;
     double e2eLatency;
+    double clockOffset; // Offset to convert remote timestamps to local timeline
     bool isStalled;
     float vx; // Velocity pixels/ms
     float vy;
@@ -39,6 +40,7 @@ public:
 
     void UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp = 0, const char* name = nullptr);
     void UpdateLatency(unsigned long long id, double latency);
+    void UpdateClockOffset(unsigned long long id, double remoteTime, double localTime);
 
     bool GetPeerState(unsigned long long id, PeerState& state);
     std::map<unsigned long long, PeerState> GetAllPeers();

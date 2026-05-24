@@ -41,6 +41,7 @@ private:
     void ProcessOutgoingPackets();
     void ProcessInteractionQueue();
     void ProcessIncomingPackets();
+    void PerformMasterStateSync();
     void PerformLatencySync();
     void PerformDiscoveryBroadcast();
     void PerformClipboardSync();

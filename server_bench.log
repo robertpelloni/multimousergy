@@ -1,47 +1,48 @@
 NetMux starting...
-No configuration file found. Using defaults.
-Searching for peers (5 seconds)...
-[GUI] Launching configuration dialog...
 [Network] Starting server on port 9999...
 [Input] Initializing Raw Input and Hooks...
 [Overlay] Initializing Layered Window...
 [Driver] Initializing virtual HID device (Interception)...
 [Warning] Virtual HID Driver not available. Using software fallback.
 [Bench] Benchmarking mode enabled.
-[Perf] Frame: 0.000281ms | RTT: 0ms | E2E: 0ms | Peers: 0
-[Perf] Frame: 1.14779ms | RTT: 0ms | E2E: 0ms | Peers: 0
+[Perf] Frame: 1.13576ms | RTT: 0ms | E2E: 0ms | Peers: 0
+[Perf] Frame: 5.01272ms | RTT: 0ms | E2E: 0ms | Peers: 0
 [Network] Accepted new TCP connection.
-[Network] Handshake completed with peer: DefaultSession (ID: 1779596601065796284)
+[Network] Handshake completed with peer: DefaultSession (ID: 1779603005555618086)
+[Network] Accepted new TCP connection.
+[Network] Handshake completed with peer: DefaultSession (ID: 1779603005555774491)
 [Network] Accepted new TCP connection.
 [Network] Accepted new TCP connection.
+[Network] Handshake completed with peer: DefaultSession (ID: 1779603005557487528)
+[Network] Handshake completed with peer: DefaultSession (ID: 1779603005560828564)
 [Network] Accepted new TCP connection.
-[Network] Handshake completed with peer: DefaultSession (ID: 1779596601065576554)
-[Network] Accepted new TCP connection.
-[Network] Handshake completed with peer: DefaultSession (ID: 1779596601068341413)
-[Network] Handshake completed with peer: DefaultSession (ID: 1779596601067583839)
-[Network] Handshake completed with peer: DefaultSession (ID: 1779596601066394440)
-[Perf] Frame: 5.31132ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.21558ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.15253ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.20445ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.22288ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.13784ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.15805ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.18969ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.14389ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.145ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.16178ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.17516ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.15377ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.16068ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.22993ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.18442ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.1471ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.37104ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.13312ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.11613ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.13103ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.25205ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.14181ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.15827ms | RTT: 0ms | E2E: 0ms | Peers: 5
-[Perf] Frame: 1.16353ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Network] Handshake completed with peer: DefaultSession (ID: 1779603005562724840)
+[Perf] Frame: 1.18246ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.17357ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.16416ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.1621ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.22839ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.13067ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.13892ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.127ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.15026ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.18761ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.1817ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.12398ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.13453ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.12394ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.16931ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.11079ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.13265ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.13247ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.14263ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.19422ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.18965ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.1676ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.12053ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.13238ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.11704ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.15325ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.14533ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.1155ms | RTT: 0ms | E2E: 0ms | Peers: 5
+[Perf] Frame: 1.17713ms | RTT: 0ms | E2E: 0ms | Peers: 5

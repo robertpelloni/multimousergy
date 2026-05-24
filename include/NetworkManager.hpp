@@ -19,7 +19,8 @@ enum class PacketType {
     ClipboardSync,
     Handshake,
     FocusUpdate,
-    SessionUpdate
+    SessionUpdate,
+    MasterStateSync
 };
 
 struct Packet {

@@ -14,6 +14,14 @@
 - Completed Milestones 1 and 2 for core connectivity and rendering.
 - Verified GDI/D3D11 backend resiliency and fallback mechanisms.
 
+## [0.1.31-alpha] - 2025-01-24
+### Added
+- Real-Time Synchronization Layer for simultaneous editing.
+- Client-side Clock Synchronization via Heartbeat packets and clock offsets.
+- Enhanced Vector-Based Latency Compensation (Dead Reckoning) using unified clocks.
+- Server-side Authoritative Position Sync (`MasterStateSync`) for drift correction.
+- Timestamp-First Conflict Resolution model for simultaneous interactions.
+
 ## [0.1.28-alpha] - 2025-01-24
 ### Added
 - Automated Benchmarking Suite (`tests/benchmark_run.sh`).
