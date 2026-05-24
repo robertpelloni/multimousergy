@@ -20,7 +20,8 @@ enum class PacketType {
     Handshake,
     FocusUpdate,
     SessionUpdate,
-    MasterStateSync
+    MasterStateSync,
+    Ping
 };
 
 struct Packet {
@@ -64,6 +65,8 @@ public:
     bool BroadcastDiscovery(int port);
     bool ListenForPeers(DiscoveryPacket& pkt);
     bool PollDiscovery(DiscoveryPacket& pkt);
+
+    int GetClientCount() const { return (int)m_clients.size(); }
 
     void Shutdown();
 

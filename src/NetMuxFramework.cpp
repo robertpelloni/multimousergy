@@ -62,6 +62,9 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
 
 void NetMuxFramework::Run() {
     Timer frameTimer;
+    const int MAX_PEER_COUNT = 20;
+    bool warningLogged = false;
+
     while (m_running) {
         double dt = frameTimer.ElapsedMilliseconds();
         frameTimer.Reset();
@@ -77,6 +80,17 @@ void NetMuxFramework::Run() {
         ProcessInteractionQueue();
 
         m_sync.Step(dt);
+
+        // Load Balancing / Connection Management
+        if (m_settings.isServer) {
+            int currentClients = m_network.GetClientCount();
+            if (currentClients > MAX_PEER_COUNT && !warningLogged) {
+                std::cerr << "[Warning] Connection threshold exceeded (" << currentClients << "/" << MAX_PEER_COUNT << "). Performance may degrade." << std::endl;
+                warningLogged = true;
+            } else if (currentClients <= MAX_PEER_COUNT) {
+                warningLogged = false;
+            }
+        }
 
         if (m_loopTimer.ElapsedMilliseconds() - m_lastPerfLog > (m_benchmarking ? 1000.0 : 5000.0)) {
             std::map<unsigned long long, PeerState> peers = m_sync.GetAllPeers();
@@ -294,6 +308,13 @@ void NetMuxFramework::ProcessIncomingPackets() {
                 // Client adopts server's authoritative position
                 m_sync.UpdatePeer(peerId, inPkt.groupId, inPkt.x, inPkt.y, inPkt.localTimestamp);
             }
+        } else if (inPkt.type == PacketType::Ping) {
+            // Reply with Heartbeat (Pong)
+            Packet pong = { m_localId, m_settings.groupId, 0.0, PacketType::Heartbeat, 0, 0, 0, false, "", 0 };
+            unsigned int now = (unsigned int)m_loopTimer.ElapsedMilliseconds();
+            pong.x = (int)(now & 0xFFFF);
+            pong.y = (int)((now >> 16) & 0xFFFF);
+            m_network.SendPacket(pong);
         }
     }
 }
@@ -322,6 +343,14 @@ void NetMuxFramework::PerformLatencySync() {
         m_network.SendPacket(syncPkt);
         m_syncTimer.Reset();
         m_lastSyncTime = m_loopTimer.ElapsedMilliseconds();
+    }
+
+    // Keep-Alive Ping (2000ms)
+    static double lastPing = 0;
+    if (m_loopTimer.ElapsedMilliseconds() - lastPing > 2000.0) {
+        Packet pingPkt = { m_localId, m_settings.groupId, 0.0, PacketType::Ping, 0, 0, 0, false, "", 0 };
+        m_network.SendPacket(pingPkt);
+        lastPing = m_loopTimer.ElapsedMilliseconds();
     }
 
     // High-precision Heartbeat (Clock Sync)

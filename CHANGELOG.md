@@ -20,6 +20,13 @@
 - High-Concurrency Performance Benchmarking (up to 20+ clients).
 - Validated system stability under simultaneous multi-user interaction.
 
+## [0.1.36-alpha] - 2025-01-24
+### Added
+- Client-side Load Balancing and Connection Management (MAX_PEER_COUNT: 20).
+- Network Stability Layer with Ping/Pong keep-alives (2s intervals).
+- Final Alpha polish and stability verification with 30+ concurrent clients.
+- Automated Benchmarking Suite expansion for high-load auditing.
+
 ## [0.1.35-alpha] - 2025-01-24
 ### Added
 - Dynamic Group Management with descriptive group names.
