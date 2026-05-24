@@ -174,6 +174,26 @@ bool SyncModule::ResolveConflict(unsigned long long id, double timestamp) {
     return false; // Conflict: Focus is owned by someone else with earlier priority
 }
 
+bool SyncModule::DispatchInputEvent(unsigned long long id, double timestamp) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    // Only allow input events from the currently active focus owner
+    // This provides a consistent single-user control model for complex actions.
+    if (m_activePeerId == id) {
+        m_lastActiveSwitch = timestamp; // Reset timeout
+        return true;
+    }
+
+    // If no one is active, allow the new user to claim it
+    if (m_activePeerId == 0) {
+        m_activePeerId = id;
+        m_lastActiveSwitch = timestamp;
+        return true;
+    }
+
+    return false;
+}
+
 void SyncModule::SetActivePeer(unsigned long long id) {
     std::lock_guard<std::mutex> lock(m_mutex);
 

@@ -20,6 +20,7 @@ void test_network_stress();
 // External declarations from new unit test files
 void test_packet_serialization_integrity();
 void test_network_discovery_logic();
+void test_concurrent_packet_handling();
 void test_coordinate_normalization_fidelity();
 void test_clock_offset_calculation();
 void test_boundary_logic();
@@ -202,6 +203,7 @@ int main() {
     // New Unit Tests
     test_packet_serialization_integrity();
     test_network_discovery_logic();
+    test_concurrent_packet_handling();
     test_coordinate_normalization_fidelity();
     test_clock_offset_calculation();
     test_boundary_logic();

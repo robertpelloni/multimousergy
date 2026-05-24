@@ -20,6 +20,13 @@
 - High-Concurrency Performance Benchmarking (up to 20+ clients).
 - Validated system stability under simultaneous multi-user interaction.
 
+## [0.1.37-alpha] - 2025-01-24
+### Added
+- Advanced Input Distribution Layer in SyncModule.
+- PacketType::InputEvent for complex multi-user coordination.
+- Automated concurrency stress tests for multi-threaded packet handling.
+- Integrated focus validation for shared interactive elements.
+
 ## [0.1.36-alpha] - 2025-01-24
 ### Added
 - Client-side Load Balancing and Connection Management (MAX_PEER_COUNT: 20).

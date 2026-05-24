@@ -21,7 +21,8 @@ enum class PacketType {
     FocusUpdate,
     SessionUpdate,
     MasterStateSync,
-    Ping
+    Ping,
+    InputEvent
 };
 
 struct Packet {

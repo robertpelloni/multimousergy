@@ -1,6 +1,9 @@
 #include <iostream>
 #include <cassert>
 #include <cstring>
+#include <thread>
+#include <vector>
+#include <atomic>
 #include "NetworkManager.hpp"
 
 void test_packet_serialization_integrity() {
@@ -36,4 +39,45 @@ void test_network_discovery_logic() {
 
     assert(std::string(dp.hostname) == "MockHost");
     assert(dp.port == 1234);
+}
+
+void test_concurrent_packet_handling() {
+    std::cout << "Testing Concurrent Packet Handling..." << std::endl;
+    NetworkManager server;
+    server.StartServer(9991);
+    server.SetIsServer(true);
+
+    const int numClients = 5;
+    const int packetsPerClient = 1000;
+    std::atomic<int> totalSent(0);
+
+    auto clientTask = [&](int id) {
+        NetworkManager client;
+        client.SetIsServer(false);
+        if (client.Connect("127.0.0.1", 9991)) {
+            for (int i = 0; i < packetsPerClient; ++i) {
+                Packet p = { (unsigned long long)id, 0, 0.0, PacketType::AbsoluteMovement, i, i, 0, false, "", 0 };
+                client.SendPacket(p);
+                totalSent++;
+            }
+        }
+        client.Shutdown();
+    };
+
+    std::vector<std::thread> clients;
+    for (int i = 0; i < numClients; ++i) {
+        clients.emplace_back(clientTask, i + 1);
+    }
+
+    for (auto& t : clients) t.join();
+
+    // Verify server can drain the buffer without crashing
+    Packet p;
+    int received = 0;
+    while (server.ReceivePacket(p)) {
+        received++;
+    }
+
+    std::cout << "Sent: " << totalSent << ", Received: " << received << std::endl;
+    server.Shutdown();
 }

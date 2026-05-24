@@ -52,6 +52,9 @@ public:
     // Conflict Resolution: returns true if interaction is permitted
     bool ResolveConflict(unsigned long long id, double timestamp);
 
+    // Focus validation for arbitrary input events
+    bool DispatchInputEvent(unsigned long long id, double timestamp);
+
     // Interpolation step
     void Step(double deltaTime);
 
