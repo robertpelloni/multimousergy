@@ -32,7 +32,10 @@ public:
         m_overlay.SetBackend(enable ? OverlayBackend::D3D11 : OverlayBackend::GDI);
     }
 
+    void UpdateSessionMetadata(const std::string& name, unsigned int groupId);
+
     void EnableBenchmarking(bool enable) { m_benchmarking = enable; }
+    SyncModule* GetSyncModule() { return &m_sync; }
 
 private:
     void ProcessOutgoingPackets();

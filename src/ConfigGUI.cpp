@@ -19,13 +19,15 @@ static HWND s_hwndActiveUser = nullptr;
 static HWND s_hwndCursorScale = nullptr;
 static HWND s_hwndUseD3D11 = nullptr;
 static HWND s_hwndGroupId = nullptr;
+static HWND s_hwndSessionName = nullptr;
 
 enum ControlIDs {
     ID_SAVE_BUTTON = 1,
     ID_PEER_LIST = 2,
     ID_CURSOR_SCALE = 3,
     ID_USE_D3D11 = 4,
-    ID_GROUP_ID = 5
+    ID_GROUP_ID = 5,
+    ID_SESSION_NAME = 6
 };
 
 LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -60,6 +62,9 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
             CreateWindow("STATIC", "Group ID:", WS_VISIBLE | WS_CHILD, 10, 330, 100, 20, hwnd, NULL, NULL, NULL);
             s_hwndGroupId = CreateWindow("EDIT", std::to_string(s_currentSettings->groupId).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 110, 330, 50, 20, hwnd, (HMENU)ID_GROUP_ID, NULL, NULL);
+
+            CreateWindow("STATIC", "Session:", WS_VISIBLE | WS_CHILD, 10, 360, 100, 20, hwnd, NULL, NULL, NULL);
+            s_hwndSessionName = CreateWindow("EDIT", s_currentSettings->sessionName.c_str(), WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | WS_BORDER, 110, 360, 150, 20, hwnd, (HMENU)ID_SESSION_NAME, NULL, NULL);
             break;
 
         case WM_COMMAND:
@@ -90,6 +95,9 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                     GetWindowText(s_hwndGroupId, buffer, 256);
                     s_currentSettings->groupId = (unsigned int)std::stoul(buffer);
 
+                    GetWindowText(s_hwndSessionName, buffer, 256);
+                    s_currentSettings->sessionName = buffer;
+
                     GetWindowText(s_hwndIp, buffer, 256);
                     s_currentSettings->remoteIp = buffer;
                     s_currentSettings->port = port;
@@ -110,7 +118,7 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 }
 #endif
 
-bool ConfigGUI::ShowDialog(AppSettings& settings) {
+bool ConfigGUI::ShowDialog(AppSettings& settings, SyncModule* sync) {
     std::cout << "[GUI] Launching configuration dialog..." << std::endl;
 
 #ifdef _WIN32
@@ -135,12 +143,21 @@ bool ConfigGUI::ShowDialog(AppSettings& settings) {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         } else {
-            // Poll for discovery in the background
-            DiscoveryPacket dp;
-            if (discoveryNetwork.PollDiscovery(dp)) {
-                // If peer not in list, add it
-                if (SendMessage(s_hwndPeerList, CB_FINDSTRINGEXACT, -1, (LPARAM)dp.hostname) == CB_ERR) {
-                    SendMessage(s_hwndPeerList, CB_ADDSTRING, 0, (LPARAM)dp.hostname);
+            // Poll for discovery or update peer list from SyncModule
+            if (sync) {
+                auto peers = sync->GetAllPeers();
+                for (auto const& [id, peer] : peers) {
+                    std::string entry = std::string(peer.sessionName) + " (Group " + std::to_string(peer.groupId) + ")";
+                    if (SendMessage(s_hwndPeerList, CB_FINDSTRINGEXACT, -1, (LPARAM)entry.c_str()) == CB_ERR) {
+                        SendMessage(s_hwndPeerList, CB_ADDSTRING, 0, (LPARAM)entry.c_str());
+                    }
+                }
+            } else {
+                DiscoveryPacket dp;
+                if (discoveryNetwork.PollDiscovery(dp)) {
+                    if (SendMessage(s_hwndPeerList, CB_FINDSTRINGEXACT, -1, (LPARAM)dp.hostname) == CB_ERR) {
+                        SendMessage(s_hwndPeerList, CB_ADDSTRING, 0, (LPARAM)dp.hostname);
+                    }
                 }
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(100));

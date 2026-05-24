@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.27-alpha] - 2025-01-24
+### Added
+- Dynamic Session Management and Monitoring.
+- Session-aware Handshake and SessionUpdate protocols.
+- Live Session Monitor in ConfigGUI with periodic peer list refreshing.
+- Configurable Session Names for improved client identification.
+
 ## [0.1.26-alpha] - 2025-01-24
 ### Added
 - Dynamic Cursor Grouping support across the entire stack.

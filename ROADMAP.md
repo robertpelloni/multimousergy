@@ -25,3 +25,4 @@
 - [x] Integrated benchmarking and telemetry (v0.1.16+).
  - [x] Dynamic Cursor Scaling and Peer Selection (v0.1.21+).
  - [x] Dynamic Cursor Grouping and Load Balancing (v0.1.26+).
+ - [x] Dynamic Session Management and Live Monitoring (v0.1.27+).

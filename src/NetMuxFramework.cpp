@@ -38,7 +38,7 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
 
         // Handshake: Send initial metadata
         Packet handshake = { m_localId, m_settings.groupId, 0.0, PacketType::Handshake, 0, 0, 0, false, "", 0 };
-        gethostname(handshake.payload, sizeof(handshake.payload));
+        strncpy(handshake.payload, m_settings.sessionName.c_str(), sizeof(handshake.payload) - 1);
         handshake.payloadSize = (int)strlen(handshake.payload);
         m_network.SendPacket(handshake);
     }
@@ -124,6 +124,18 @@ void NetMuxFramework::Run() {
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
+}
+
+void NetMuxFramework::UpdateSessionMetadata(const std::string& name, unsigned int groupId) {
+    m_settings.sessionName = name;
+    m_settings.groupId = groupId;
+
+    Packet update = { m_localId, m_settings.groupId, 0.0, PacketType::SessionUpdate, 0, 0, 0, false, "", 0 };
+    strncpy(update.payload, m_settings.sessionName.c_str(), sizeof(update.payload) - 1);
+    update.payloadSize = (int)m_settings.sessionName.size();
+    m_network.SendPacket(update);
+
+    std::cout << "[Framework] Local session updated: " << name << " (Group: " << groupId << ")" << std::endl;
 }
 
 void NetMuxFramework::Shutdown() {
@@ -239,10 +251,12 @@ void NetMuxFramework::ProcessIncomingPackets() {
             std::string remoteHost(inPkt.payload, inPkt.payloadSize);
             std::cout << "[Network] Handshake completed with peer: " << remoteHost << " (ID: " << peerId << ")" << std::endl;
 
+            m_sync.UpdatePeer(peerId, inPkt.groupId, 0, 0, 0, remoteHost.c_str());
+
             if (m_settings.isServer) {
                 // Server replies with its own handshake
                 Packet reply = { m_localId, m_settings.groupId, 0.0, PacketType::Handshake, 0, 0, 0, false, "", 0 };
-                gethostname(reply.payload, sizeof(reply.payload));
+                strncpy(reply.payload, m_settings.sessionName.c_str(), sizeof(reply.payload) - 1);
                 reply.payloadSize = (int)strlen(reply.payload);
                 m_network.SendPacket(reply);
             }
@@ -250,6 +264,14 @@ void NetMuxFramework::ProcessIncomingPackets() {
             unsigned long long newOwner = (unsigned long long)inPkt.button;
             m_sync.SetActivePeer(newOwner);
             std::cout << "[Sync] Focus ownership transferred to peer " << newOwner << std::endl;
+        } else if (inPkt.type == PacketType::SessionUpdate) {
+            std::string sessionName(inPkt.payload, inPkt.payloadSize);
+            m_sync.UpdatePeer(peerId, inPkt.groupId, 0, 0, 0, sessionName.c_str());
+            std::cout << "[Sync] Session update from peer " << peerId << ": " << sessionName << " (Group: " << inPkt.groupId << ")" << std::endl;
+
+            if (m_settings.isServer) {
+                m_network.SendPacket(inPkt); // Rebroadcast
+            }
         }
     }
 }

@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (firstRun && !autoConnect) {
-        if (!ConfigGUI::ShowDialog(settings)) return 0;
+        if (!ConfigGUI::ShowDialog(settings, framework.GetSyncModule())) return 0;
         configManager.Save(settings);
     }
 
