@@ -25,7 +25,7 @@ private:
     int m_buttonState = 0; // bitmask
 
 #ifdef _WIN32
-    void* m_client;
-    void* m_target;
+    void* m_context; // Interception context
+    int m_device;    // Virtual mouse device ID
 #endif
 };

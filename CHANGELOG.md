@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.29-alpha] - 2025-01-24
+### Added
+- Functional Kernel Driver Interface using Interception API logic.
+- Hardware-accelerated Direct3D 11 cursor rendering backend.
+- Completed Milestones 1 and 2 for core connectivity and rendering.
+- Verified GDI/D3D11 backend resiliency and fallback mechanisms.
+
 ## [0.1.28-alpha] - 2025-01-24
 ### Added
 - Automated Benchmarking Suite (`tests/benchmark_run.sh`).

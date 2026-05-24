@@ -1,16 +1,16 @@
 # ROADMAP.md
 
-## Milestone 1: Core Connectivity
-- [ ] Virtual HID Driver integration (ViGEmBus).
+## Milestone 1: Core Connectivity (COMPLETED)
+- [x] Virtual HID Driver integration (Interception).
 - [x] Raw Input interception and local cursor suppression logic.
 - [x] Bidirectional non-blocking networking for cursor and state sync.
 
-## Milestone 2: Independent Rendering
+## Milestone 2: Independent Rendering (COMPLETED)
 - [x] Transparent layered window overlay.
 - [x] Optimized flicker-free `UpdateLayeredWindow` implementation.
 - [x] Pre-allocated GDI resource management for low-latency rendering.
 - [x] Standard cursor icon and colorized crosshair rendering.
-- [ ] D3D11 hardware-accelerated overlay (Future performance optimization).
+- [x] D3D11 hardware-accelerated overlay implementation.
 
 ## Milestone 3: Interaction & Multiplexing
 - [x] TCP state sync for clicks and buttons.

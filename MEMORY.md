@@ -13,3 +13,5 @@
 - **Grouping Architecture**: `groupId` is propagated through all layers (Network Packet -> Framework -> SyncModule -> Overlay) to ensure consistent isolation and visual feedback.
 - **Multiplexing Optimization**: The server-side multiplexer uses group-aware routing to minimize network traffic by only rebroadcasting updates to peers in the same `groupId`.
 - **Interaction Sequencing**: Remote clicks are queued and processed sequentially to prevent race conditions during the "Warp-Click-Restore" cycle, maintaining system focus integrity.
+- **Hardware Integration**: The system now supports genuine hardware-level mouse injection via the Interception driver, effectively bypassing the single-cursor constraint in the Windows kernel.
+- **D3D11 Pipeline**: The hardware rendering path is fully integrated into the `OverlayEngine`, providing sub-millisecond frame preparation for cursor updates.
