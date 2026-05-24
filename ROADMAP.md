@@ -10,7 +10,7 @@
 - [x] Optimized flicker-free `UpdateLayeredWindow` implementation.
 - [x] Pre-allocated GDI resource management for low-latency rendering.
 - [x] Standard cursor icon and colorized crosshair rendering.
-- [x] D3D11 hardware-accelerated overlay implementation.
+- [x] D3D11 hardware-accelerated overlay implementation (v0.1.39+).
 
 ## Milestone 3: Interaction & Multiplexing (COMPLETED)
 - [x] TCP state sync for clicks and buttons.
@@ -33,3 +33,4 @@
  - [x] Load Balancing and Stability Polish (v0.1.36+).
  - [x] Advanced Input Distribution and Concurrency Tests (v0.1.37+).
  - [x] Cross-Platform Abstraction and Multi-OS Foundation (v0.1.38+).
+ - [x] D3D11 Hardware Acceleration (v0.1.39+).

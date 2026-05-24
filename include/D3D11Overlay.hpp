@@ -23,6 +23,8 @@ public:
 
 private:
 #ifdef _WIN32
+    void DrawSprite(int x, int y, unsigned char r, unsigned char g, unsigned char b);
+
     ID3D11Device* m_device;
     ID3D11DeviceContext* m_context;
     IDXGISwapChain* m_swapChain;

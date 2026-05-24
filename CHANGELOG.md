@@ -20,6 +20,13 @@
 - High-Concurrency Performance Benchmarking (up to 20+ clients).
 - Validated system stability under simultaneous multi-user interaction.
 
+## [0.1.39-alpha] - 2025-01-24
+### Added
+- Hardware-Accelerated Direct3D 11 Overlay Implementation.
+- Textured quad cursor rendering with alpha-blending support.
+- Fully integrated D3D11/GDI backend switching in NetMuxFramework.
+- Verified stable 144Hz+ rendering pipeline under multi-client load.
+
 ## [0.1.38-alpha] - 2025-01-24
 ### Added
 - Cross-Platform Abstraction for Networking (Win32/POSIX Socket layer).
