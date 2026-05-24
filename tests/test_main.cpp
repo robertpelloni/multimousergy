@@ -16,6 +16,13 @@ void test_group_isolation();
 void test_sync_stress();
 void test_network_stress();
 
+// External declarations from new unit test files
+void test_packet_serialization_integrity();
+void test_network_discovery_logic();
+void test_coordinate_normalization_fidelity();
+void test_clock_offset_calculation();
+void test_boundary_logic();
+
 void test_sync_module_interpolation() {
     std::cout << "Testing SyncModule interpolation..." << std::endl;
     SyncModule sync;
@@ -189,6 +196,13 @@ int main() {
     test_clipboard_module();
     test_sync_stress();
     test_network_stress();
+
+    // New Unit Tests
+    test_packet_serialization_integrity();
+    test_network_discovery_logic();
+    test_coordinate_normalization_fidelity();
+    test_clock_offset_calculation();
+    test_boundary_logic();
 
     std::cout << "All tests passed!" << std::endl;
     return 0;

@@ -3,13 +3,13 @@
 ## Overview
 NetMux is designed for sub-millisecond cursor synchronization. The following metrics are captured under typical LAN conditions (1Gbps).
 
-## Key Metrics (Alpha Build - v0.1.30-alpha)
+## Key Metrics (Alpha Build - v0.1.33-alpha)
 
-### Latency (5-Client Concurrent Stress Test)
-- **RTT (p50)**: ~993ms (Simulation/Loopback Overhead in VM)
-- **RTT (p99)**: ~999ms (Consistent loopback delay)
-- **Frame Delta (Mean)**: 1.153ms (~867 FPS internal processing)
-- **Frame Delta (p95)**: 1.252ms (High stability under concurrent load)
+### Latency (10-Client Concurrent Stress Test)
+- **RTT (p50)**: ~41.5ms (Simulation/Loopback Overhead)
+- **RTT (p95)**: ~476.9ms (Extreme contention handling)
+- **Frame Delta (Mean)**: 1.253ms (~798 FPS internal processing)
+- **Frame Delta (p95)**: 1.399ms (Consistent stability under high concurrent load)
 - **E2E Synchronization**: Verified sub-millisecond precision for absolute coordinate updates in integration tests.
 
 ### Throughput & Scaling
