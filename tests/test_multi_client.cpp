@@ -161,3 +161,37 @@ void test_group_isolation() {
     server.Shutdown();
     std::cout << "Network group isolation verified (via server routing check)." << std::endl;
 }
+
+void test_high_concurrency_sync() {
+    std::cout << "Testing high-concurrency simulation (50 peers)..." << std::endl;
+    SyncModule sync;
+    const int numPeers = 50;
+    const int updatesPerPeer = 500;
+    std::atomic<int> totalProcessed(0);
+
+    std::vector<std::thread> workers;
+    for (int i = 1; i <= numPeers; ++i) {
+        workers.emplace_back([&sync, i, updatesPerPeer, &totalProcessed]() {
+            for (int j = 0; j < updatesPerPeer; ++j) {
+                sync.UpdatePeer(i, 0, 1000 + j, 1000 + j);
+                totalProcessed++;
+            }
+        });
+    }
+
+    for (auto& t : workers) t.join();
+
+    assert(totalProcessed == numPeers * updatesPerPeer);
+
+    auto peers = sync.GetAllPeers();
+    assert(peers.size() == numPeers);
+
+    for (int i = 1; i <= numPeers; ++i) {
+        PeerState state;
+        assert(sync.GetPeerState(i, state));
+        // Verify consistency: last update was 1000 + updatesPerPeer - 1
+        // Due to jitter buffer of 5, normalizedX is slightly behind the VERY last update
+        assert(state.normalizedX >= 1000);
+    }
+    std::cout << "High-concurrency simulation verified successfully." << std::endl;
+}
