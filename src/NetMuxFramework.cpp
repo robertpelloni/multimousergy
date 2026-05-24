@@ -291,8 +291,10 @@ void NetMuxFramework::ProcessIncomingPackets() {
 void NetMuxFramework::PerformMasterStateSync() {
     if (!m_settings.isServer) return;
 
+    // High-frequency Master State Sync (100ms) to ensure absolute
+    // cursor consistency across all clients and correct any drift.
     static double lastMasterSync = 0;
-    if (m_loopTimer.ElapsedMilliseconds() - lastMasterSync > 500.0) { // Every 500ms
+    if (m_loopTimer.ElapsedMilliseconds() - lastMasterSync > 100.0) {
         auto peers = m_sync.GetAllPeers();
         for (auto const& [id, peer] : peers) {
             Packet masterPkt = { id, peer.groupId, 0.0, PacketType::MasterStateSync, peer.normalizedX, peer.normalizedY, 0, false, "", 0 };
