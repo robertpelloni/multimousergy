@@ -20,6 +20,13 @@
 - High-Concurrency Performance Benchmarking (up to 20+ clients).
 - Validated system stability under simultaneous multi-user interaction.
 
+## [0.1.35-alpha] - 2025-01-24
+### Added
+- Dynamic Group Management with descriptive group names.
+- Enhanced ConfigGUI with Group Name management.
+- Extended network protocol to propagate group metadata.
+- Verified group isolation and metadata consistency in E2E tests.
+
 ## [0.1.34-alpha] - 2025-01-24
 ### Added
 - High-concurrency simulation test (50 virtual peers).

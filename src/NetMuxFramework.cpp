@@ -36,10 +36,11 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
             return false;
         }
 
-        // Handshake: Send initial metadata
+        // Handshake: Send initial metadata (SessionName + GroupName)
         Packet handshake = { m_localId, m_settings.groupId, 0.0, PacketType::Handshake, 0, 0, 0, false, "", 0 };
-        strncpy(handshake.payload, m_settings.sessionName.c_str(), sizeof(handshake.payload) - 1);
-        handshake.payloadSize = (int)strlen(handshake.payload);
+        std::string meta = m_settings.sessionName + "|" + m_settings.groupName;
+        strncpy(handshake.payload, meta.c_str(), sizeof(handshake.payload) - 1);
+        handshake.payloadSize = (int)meta.size();
         m_network.SendPacket(handshake);
     }
 
@@ -132,8 +133,9 @@ void NetMuxFramework::UpdateSessionMetadata(const std::string& name, unsigned in
     m_settings.groupId = groupId;
 
     Packet update = { m_localId, m_settings.groupId, 0.0, PacketType::SessionUpdate, 0, 0, 0, false, "", 0 };
-    strncpy(update.payload, m_settings.sessionName.c_str(), sizeof(update.payload) - 1);
-    update.payloadSize = (int)m_settings.sessionName.size();
+    std::string meta = m_settings.sessionName + "|" + m_settings.groupName;
+    strncpy(update.payload, meta.c_str(), sizeof(update.payload) - 1);
+    update.payloadSize = (int)meta.size();
     m_network.SendPacket(update);
 
     std::cout << "[Framework] Local session updated: " << name << " (Group: " << groupId << ")" << std::endl;
@@ -255,16 +257,20 @@ void NetMuxFramework::ProcessIncomingPackets() {
                 m_network.SendPacket(inPkt);
             }
         } else if (inPkt.type == PacketType::Handshake) {
-            std::string remoteHost(inPkt.payload, inPkt.payloadSize);
-            std::cout << "[Network] Handshake completed with peer: " << remoteHost << " (ID: " << peerId << ")" << std::endl;
+            std::string meta(inPkt.payload, inPkt.payloadSize);
+            size_t sep = meta.find('|');
+            std::string remoteName = (sep != std::string::npos) ? meta.substr(0, sep) : meta;
+            std::string remoteGroupName = (sep != std::string::npos) ? meta.substr(sep + 1) : "";
 
-            m_sync.UpdatePeer(peerId, inPkt.groupId, 0, 0, 0, remoteHost.c_str());
+            std::cout << "[Network] Handshake from peer: " << remoteName << " (Group: " << remoteGroupName << ")" << std::endl;
+
+            m_sync.UpdatePeer(peerId, inPkt.groupId, 0, 0, 0, remoteName.c_str(), remoteGroupName.c_str());
 
             if (m_settings.isServer) {
-                // Server replies with its own handshake
                 Packet reply = { m_localId, m_settings.groupId, 0.0, PacketType::Handshake, 0, 0, 0, false, "", 0 };
-                strncpy(reply.payload, m_settings.sessionName.c_str(), sizeof(reply.payload) - 1);
-                reply.payloadSize = (int)strlen(reply.payload);
+                std::string sMeta = m_settings.sessionName + "|" + m_settings.groupName;
+                strncpy(reply.payload, sMeta.c_str(), sizeof(reply.payload) - 1);
+                reply.payloadSize = (int)sMeta.size();
                 m_network.SendPacket(reply);
             }
         } else if (inPkt.type == PacketType::FocusUpdate) {
@@ -272,9 +278,13 @@ void NetMuxFramework::ProcessIncomingPackets() {
             m_sync.SetActivePeer(newOwner);
             std::cout << "[Sync] Focus ownership transferred to peer " << newOwner << std::endl;
         } else if (inPkt.type == PacketType::SessionUpdate) {
-            std::string sessionName(inPkt.payload, inPkt.payloadSize);
-            m_sync.UpdatePeer(peerId, inPkt.groupId, 0, 0, 0, sessionName.c_str());
-            std::cout << "[Sync] Session update from peer " << peerId << ": " << sessionName << " (Group: " << inPkt.groupId << ")" << std::endl;
+            std::string meta(inPkt.payload, inPkt.payloadSize);
+            size_t sep = meta.find('|');
+            std::string sessionName = (sep != std::string::npos) ? meta.substr(0, sep) : meta;
+            std::string groupName = (sep != std::string::npos) ? meta.substr(sep + 1) : "";
+
+            m_sync.UpdatePeer(peerId, inPkt.groupId, 0, 0, 0, sessionName.c_str(), groupName.c_str());
+            std::cout << "[Sync] Session update from peer " << peerId << ": " << sessionName << " (Group: " << groupName << ")" << std::endl;
 
             if (m_settings.isServer) {
                 m_network.SendPacket(inPkt); // Rebroadcast

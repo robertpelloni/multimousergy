@@ -13,6 +13,7 @@ struct HistoryPoint {
 struct PeerState {
     unsigned long long id;
     unsigned int groupId;
+    char groupName[64];
     char sessionName[64];
     float x; // Current denormalized screen coordinate
     float y;
@@ -38,7 +39,7 @@ public:
     SyncModule();
     ~SyncModule();
 
-    void UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp = 0, const char* name = nullptr);
+    void UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp = 0, const char* name = nullptr, const char* groupName = nullptr);
     void UpdateLatency(unsigned long long id, double latency);
     void UpdateClockOffset(unsigned long long id, double remoteTime, double localTime);
 
