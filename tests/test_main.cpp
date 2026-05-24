@@ -10,6 +10,7 @@
 // External declarations from test_multi_client.cpp
 void test_concurrent_cursor_sync();
 void test_network_concurrency();
+void test_group_isolation();
 
 // External declarations from test_stress.cpp
 void test_sync_stress();
@@ -154,6 +155,23 @@ void test_coordinated_e2e() {
     assert(std::abs(s.y - clientPosY) <= 1);
 }
 
+void test_session_metadata() {
+    std::cout << "Testing Session metadata propagation..." << std::endl;
+    SyncModule sync;
+
+    sync.UpdatePeer(202, 5, 0, 0, 0, "Collaborator-A");
+
+    PeerState s;
+    assert(sync.GetPeerState(202, s));
+    assert(s.groupId == 5);
+    assert(std::string(s.sessionName) == "Collaborator-A");
+
+    // Update name only
+    sync.UpdatePeer(202, 5, 100, 100, 0, "Collaborator-Alpha");
+    assert(sync.GetPeerState(202, s));
+    assert(std::string(s.sessionName) == "Collaborator-Alpha");
+}
+
 int main() {
     std::cout << "Running integration tests..." << std::endl;
 
@@ -166,6 +184,8 @@ int main() {
     test_jitter_buffer_overflow();
     test_concurrent_cursor_sync();
     test_network_concurrency();
+    test_group_isolation();
+    test_session_metadata();
     test_clipboard_module();
     test_sync_stress();
     test_network_stress();

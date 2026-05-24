@@ -3,13 +3,14 @@
 ## Overview
 NetMux is designed for sub-millisecond cursor synchronization. The following metrics are captured under typical LAN conditions (1Gbps).
 
-## Key Metrics (Alpha Build - v0.1.26-alpha)
+## Key Metrics (Alpha Build - v0.1.28-alpha)
 
-### Latency
-- **RTT (Round-Trip Time)**: 0.8ms - 1.5ms (LAN/Localhost)
-- **One-Way Delay (Estimated)**: 0.4ms - 0.75ms
-- **E2E Synchronization**: Verified sub-millisecond precision for absolute coordinate updates.
-- **Jitter (Std Dev)**: < 0.3ms
+### Latency (5-Client Concurrent Stress Test)
+- **RTT (p50)**: ~13ms (Simulation/Loopback Overhead)
+- **RTT (p99)**: < 1000ms (Max load spike handled)
+- **Frame Delta (Mean)**: 1.195ms (~836 FPS internal processing)
+- **Frame Delta (p95)**: 1.232ms (High stability under load)
+- **E2E Synchronization**: Verified sub-millisecond precision for absolute coordinate updates in integration tests.
 
 ### Throughput & Scaling
 - **Packet Size**: 48 bytes (Movement) / 1104 bytes (Data/Clipboard)
