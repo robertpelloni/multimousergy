@@ -11,3 +11,4 @@ NetMux provides true cursor isolation by presenting remote inputs as independent
 3. **Seamless Experience**: Zero-latency feel for remote cursor movement and clicks.
 4. **Multiplexing**: Intelligent warp-click-restore logic to maintain window focus and interaction without stealing local cursor context.
 5. **Secure Isolation (Grouping)**: Intelligent cursor grouping to allow multiple independent teams or workspaces to coexist on the same network without cross-interaction.
+6. **Multi-Platform Foundation**: A unified distributed input framework capable of bridging Windows, Linux, and macOS environments.

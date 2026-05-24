@@ -18,6 +18,12 @@ InputEngine::~InputEngine() {
     Shutdown();
 }
 
+/*
+ * PLATFORM-AGNOSTIC EVENT PROCESSING:
+ * The InputEngine core now separates Win32 hook state from the
+ * logical boundary detection and packet queuing logic.
+ */
+
 #ifdef _WIN32
 LRESULT CALLBACK InputWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     return DefWindowProc(hwnd, msg, wParam, lParam);

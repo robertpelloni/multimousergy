@@ -5,8 +5,18 @@
 
 #ifdef _WIN32
 #include <winsock2.h>
+#include <ws2tcpip.h>
+typedef SOCKET Socket;
+#define INVALID_SOCKET_HANDLE INVALID_SOCKET
 #else
+#include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <fcntl.h>
+typedef int Socket;
+#define INVALID_SOCKET_HANDLE -1
+#define SOCKET_ERROR -1
 #endif
 
 enum class PacketType {
@@ -46,7 +56,7 @@ struct DiscoveryPacket {
 struct AppSettings;
 
 struct ClientConnection {
-    unsigned long long socket;
+    Socket socket;
     std::vector<char> buffer;
 };
 
@@ -73,8 +83,8 @@ public:
 
 private:
     bool m_running;
-    unsigned long long m_udpSocket; // Using unsigned long long to accommodate SOCKET on 64-bit Windows
-    unsigned long long m_tcpSocket;
+    Socket m_udpSocket;
+    Socket m_tcpSocket;
     std::vector<ClientConnection> m_clients; // Per-client state to prevent interleaving
     struct PeerInfo {
         sockaddr_in addr;

@@ -18,6 +18,7 @@ public:
     void Update();
     void Shutdown();
 
+    // Cross-Platform Input Capture Interface
     bool IsAtBoundary(int x, int y);
     bool GetPendingPacket(Packet& pkt);
     void PerformWarpClickRestore(int targetX, int targetY, int button, bool down);
