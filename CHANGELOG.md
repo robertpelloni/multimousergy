@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## [0.1.26-alpha] - 2026-05-24
+### Added
+- Integrated the Interception library for hardware-level cursor injection, replacing the software-level fallback stub.
+- Updated `DriverInterface` to utilize `interception_send` for independent remote cursor movement and clicks, bypassing single-cursor kernel limitations.
+- Refactored `InputEngine` state access to use encapsulated getters/setters for improved class safety.
+- Updated `CMakeLists.txt` to dynamically link the Interception library and ensure DLL propagation.
+- Marked Milestone 1 (Virtual HID Driver) and D3D11 integration as completed in the project ROADMAP and TODO files.
+
 ## [0.1.25-alpha] - 2025-01-24
 ### Added
 - Focus-based Conflict Resolution in SyncModule (First-to-Claim model).

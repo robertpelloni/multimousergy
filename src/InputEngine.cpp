@@ -33,33 +33,32 @@ LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
         bool atBoundary = s_instance->IsAtBoundary(mouseInfo->pt.x, mouseInfo->pt.y);
 
-        if (atBoundary && !s_instance->m_isCaptured) {
+        if (atBoundary && !s_instance->IsCaptured()) {
             // Trigger capture
-            s_instance->m_isCaptured = true;
-            s_instance->m_accumulatedX = 0;
-            s_instance->m_virtualX = mouseInfo->pt.x;
-            s_instance->m_virtualY = mouseInfo->pt.y;
-            std::cout << "[Input] Boundary hit. Capturing cursor at (" << s_instance->m_virtualX << "," << s_instance->m_virtualY << ")" << std::endl;
+            s_instance->SetCaptured(true);
+            s_instance->ResetAccumulatedX();
+            s_instance->SetVirtualPos(mouseInfo->pt.x, mouseInfo->pt.y);
+            std::cout << "[Input] Boundary hit. Capturing cursor at (" << s_instance->GetVirtualX() << "," << s_instance->GetVirtualY() << ")" << std::endl;
             return 1;
         }
 
-        if (s_instance->m_isCaptured) {
+        if (s_instance->IsCaptured()) {
             // Logic to release capture:
             // Since we are suppressing movement, the system cursor is stuck.
             // We must use RAW INPUT deltas (accumulated in m_accumulatedX)
             // to detect when the user has pulled back significantly.
 
             bool movingBack = false;
-            if (s_instance->m_config.isLeft) {
-                if (s_instance->m_accumulatedX > 100) movingBack = true;
+            if (s_instance->GetConfig().isLeft) {
+                if (s_instance->GetAccumulatedX() > 100) movingBack = true;
             } else {
-                if (s_instance->m_accumulatedX < -100) movingBack = true;
+                if (s_instance->GetAccumulatedX() < -100) movingBack = true;
             }
 
             if (movingBack) {
                 std::cout << "[Input] Release threshold met. Returning to local control." << std::endl;
-                s_instance->m_isCaptured = false;
-                s_instance->m_accumulatedX = 0;
+                s_instance->SetCaptured(false);
+                s_instance->ResetAccumulatedX();
                 return CallNextHookEx(NULL, nCode, wParam, lParam);
             }
 
