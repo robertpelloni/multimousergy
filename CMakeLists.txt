@@ -4,6 +4,10 @@ project(NetMux VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Driver Support (Optional)
+option(ENABLE_INTERCEPTION "Enable Interception driver support" ON)
+option(ENABLE_VIGEM "Enable ViGEmBus driver support" OFF)
+
 # Library files
 set(LIB_SOURCES
     src/DriverInterface.cpp
@@ -31,7 +35,15 @@ target_include_directories(NetMux PRIVATE include)
 # Windows specific libraries
 if(WIN32)
     target_link_directories(NetMuxLib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/x64)
-    target_link_libraries(NetMuxLib user32 gdi32 d3d11 dxgi ws2_32 interception)
+    target_link_libraries(NetMuxLib user32 gdi32 d3d11 dxgi ws2_32 d3dcompiler interception)
+
+    if(ENABLE_INTERCEPTION)
+        target_compile_definitions(NetMuxLib PRIVATE USE_INTERCEPTION)
+    endif()
+
+    if(ENABLE_VIGEM)
+        target_compile_definitions(NetMuxLib PRIVATE USE_VIGEM)
+    endif()
 
     # Copy interception.dll to output directory
     add_custom_command(TARGET NetMux POST_BUILD
@@ -43,7 +55,14 @@ endif()
 
 # Tests
 enable_testing()
-add_executable(NetMuxTests tests/test_main.cpp tests/test_multi_client.cpp tests/test_stress.cpp)
+add_executable(NetMuxTests
+    tests/test_main.cpp
+    tests/test_multi_client.cpp
+    tests/test_stress.cpp
+    tests/test_network.cpp
+    tests/test_sync.cpp
+    tests/test_input.cpp
+)
 target_link_libraries(NetMuxTests NetMuxLib)
 add_test(NAME CoreTests COMMAND NetMuxTests)
 

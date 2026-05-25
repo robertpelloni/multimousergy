@@ -12,6 +12,7 @@ struct RemoteCursorState {
     unsigned char r;
     unsigned char g;
     unsigned char b;
+    unsigned int groupId;
 };
 
 class OverlayEngine {

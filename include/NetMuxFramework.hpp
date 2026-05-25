@@ -8,6 +8,8 @@
 #include "ConfigManager.hpp"
 #include "Timer.hpp"
 #include <map>
+#include <queue>
+#include <mutex>
 
 class NetMuxFramework {
 public:
@@ -30,11 +32,16 @@ public:
         m_overlay.SetBackend(enable ? OverlayBackend::D3D11 : OverlayBackend::GDI);
     }
 
+    void UpdateSessionMetadata(const std::string& name, unsigned int groupId);
+
     void EnableBenchmarking(bool enable) { m_benchmarking = enable; }
+    SyncModule* GetSyncModule() { return &m_sync; }
 
 private:
     void ProcessOutgoingPackets();
+    void ProcessInteractionQueue();
     void ProcessIncomingPackets();
+    void PerformMasterStateSync();
     void PerformLatencySync();
     void PerformDiscoveryBroadcast();
     void PerformClipboardSync();
@@ -58,4 +65,13 @@ private:
     double m_lastSyncTime;
     double m_lastPerfLog;
     bool m_overlayDirty;
+
+    struct InteractionEvent {
+        unsigned long long peerId;
+        int button;
+        bool down;
+        unsigned int groupId;
+    };
+    std::queue<InteractionEvent> m_interactionQueue;
+    std::mutex m_interactionMutex;
 };

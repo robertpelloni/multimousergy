@@ -2,6 +2,7 @@
 #include <chrono>
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -10,10 +11,33 @@
 SyncModule::SyncModule() {}
 SyncModule::~SyncModule() {}
 
-void SyncModule::UpdatePeer(unsigned long long id, int normX, int normY, double packetTimestamp) {
+void SyncModule::SetAuthenticated(unsigned long long id, bool auth) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_peers.count(id)) {
+        m_peers[id].isAuthenticated = auth;
+    }
+}
+
+void SyncModule::UpdatePeerResolution(unsigned long long id, int width, int height) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    PeerState& peer = m_peers[id];
+    peer.screenWidth = width;
+    peer.screenHeight = height;
+}
+
+void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp, const char* name, const char* gname) {
     std::lock_guard<std::mutex> lock(m_mutex);
     PeerState& peer = m_peers[id];
     peer.id = id;
+    peer.groupId = groupId;
+    if (name) {
+        strncpy(peer.sessionName, name, sizeof(peer.sessionName) - 1);
+        peer.sessionName[sizeof(peer.sessionName) - 1] = '\0';
+    }
+    if (gname) {
+        strncpy(peer.groupName, gname, sizeof(peer.groupName) - 1);
+        peer.groupName[sizeof(peer.groupName) - 1] = '\0';
+    }
 
     // Add to jitter buffer with current local timestamp
     static auto startTime = std::chrono::steady_clock::now();
@@ -34,18 +58,21 @@ void SyncModule::UpdatePeer(unsigned long long id, int normX, int normY, double 
     peer.normalizedX = target.nx;
     peer.normalizedY = target.ny;
 
-    int screenWidth = 1920, screenHeight = 1080;
+    // LOCAL CONTEXT: Use our resolution for denormalization
+    int localScreenWidth = 1920, localScreenHeight = 1080;
     int screenLeft = 0, screenTop = 0;
 #ifdef _WIN32
     // Handle Virtual Screen (Multi-Monitor)
     screenLeft = GetSystemMetrics(SM_XVIRTUALSCREEN);
     screenTop = GetSystemMetrics(SM_YVIRTUALSCREEN);
-    screenWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-    screenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+    localScreenWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+    localScreenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 #endif
 
-    float newTargetX = (float)(screenLeft + Denormalize(peer.normalizedX, screenWidth));
-    float newTargetY = (float)(screenTop + Denormalize(peer.normalizedY, screenHeight));
+    // SCALE RESOLUTION: If remote resolution is known, we could perform
+    // aspect-ratio correction here. For now, we denormalize to local space.
+    float newTargetX = (float)(screenLeft + Denormalize(peer.normalizedX, localScreenWidth));
+    float newTargetY = (float)(screenTop + Denormalize(peer.normalizedY, localScreenHeight));
 
     // Calculate velocity for prediction
     double dt = timestamp - peer.lastSeen;
@@ -58,6 +85,10 @@ void SyncModule::UpdatePeer(unsigned long long id, int normX, int normY, double 
     peer.targetY = newTargetY;
 
     peer.lastSeen = timestamp;
+    // By default, new peers are not authenticated
+    if (peer.id != 0 && peer.lastSeen == timestamp) {
+         // peer.isAuthenticated = false; // Initialized by compiler or map ctor
+    }
     peer.isStalled = false;
 
     if (packetTimestamp > 0) {
@@ -82,6 +113,18 @@ void SyncModule::UpdateLatency(unsigned long long id, double latency) {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_peers.count(id)) {
         m_peers[id].latency = latency;
+    }
+}
+
+void SyncModule::UpdateClockOffset(unsigned long long id, double remoteTime, double localTime) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_peers.count(id)) {
+        PeerState& peer = m_peers[id];
+        // RemoteTime arrived at LocalTime.
+        // Estimated travel time is latency/2 (half RTT).
+        double travelTime = peer.latency * 0.5;
+        double estimatedRemoteTimeAtArrival = remoteTime + travelTime;
+        peer.clockOffset = localTime - estimatedRemoteTimeAtArrival;
     }
 }
 
@@ -112,26 +155,64 @@ int SyncModule::Denormalize(int val, int max) {
 bool SyncModule::ResolveConflict(unsigned long long id, double timestamp) {
     std::lock_guard<std::mutex> lock(m_mutex);
 
+    // Timestamp-First model for simultaneous interaction:
+    // We adjust the incoming remote timestamp by its clock offset
+    // to place it on our local unified timeline.
+    double adjustedTimestamp = timestamp;
+    if (m_peers.count(id)) {
+        adjustedTimestamp += m_peers[id].clockOffset;
+    }
+
     // First-to-Claim priority for interaction (clicks)
+    if (m_activePeerId == 0) {
+        m_activePeerId = id;
+        m_lastActiveSwitch = adjustedTimestamp;
+        return true;
+    }
+
+    if (m_activePeerId == id) {
+        m_lastActiveSwitch = adjustedTimestamp;
+        return true;
+    }
+
+    // SIMULTANEOUS EDITING LOGIC:
+    // If a click arrives with an EARLIER adjusted timestamp than our
+    // current active owner's start time, and it's within a small 'race window' (e.g. 100ms),
+    // we allow the switch.
+    if (adjustedTimestamp < m_lastActiveSwitch && (m_lastActiveSwitch - adjustedTimestamp < 100.0)) {
+        m_activePeerId = id;
+        m_lastActiveSwitch = adjustedTimestamp;
+        return true;
+    }
+
+    // If another peer is active, check for 2-second interaction timeout
+    if (adjustedTimestamp - m_lastActiveSwitch > 2000.0) {
+        m_activePeerId = id;
+        m_lastActiveSwitch = adjustedTimestamp;
+        return true;
+    }
+
+    return false; // Conflict: Focus is owned by someone else with earlier priority
+}
+
+bool SyncModule::DispatchInputEvent(unsigned long long id, double timestamp) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    // Only allow input events from the currently active focus owner
+    // This provides a consistent single-user control model for complex actions.
+    if (m_activePeerId == id) {
+        m_lastActiveSwitch = timestamp; // Reset timeout
+        return true;
+    }
+
+    // If no one is active, allow the new user to claim it
     if (m_activePeerId == 0) {
         m_activePeerId = id;
         m_lastActiveSwitch = timestamp;
         return true;
     }
 
-    if (m_activePeerId == id) {
-        m_lastActiveSwitch = timestamp;
-        return true;
-    }
-
-    // If another peer is active, check for 2-second interaction timeout
-    if (timestamp - m_lastActiveSwitch > 2000.0) {
-        m_activePeerId = id;
-        m_lastActiveSwitch = timestamp;
-        return true;
-    }
-
-    return false; // Conflict: Focus is owned by someone else
+    return false;
 }
 
 void SyncModule::SetActivePeer(unsigned long long id) {
@@ -169,10 +250,15 @@ void SyncModule::Step(double deltaTime) {
         }
 
         // Apply Prediction (Dead Reckoning)
-        // Predict where the cursor should be based on velocity and estimated latency
-        float predictionMs = (float)peer.latency * 0.5f; // Predict half RTT into future
-        int predictedTargetX = peer.targetX + (int)(peer.vx * predictionMs);
-        int predictedTargetY = peer.targetY + (int)(peer.vy * predictionMs);
+        // Predict where the cursor should be based on velocity and synchronized latency.
+        // We use the clock offset to calculate exactly how 'old' the target coordinate is
+        // relative to the unified timeline.
+        double packetAge = currentMs - (peer.lastSeen + peer.clockOffset);
+        if (packetAge < 0) packetAge = 0;
+
+        float predictionMs = (float)packetAge + (float)peer.latency * 0.5f;
+        int predictedTargetX = (int)peer.targetX + (int)(peer.vx * predictionMs);
+        int predictedTargetY = (int)peer.targetY + (int)(peer.vy * predictionMs);
 
         peer.x += (predictedTargetX - peer.x) * lerpFactor;
         peer.y += (predictedTargetY - peer.y) * lerpFactor;

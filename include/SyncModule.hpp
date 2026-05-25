@@ -12,18 +12,25 @@ struct HistoryPoint {
 
 struct PeerState {
     unsigned long long id;
+    unsigned int groupId;
+    char groupName[64];
+    char sessionName[64];
     float x; // Current denormalized screen coordinate
     float y;
     float targetX; // Target denormalized coordinate for interpolation
     float targetY;
+    int screenWidth; // Remote screen resolution for normalization context
+    int screenHeight;
     int normalizedX; // 0-65535
     int normalizedY;
+    bool isAuthenticated;
     unsigned char colorR;
     unsigned char colorG;
     unsigned char colorB;
     double lastSeen;
     double latency;
     double e2eLatency;
+    double clockOffset; // Offset to convert remote timestamps to local timeline
     bool isStalled;
     float vx; // Velocity pixels/ms
     float vy;
@@ -35,8 +42,11 @@ public:
     SyncModule();
     ~SyncModule();
 
-    void UpdatePeer(unsigned long long id, int normX, int normY, double packetTimestamp = 0);
+    void UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp = 0, const char* name = nullptr, const char* groupName = nullptr);
+    void SetAuthenticated(unsigned long long id, bool auth);
+    void UpdatePeerResolution(unsigned long long id, int width, int height);
     void UpdateLatency(unsigned long long id, double latency);
+    void UpdateClockOffset(unsigned long long id, double remoteTime, double localTime);
 
     bool GetPeerState(unsigned long long id, PeerState& state);
     std::map<unsigned long long, PeerState> GetAllPeers();
@@ -46,6 +56,9 @@ public:
 
     // Conflict Resolution: returns true if interaction is permitted
     bool ResolveConflict(unsigned long long id, double timestamp);
+
+    // Focus validation for arbitrary input events
+    bool DispatchInputEvent(unsigned long long id, double timestamp);
 
     // Interpolation step
     void Step(double deltaTime);

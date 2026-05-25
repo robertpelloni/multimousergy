@@ -5,8 +5,18 @@
 
 #ifdef _WIN32
 #include <winsock2.h>
+#include <ws2tcpip.h>
+typedef SOCKET Socket;
+#define INVALID_SOCKET_HANDLE INVALID_SOCKET
 #else
+#include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <fcntl.h>
+typedef int Socket;
+#define INVALID_SOCKET_HANDLE -1
+#define SOCKET_ERROR -1
 #endif
 
 enum class PacketType {
@@ -18,11 +28,19 @@ enum class PacketType {
     Heartbeat,
     ClipboardSync,
     Handshake,
-    FocusUpdate
+    FocusUpdate,
+    SessionUpdate,
+    MasterStateSync,
+    Ping,
+    InputEvent,
+    ResolutionUpdate,
+    AuthChallenge,
+    AuthResponse
 };
 
 struct Packet {
     unsigned long long senderId;
+    unsigned int groupId;
     double localTimestamp; // To measure E2E latency
     PacketType type;
     int x;
@@ -41,7 +59,7 @@ struct DiscoveryPacket {
 struct AppSettings;
 
 struct ClientConnection {
-    unsigned long long socket;
+    Socket socket;
     std::vector<char> buffer;
 };
 
@@ -55,20 +73,27 @@ public:
 
     void SetIsServer(bool isServer) { m_isServer = isServer; }
     void SendPacket(const Packet& packet);
+    void SendPacketToGroup(const Packet& packet, unsigned int groupId);
     bool ReceivePacket(Packet& packet);
 
     bool BroadcastDiscovery(int port);
     bool ListenForPeers(DiscoveryPacket& pkt);
     bool PollDiscovery(DiscoveryPacket& pkt);
 
+    int GetClientCount() const { return (int)m_clients.size(); }
+
     void Shutdown();
 
 private:
     bool m_running;
-    unsigned long long m_udpSocket; // Using unsigned long long to accommodate SOCKET on 64-bit Windows
-    unsigned long long m_tcpSocket;
+    Socket m_udpSocket;
+    Socket m_tcpSocket;
     std::vector<ClientConnection> m_clients; // Per-client state to prevent interleaving
-    std::map<unsigned long long, sockaddr_in> m_udpPeerMap; // Multi-client UDP routing
+    struct PeerInfo {
+        sockaddr_in addr;
+        unsigned int groupId;
+    };
+    std::map<unsigned long long, PeerInfo> m_udpPeerMap; // Multi-client UDP routing
     sockaddr_in m_remoteAddr;
     bool m_isServer;
     bool m_hasRemoteAddr;

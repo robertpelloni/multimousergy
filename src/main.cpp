@@ -11,6 +11,7 @@ int main(int argc, char* argv[]) {
 
     ConfigManager configManager("netmux.cfg");
     AppSettings settings = { false, "127.0.0.1", 5555, {0, 0, false} };
+    bool isServerExplicit = false;
 
     unsigned char colorR = 255, colorG = 0, colorB = 0;
     bool benchMode = false;
@@ -24,9 +25,12 @@ int main(int argc, char* argv[]) {
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--server") {
+            isServerExplicit = true;
             settings.isServer = true;
         } else if (arg == "--client" && i + 1 < argc) {
             settings.remoteIp = argv[++i];
+            settings.isServer = false;
+            isServerExplicit = true; // Mark that we've decided the mode
         } else if (arg == "--port" && i + 1 < argc) {
             settings.port = std::stoi(argv[++i]);
         } else if (arg == "--boundary-x" && i + 1 < argc) {
@@ -67,9 +71,11 @@ int main(int argc, char* argv[]) {
     }
 
     if (firstRun && !autoConnect) {
-        if (!ConfigGUI::ShowDialog(settings)) return 0;
+        if (!ConfigGUI::ShowDialog(settings, framework.GetSyncModule())) return 0;
         configManager.Save(settings);
     }
+
+    // if (isServerExplicit) settings.isServer = true; // Removed redundant/incorrect override
 
     if (!framework.Initialize(settings)) {
         return 1;

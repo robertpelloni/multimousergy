@@ -18,9 +18,11 @@ public:
     void Update();
     void Shutdown();
 
+    // Cross-Platform Input Capture Interface
     bool IsAtBoundary(int x, int y);
     bool GetPendingPacket(Packet& pkt);
     void PerformWarpClickRestore(int targetX, int targetY, int button, bool down);
+    bool IsLocalUserActive() const;
 
     bool IsCaptured() const { return m_isCaptured; }
 
@@ -32,6 +34,7 @@ public:
     int GetVirtualY() const { return m_virtualY; }
     long GetAccumulatedX() const { return m_accumulatedX; }
     const Config& GetConfig() const { return m_config; }
+    void SetLastLocalActivity(double time) { m_lastLocalActivity = time; }
 
 private:
     bool m_active;
@@ -39,6 +42,7 @@ private:
     long m_accumulatedX;
     int m_virtualX;
     int m_virtualY;
+    double m_lastLocalActivity;
     Config m_config;
     std::queue<Packet> m_pendingPackets;
 #ifdef _WIN32
