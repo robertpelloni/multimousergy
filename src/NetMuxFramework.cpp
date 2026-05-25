@@ -1,6 +1,7 @@
 #include "NetMuxFramework.hpp"
 #include "ConfigGUI.hpp"
 #include <iostream>
+#include <cmath>
 #include <algorithm>
 #include <thread>
 #include <cstring>
@@ -101,11 +102,20 @@ void NetMuxFramework::Run() {
         PerformDiscoveryBroadcast();
         PerformClipboardSync();
         PerformMasterStateSync();
+    PerformSyncCheck();
         ProcessOutgoingPackets();
         ProcessIncomingPackets();
         ProcessInteractionQueue();
 
         m_sync.Step(dt);
+
+        // UI TICK: Keep the ConfigGUI updated during active sessions
+        static double lastUIUpdate = 0;
+        if (m_loopTimer.ElapsedMilliseconds() - lastUIUpdate > 100.0) {
+            std::map<unsigned long long, PeerState> peers = m_sync.GetAllPeers();
+            ConfigGUI::UpdateCursorMonitor(peers);
+            lastUIUpdate = m_loopTimer.ElapsedMilliseconds();
+        }
 
         // Load Balancing / Connection Management
         if (m_settings.isServer) {
@@ -382,6 +392,25 @@ void NetMuxFramework::ProcessIncomingPackets() {
         } else if (inPkt.type == PacketType::ResolutionUpdate) {
             m_sync.UpdatePeerResolution(peerId, inPkt.x, inPkt.y);
             if (m_settings.isServer) m_network.SendPacket(inPkt);
+        } else if (inPkt.type == PacketType::SyncCheck) {
+            if (m_settings.isServer) {
+                unsigned long long subjectPeerId = (unsigned long long)inPkt.button;
+                PeerState authoritative;
+                if (m_sync.GetPeerState(subjectPeerId, authoritative)) {
+                    float dx = (float)(inPkt.x - authoritative.normalizedX);
+                    float dy = (float)(inPkt.y - authoritative.normalizedY);
+                    float drift = std::sqrt(dx*dx + dy*dy);
+
+                    m_sync.UpdateDrift(peerId, drift); // Log drift of the reporting client
+
+                    if (drift > 327) { // ~5 pixels in 65535 space
+                        // Trigger immediate corrective sync for this client
+                        Packet masterPkt = { subjectPeerId, authoritative.groupId, 0.0, PacketType::MasterStateSync, authoritative.normalizedX, authoritative.normalizedY, 0, false, "", 0 };
+                        m_network.SendPacket(masterPkt);
+                        std::cout << "[Sync] Corrective MasterSync issued to client " << peerId << " for peer " << subjectPeerId << " (Drift: " << drift << ")" << std::endl;
+                    }
+                }
+            }
         } else if (inPkt.type == PacketType::Ping) {
             Packet pong = { m_localId, m_settings.groupId, 0.0, PacketType::Heartbeat, 0, 0, 0, false, "", 0 };
             unsigned int now = (unsigned int)m_loopTimer.ElapsedMilliseconds();
@@ -389,6 +418,22 @@ void NetMuxFramework::ProcessIncomingPackets() {
             pong.y = (int)((now >> 16) & 0xFFFF);
             m_network.SendPacket(pong);
         }
+    }
+}
+
+void NetMuxFramework::PerformSyncCheck() {
+    // Clients send their current view of peers to the server for validation
+    if (m_settings.isServer) return;
+
+    static double lastSyncCheck = 0;
+    if (m_loopTimer.ElapsedMilliseconds() - lastSyncCheck > 500.0) {
+        auto peers = m_sync.GetAllPeers();
+        for (auto const& [id, peer] : peers) {
+            Packet checkPkt = { m_localId, m_settings.groupId, 0.0, PacketType::SyncCheck, peer.normalizedX, peer.normalizedY, 0, false, "", 0 };
+            checkPkt.button = (int)id; // Peer ID we are reporting on
+            m_network.SendPacket(checkPkt);
+        }
+        lastSyncCheck = m_loopTimer.ElapsedMilliseconds();
     }
 }
 

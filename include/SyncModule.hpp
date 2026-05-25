@@ -30,6 +30,7 @@ struct PeerState {
     double lastSeen;
     double latency;
     double e2eLatency;
+    float drift;
     double clockOffset; // Offset to convert remote timestamps to local timeline
     bool isStalled;
     float vx; // Velocity pixels/ms
@@ -45,6 +46,7 @@ public:
     void UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp = 0, const char* name = nullptr, const char* groupName = nullptr);
     void SetAuthenticated(unsigned long long id, bool auth);
     void UpdatePeerResolution(unsigned long long id, int width, int height);
+    void UpdateDrift(unsigned long long id, float drift);
     void UpdateLatency(unsigned long long id, double latency);
     void UpdateClockOffset(unsigned long long id, double remoteTime, double localTime);
 

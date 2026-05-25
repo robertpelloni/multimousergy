@@ -37,16 +37,25 @@ if(WIN32)
     target_link_libraries(NetMuxLib user32 gdi32 d3d11 dxgi ws2_32 d3dcompiler bcrypt)
 
     if(ENABLE_INTERCEPTION)
-        # find_library(INTERCEPTION_LIB interception)
-        # target_link_libraries(NetMuxLib ${INTERCEPTION_LIB})
-        target_compile_definitions(NetMuxLib PRIVATE USE_INTERCEPTION)
+        find_library(INTERCEPTION_LIB interception)
+        if(INTERCEPTION_LIB)
+            target_link_libraries(NetMuxLib ${INTERCEPTION_LIB})
+            target_compile_definitions(NetMuxLib PRIVATE USE_INTERCEPTION)
+        endif()
     endif()
 
     if(ENABLE_VIGEM)
-        # find_package(ViGEmClient REQUIRED)
-        # target_link_libraries(NetMuxLib ViGEmClient::ViGEmClient)
-        target_compile_definitions(NetMuxLib PRIVATE USE_VIGEM)
+        find_package(ViGEmClient QUIET)
+        if(ViGEmClient_FOUND)
+            target_link_libraries(NetMuxLib ViGEmClient::ViGEmClient)
+            target_compile_definitions(NetMuxLib PRIVATE USE_VIGEM)
+        endif()
     endif()
+endif()
+
+# Linux specific libraries
+if(UNIX AND NOT APPLE)
+    target_link_libraries(NetMuxLib crypto)
 endif()
 
 # Tests

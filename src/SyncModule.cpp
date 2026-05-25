@@ -25,6 +25,13 @@ void SyncModule::UpdatePeerResolution(unsigned long long id, int width, int heig
     peer.screenHeight = height;
 }
 
+void SyncModule::UpdateDrift(unsigned long long id, float drift) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_peers.count(id)) {
+        m_peers[id].drift = drift;
+    }
+}
+
 void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp, const char* name, const char* gname) {
     std::lock_guard<std::mutex> lock(m_mutex);
     PeerState& peer = m_peers[id];

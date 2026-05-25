@@ -220,9 +220,18 @@ bool ConfigGUI::ShowDialog(AppSettings& settings, SyncModule* sync) {
             if (sync) {
                 auto peers = sync->GetAllPeers();
                 for (auto const& [id, peer] : peers) {
-                    std::string entry = std::string(peer.sessionName) + " (Group " + std::to_string(peer.groupId) + ")";
-                    if (SendMessage(s_hwndPeerList, CB_FINDSTRINGEXACT, -1, (LPARAM)entry.c_str()) == CB_ERR) {
-                        SendMessage(s_hwndPeerList, CB_ADDSTRING, 0, (LPARAM)entry.c_str());
+                    char info[256];
+                    snprintf(info, sizeof(info), "%s | %dms | %.1fpx | %s",
+                        peer.sessionName, (int)peer.latency, peer.drift,
+                        peer.isAuthenticated ? "Auth" : "Locked");
+
+                    int idx = (int)SendMessage(s_hwndPeerList, CB_FINDSTRING, -1, (LPARAM)peer.sessionName);
+                    if (idx == CB_ERR) {
+                        SendMessage(s_hwndPeerList, CB_ADDSTRING, 0, (LPARAM)info);
+                    } else {
+                        // Update existing entry if changed significantly
+                        SendMessage(s_hwndPeerList, CB_DELETESTRING, idx, 0);
+                        SendMessage(s_hwndPeerList, CB_INSERTSTRING, idx, (LPARAM)info);
                     }
                 }
             } else {

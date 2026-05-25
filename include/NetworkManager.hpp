@@ -35,7 +35,8 @@ enum class PacketType {
     InputEvent,
     ResolutionUpdate,
     AuthChallenge,
-    AuthResponse
+    AuthResponse,
+    SyncCheck
 };
 
 struct Packet {
