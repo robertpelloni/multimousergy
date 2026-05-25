@@ -18,6 +18,7 @@ static HWND s_hwndLatency = nullptr;
 static HWND s_hwndActiveUser = nullptr;
 static HWND s_hwndCursorScale = nullptr;
 static HWND s_hwndUseD3D11 = nullptr;
+static HWND s_hwndDriverType = nullptr;
 static HWND s_hwndGroupId = nullptr;
 static HWND s_hwndGroupName = nullptr;
 static HWND s_hwndSessionName = nullptr;
@@ -29,6 +30,7 @@ enum ControlIDs {
     ID_PEER_LIST = 2,
     ID_CURSOR_SCALE = 3,
     ID_USE_D3D11 = 4,
+    ID_DRIVER_TYPE = 10,
     ID_GROUP_ID = 5,
     ID_SESSION_NAME = 6,
     ID_GROUP_NAME = 7,
@@ -66,8 +68,15 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             s_hwndUseD3D11 = CreateWindow("BUTTON", "Hardware Acceleration (D3D11)", WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX, 10, 300, 250, 20, hwnd, (HMENU)ID_USE_D3D11, NULL, NULL);
             if (s_currentSettings->useD3D11) SendMessage(s_hwndUseD3D11, BM_SETCHECK, BST_CHECKED, 0);
 
-            CreateWindow("STATIC", "Group ID:", WS_VISIBLE | WS_CHILD, 10, 330, 100, 20, hwnd, NULL, NULL, NULL);
-            s_hwndGroupId = CreateWindow("EDIT", std::to_string(s_currentSettings->groupId).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 110, 330, 50, 20, hwnd, (HMENU)ID_GROUP_ID, NULL, NULL);
+            CreateWindow("STATIC", "Driver:", WS_VISIBLE | WS_CHILD, 10, 330, 60, 20, hwnd, NULL, NULL, NULL);
+            s_hwndDriverType = CreateWindow("COMBOBOX", "", WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST, 70, 330, 100, 100, hwnd, (HMENU)ID_DRIVER_TYPE, NULL, NULL);
+            SendMessage(s_hwndDriverType, CB_ADDSTRING, 0, (LPARAM)"Auto");
+            SendMessage(s_hwndDriverType, CB_ADDSTRING, 0, (LPARAM)"Interception");
+            SendMessage(s_hwndDriverType, CB_ADDSTRING, 0, (LPARAM)"ViGEmBus");
+            SendMessage(s_hwndDriverType, CB_SETCURSEL, (WPARAM)s_currentSettings->driverType, 0);
+
+            CreateWindow("STATIC", "Group ID:", WS_VISIBLE | WS_CHILD, 180, 330, 60, 20, hwnd, NULL, NULL, NULL);
+            s_hwndGroupId = CreateWindow("EDIT", std::to_string(s_currentSettings->groupId).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 245, 330, 50, 20, hwnd, (HMENU)ID_GROUP_ID, NULL, NULL);
 
             CreateWindow("STATIC", "Group Name:", WS_VISIBLE | WS_CHILD, 10, 360, 100, 20, hwnd, NULL, NULL, NULL);
             s_hwndGroupName = CreateWindow("EDIT", s_currentSettings->groupName.c_str(), WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | WS_BORDER, 110, 360, 150, 20, hwnd, (HMENU)ID_GROUP_NAME, NULL, NULL);
@@ -114,6 +123,7 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
                     s_currentSettings->isServer = (SendMessage(s_hwndServer, BM_GETCHECK, 0, 0) == BST_CHECKED);
                     s_currentSettings->useD3D11 = (SendMessage(s_hwndUseD3D11, BM_GETCHECK, 0, 0) == BST_CHECKED);
+                    s_currentSettings->driverType = (DriverType)SendMessage(s_hwndDriverType, CB_GETCURSEL, 0, 0);
 
                     GetWindowText(s_hwndGroupId, buffer, 256);
                     s_currentSettings->groupId = (unsigned int)std::stoul(buffer);

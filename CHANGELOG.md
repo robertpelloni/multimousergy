@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## [0.1.41-alpha] - 2025-01-24
+### Added
+- Robust SHA-256 challenge-response authentication (Windows/Linux support).
+- Manual Driver Selection in Configuration GUI (Auto/Interception/ViGEmBus).
+- Enhanced network reliability with partial send handling (SafeSend).
+- Fixed potential buffer over-reads in network packet processing.
+- Added SO_REUSEADDR for improved server recovery during restarts.
+
 ## [0.1.40-alpha] - 2025-01-24
 ### Added
 - Finalized hardware-accelerated Direct3D 11 rendering pipeline.

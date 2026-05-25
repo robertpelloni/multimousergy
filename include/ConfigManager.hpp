@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include "InputEngine.hpp"
+#include "DriverInterface.hpp"
 
 struct AppSettings {
     bool isServer;
@@ -9,6 +10,7 @@ struct AppSettings {
     Config inputConfig;
     float cursorScale = 1.0f;
     bool useD3D11 = false;
+    DriverType driverType = DriverType::Auto;
     unsigned int groupId = 0;
     std::string groupName = "DefaultGroup";
     std::string sessionName = "DefaultSession";

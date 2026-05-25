@@ -74,4 +74,5 @@ private:
     };
     std::queue<InteractionEvent> m_interactionQueue;
     std::mutex m_interactionMutex;
+    std::map<unsigned long long, int> m_pendingNonces;
 };

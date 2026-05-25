@@ -14,6 +14,7 @@ bool ConfigManager::Load(AppSettings& settings) {
     file >> settings.inputConfig.boundaryX;
     file >> settings.inputConfig.boundaryY;
     file >> settings.inputConfig.isLeft;
+    int dt; file >> dt; settings.driverType = (DriverType)dt;
     file >> settings.groupId;
     file >> settings.groupName;
     file >> settings.sessionName;
@@ -32,6 +33,7 @@ bool ConfigManager::Save(const AppSettings& settings) {
     file << settings.inputConfig.boundaryX << "\n";
     file << settings.inputConfig.boundaryY << "\n";
     file << settings.inputConfig.isLeft << "\n";
+    file << (int)settings.driverType << "\n";
     file << settings.groupId << "\n";
     file << settings.groupName << "\n";
     file << settings.sessionName << "\n";

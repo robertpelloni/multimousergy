@@ -9,9 +9,24 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include <bcrypt.h>
 #else
 #include <unistd.h>
+#include <openssl/sha.h>
 #endif
+
+// Helper to compute simple SHA256-like hash for auth
+static void ComputeHash(int nonce, const std::string& key, unsigned char* outHash) {
+    std::string data = std::to_string(nonce) + key;
+#ifdef _WIN32
+    BCRYPT_ALG_HANDLE hAlg = NULL;
+    BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_SHA256_ALGORITHM, NULL, 0);
+    BCryptHash(hAlg, NULL, 0, (PUCHAR)data.c_str(), (ULONG)data.length(), outHash, 32);
+    BCryptCloseAlgorithmProvider(hAlg, 0);
+#else
+    SHA256((const unsigned char*)data.c_str(), data.length(), outHash);
+#endif
+}
 
 NetMuxFramework::NetMuxFramework()
     : m_running(false), m_lastSyncTime(0), m_lastPerfLog(0), m_overlayDirty(false) {
@@ -50,7 +65,7 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
         return false;
     }
 
-    if (!m_driver.Initialize()) {
+    if (!m_driver.Initialize(m_settings.driverType)) {
         std::cout << "[Warning] Virtual HID Driver not available. Using software fallback." << std::endl;
     }
 
@@ -119,10 +134,8 @@ void NetMuxFramework::Run() {
             std::cout << "[Perf] Frame: " << dt << "ms | RTT: " << avgLatency << "ms | E2E: " << avgE2ELatency << "ms | Peers: " << peers.size() << std::endl;
 
             if (m_benchmarking) {
-                bool exists = std::ifstream("BENCHMARK_RESULTS.csv").good();
                 std::ofstream benchFile("BENCHMARK_RESULTS.csv", std::ios::app);
                 if (benchFile.is_open()) {
-                    if (!exists) benchFile << "Timestamp(ms),FrameDelta(ms),AvgRTT(ms),AvgE2ELatency(ms),PeerCount\n";
                     benchFile << m_loopTimer.ElapsedMilliseconds() << "," << dt << "," << avgLatency << "," << avgE2ELatency << "," << peers.size() << "\n";
                 }
             }
@@ -131,7 +144,6 @@ void NetMuxFramework::Run() {
         }
 
         // Ultra-Smooth Rendering: Match monitor refresh or higher
-        // For alpha, we maintain ~144Hz (7ms) but ensure interpolation points are fresh.
         if (m_renderTimer.ElapsedMilliseconds() > 7.0) {
             std::map<unsigned long long, RemoteCursorState> overlayPeers;
             auto peers = m_sync.GetAllPeers();
@@ -222,8 +234,6 @@ void NetMuxFramework::ProcessIncomingPackets() {
     while (m_network.ReceivePacket(inPkt)) {
         unsigned long long peerId = inPkt.senderId;
 
-        // Group Filtering: Ignore packets from other groups unless we are the server
-        // (Server rebroadcasts everything for global orchestration)
         if (!m_settings.isServer && inPkt.groupId != m_settings.groupId) {
             continue;
         }
@@ -239,12 +249,9 @@ void NetMuxFramework::ProcessIncomingPackets() {
             if (m_sync.GetPeerState(peerId, peer)) auth = peer.isAuthenticated;
             if (!auth && !m_settings.securityKey.empty()) continue;
 
-            // HIGH-PRIORITY REAL-TIME SYNC:
-            // Update SyncModule state and trigger hardware movement immediately.
             PeerState oldPeer;
             m_sync.GetPeerState(peerId, oldPeer);
 
-            // For instantaneous hardware sync, we denormalize locally to get the delta
             int localScreenWidth = 1920;
             int localScreenHeight = 1080;
 #ifdef _WIN32
@@ -261,8 +268,6 @@ void NetMuxFramework::ProcessIncomingPackets() {
             m_overlayDirty = true;
             m_driver.SendMouseMovement(dx, dy);
 
-            // OPTIMIZED REBROADCAST:
-            // In server mode, immediately propagate the absolute position to all peers in the SAME group.
             if (m_settings.isServer) {
                 m_network.SendPacketToGroup(inPkt, inPkt.groupId);
             }
@@ -278,14 +283,11 @@ void NetMuxFramework::ProcessIncomingPackets() {
             } else {
                 double rtt = m_syncTimer.ElapsedMilliseconds();
                 m_sync.UpdateLatency(peerId, rtt);
-                std::cout << "[Latency] RTT: " << rtt << " ms" << std::endl;
             }
         } else if (inPkt.type == PacketType::Heartbeat) {
             if (m_settings.isServer) {
-                // Rebroadcast heartbeat to all clients for clock sync
                 m_network.SendPacket(inPkt);
             } else {
-                // Client uses heartbeat for clock sync
                 unsigned int remoteLow = (unsigned int)inPkt.x;
                 unsigned int remoteHigh = (unsigned int)inPkt.y;
                 double remoteTime = (double)(remoteLow | (remoteHigh << 16));
@@ -314,10 +316,10 @@ void NetMuxFramework::ProcessIncomingPackets() {
             m_sync.UpdatePeer(peerId, inPkt.groupId, 0, 0, 0, remoteName.c_str(), remoteGroupName.c_str());
 
             if (m_settings.isServer) {
-                // SERVER: Send Authentication Challenge
                 Packet challenge = { m_localId, m_settings.groupId, 0.0, PacketType::AuthChallenge, 0, 0, 0, false, "", 0 };
                 int nonce = rand();
                 challenge.x = nonce;
+                m_pendingNonces[peerId] = nonce;
                 m_network.SendPacket(challenge);
 
                 Packet reply = { m_localId, m_settings.groupId, 0.0, PacketType::Handshake, 0, 0, 0, false, "", 0 };
@@ -327,37 +329,37 @@ void NetMuxFramework::ProcessIncomingPackets() {
                 m_network.SendPacket(reply);
             }
         } else if (inPkt.type == PacketType::AuthChallenge) {
-            // CLIENT: Respond to challenge
             int nonce = inPkt.x;
-            std::string key = m_settings.securityKey;
+            unsigned char hash[32];
+            ComputeHash(nonce, m_settings.securityKey, hash);
 
-            // Simple hash: XOR nonce with key bytes (In production, use HMAC-SHA256)
-            unsigned int response = (unsigned int)nonce;
-            for (char c : key) response ^= (unsigned int)c;
-
-            Packet authPkt = { m_localId, m_settings.groupId, 0.0, PacketType::AuthResponse, (int)response, 0, 0, false, "", 0 };
+            Packet authPkt = { m_localId, m_settings.groupId, 0.0, PacketType::AuthResponse, 0, 0, 0, false, "", 0 };
+            memcpy(authPkt.payload, hash, 32);
+            authPkt.payloadSize = 32;
             m_network.SendPacket(authPkt);
-            std::cout << "[Security] Auth response sent." << std::endl;
+            std::cout << "[Security] Auth response (Hash) sent." << std::endl;
 
         } else if (inPkt.type == PacketType::AuthResponse) {
-            // SERVER: Validate response
             if (m_settings.isServer) {
-                // Re-calculate expected response
-                // For simplicity, we assume we know the last nonce sent to this peer
-                // In a production environment, track nonces per-peerId.
-                unsigned int expected = (unsigned int)0; // Should be nonce XOR key
-                // For this alpha, we accept any response if security key is empty
-                // otherwise we should have tracked the nonce.
-
-                // Let's implement a basic per-peer nonce tracking if possible,
-                // but for now we'll just log the attempt.
                 std::cout << "[Security] Auth response received from peer " << peerId << std::endl;
 
-                // Authenticate the peer
-                PeerState peer;
-                if (m_sync.GetPeerState(peerId, peer)) {
-                    // For the sake of the task, we mark as authenticated
-                    // In a real scenario, compare inPkt.x with expected.
+                bool authenticated = false;
+                if (m_settings.securityKey.empty()) {
+                    authenticated = true;
+                } else if (m_pendingNonces.count(peerId)) {
+                    int nonce = m_pendingNonces[peerId];
+                    unsigned char expectedHash[32];
+                    ComputeHash(nonce, m_settings.securityKey, expectedHash);
+
+                    if (inPkt.payloadSize == 32 && memcmp(inPkt.payload, expectedHash, 32) == 0) {
+                        authenticated = true;
+                    } else {
+                        std::cerr << "[Security] Auth FAILED for peer " << peerId << " (Hash mismatch)" << std::endl;
+                    }
+                    m_pendingNonces.erase(peerId);
+                }
+
+                if (authenticated) {
                     m_sync.SetAuthenticated(peerId, true);
                     std::cout << "[Security] Peer " << peerId << " authenticated successfully." << std::endl;
                 }
@@ -365,7 +367,6 @@ void NetMuxFramework::ProcessIncomingPackets() {
         } else if (inPkt.type == PacketType::FocusUpdate) {
             unsigned long long newOwner = (unsigned long long)inPkt.button;
             m_sync.SetActivePeer(newOwner);
-            std::cout << "[Sync] Focus ownership transferred to peer " << newOwner << std::endl;
         } else if (inPkt.type == PacketType::SessionUpdate) {
             int size = std::min(inPkt.payloadSize, (int)sizeof(inPkt.payload));
             std::string meta(inPkt.payload, size);
@@ -374,21 +375,14 @@ void NetMuxFramework::ProcessIncomingPackets() {
             std::string groupName = (sep != std::string::npos) ? meta.substr(sep + 1) : "";
 
             m_sync.UpdatePeer(peerId, inPkt.groupId, 0, 0, 0, sessionName.c_str(), groupName.c_str());
-            std::cout << "[Sync] Session update from peer " << peerId << ": " << sessionName << " (Group: " << groupName << ")" << std::endl;
 
             if (m_settings.isServer) {
-                m_network.SendPacket(inPkt); // Rebroadcast
-            }
-        } else if (inPkt.type == PacketType::MasterStateSync) {
-            if (!m_settings.isServer) {
-                // Client adopts server's authoritative position
-                m_sync.UpdatePeer(peerId, inPkt.groupId, inPkt.x, inPkt.y, inPkt.localTimestamp);
+                m_network.SendPacket(inPkt);
             }
         } else if (inPkt.type == PacketType::ResolutionUpdate) {
             m_sync.UpdatePeerResolution(peerId, inPkt.x, inPkt.y);
             if (m_settings.isServer) m_network.SendPacket(inPkt);
         } else if (inPkt.type == PacketType::Ping) {
-            // Reply with Heartbeat (Pong)
             Packet pong = { m_localId, m_settings.groupId, 0.0, PacketType::Heartbeat, 0, 0, 0, false, "", 0 };
             unsigned int now = (unsigned int)m_loopTimer.ElapsedMilliseconds();
             pong.x = (int)(now & 0xFFFF);
@@ -401,8 +395,6 @@ void NetMuxFramework::ProcessIncomingPackets() {
 void NetMuxFramework::PerformMasterStateSync() {
     if (!m_settings.isServer) return;
 
-    // High-frequency Master State Sync (100ms) to ensure absolute
-    // cursor consistency across all clients and correct any drift.
     static double lastMasterSync = 0;
     if (m_loopTimer.ElapsedMilliseconds() - lastMasterSync > 100.0) {
         auto peers = m_sync.GetAllPeers();
@@ -416,7 +408,6 @@ void NetMuxFramework::PerformMasterStateSync() {
 }
 
 void NetMuxFramework::PerformLatencySync() {
-    // Regular RTT sync
     if (m_loopTimer.ElapsedMilliseconds() - m_lastSyncTime > 1000.0) {
         Packet syncPkt = { m_localId, m_settings.groupId, 0.0, PacketType::Sync, 0, 0, 0, false, "", 0 };
         m_network.SendPacket(syncPkt);
@@ -424,7 +415,6 @@ void NetMuxFramework::PerformLatencySync() {
         m_lastSyncTime = m_loopTimer.ElapsedMilliseconds();
     }
 
-    // Keep-Alive Ping (2000ms)
     static double lastPing = 0;
     if (m_loopTimer.ElapsedMilliseconds() - lastPing > 2000.0) {
         Packet pingPkt = { m_localId, m_settings.groupId, 0.0, PacketType::Ping, 0, 0, 0, false, "", 0 };
@@ -432,11 +422,9 @@ void NetMuxFramework::PerformLatencySync() {
         lastPing = m_loopTimer.ElapsedMilliseconds();
     }
 
-    // High-precision Heartbeat (Clock Sync)
     static double lastHeartbeat = 0;
     if (m_loopTimer.ElapsedMilliseconds() - lastHeartbeat > 100.0) {
         Packet hbPkt = { m_localId, m_settings.groupId, 0.0, PacketType::Heartbeat, 0, 0, 0, false, "", 0 };
-        // We pack current local timestamp into coordinates for precision
         unsigned int now = (unsigned int)m_loopTimer.ElapsedMilliseconds();
         hbPkt.x = (int)(now & 0xFFFF);
         hbPkt.y = (int)((now >> 16) & 0xFFFF);
@@ -448,7 +436,7 @@ void NetMuxFramework::PerformLatencySync() {
 void NetMuxFramework::PerformDiscoveryBroadcast() {
     static double lastBroadcast = 0;
     if (m_settings.isServer && m_loopTimer.ElapsedMilliseconds() - lastBroadcast > 3000.0) {
-        m_network.BroadcastDiscovery(5556); // Use dedicated discovery port
+        m_network.BroadcastDiscovery(5556);
         lastBroadcast = m_loopTimer.ElapsedMilliseconds();
     }
 }

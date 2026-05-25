@@ -90,10 +90,10 @@ void test_jitter_buffer_overflow() {
 void test_config_manager() {
     std::cout << "Testing ConfigManager..." << std::endl;
     ConfigManager cm("test.cfg");
-    AppSettings s1 = { true, "10.0.0.1", 1234, {100, 200, true}, 1.5f, false, 42 };
+    AppSettings s1 = { true, "10.0.0.1", 1234, {100, 200, true}, 1.5f, false, DriverType::Interception, 42 };
     cm.Save(s1);
 
-    AppSettings s2 = { false, "", 0, {0, 0, false}, 1.0f, false, 0 };
+    AppSettings s2 = { false, "", 0, {0, 0, false}, 1.0f, false, DriverType::Auto, 0 };
     assert(cm.Load(s2));
     assert(s2.isServer == s1.isServer);
     assert(s2.remoteIp == s1.remoteIp);
@@ -101,6 +101,7 @@ void test_config_manager() {
     assert(s2.inputConfig.boundaryX == s1.inputConfig.boundaryX);
     assert(s2.inputConfig.isLeft == s1.inputConfig.isLeft);
     assert(s2.groupId == 42);
+    assert(s2.driverType == DriverType::Interception);
 }
 
 void test_clipboard_module() {

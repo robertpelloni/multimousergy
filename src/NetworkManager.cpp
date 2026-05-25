@@ -1,6 +1,5 @@
 #include "NetworkManager.hpp"
 #include <iostream>
-
 #include <cstring>
 #include <algorithm>
 
@@ -10,7 +9,16 @@
     #define closesocket close
 #endif
 
-NetworkManager::NetworkManager() : m_running(false), m_udpSocket(INVALID_SOCKET_HANDLE), m_tcpSocket(INVALID_SOCKET_HANDLE), m_hasRemoteAddr(false) {
+static void SetNonBlocking(Socket s) {
+#ifdef _WIN32
+    unsigned long mode = 1;
+    ioctlsocket(s, FIONBIO, &mode);
+#else
+    fcntl(s, F_SETFL, O_NONBLOCK);
+#endif
+}
+
+NetworkManager::NetworkManager() : m_running(false), m_udpSocket(INVALID_SOCKET_HANDLE), m_tcpSocket(INVALID_SOCKET_HANDLE), m_hasRemoteAddr(false), m_isServer(false) {
 #ifdef _WIN32
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -29,13 +37,7 @@ bool NetworkManager::StartServer(int port) {
 
     m_udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (m_udpSocket == INVALID_SOCKET_HANDLE) return false;
-
-#ifdef _WIN32
-    unsigned long mode = 1;
-    ioctlsocket(m_udpSocket, FIONBIO, &mode);
-#else
-    fcntl(m_udpSocket, F_SETFL, O_NONBLOCK);
-#endif
+    SetNonBlocking(m_udpSocket);
 
     sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
@@ -43,19 +45,19 @@ bool NetworkManager::StartServer(int port) {
     serverAddr.sin_port = htons(port);
 
     if (bind(m_udpSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
+        std::cerr << "[Network] UDP Bind failed: " << port << std::endl;
         return false;
     }
 
     m_tcpSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (m_tcpSocket == INVALID_SOCKET_HANDLE) return false;
+    SetNonBlocking(m_tcpSocket);
 
-#ifdef _WIN32
-    ioctlsocket(m_tcpSocket, FIONBIO, &mode);
-#else
-    fcntl(m_tcpSocket, F_SETFL, O_NONBLOCK);
-#endif
+    int reuse = 1;
+    setsockopt(m_tcpSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse));
 
     if (bind(m_tcpSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
+        std::cerr << "[Network] TCP Bind failed: " << port << std::endl;
         return false;
     }
 
@@ -77,40 +79,39 @@ bool NetworkManager::Connect(const std::string& address, int port) {
 
     m_udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (m_udpSocket == INVALID_SOCKET_HANDLE) return false;
-
-#ifdef _WIN32
-    unsigned long mode = 1;
-    ioctlsocket(m_udpSocket, FIONBIO, &mode);
-#else
-    fcntl(m_udpSocket, F_SETFL, O_NONBLOCK);
-#endif
+    SetNonBlocking(m_udpSocket);
 
     m_tcpSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (m_tcpSocket == INVALID_SOCKET_HANDLE) return false;
 
-    sockaddr_in clientAddr;
-    clientAddr.sin_family = AF_INET;
-    clientAddr.sin_port = htons(port);
-    inet_pton(AF_INET, address.c_str(), &clientAddr.sin_addr);
-
-    // For TCP, connect is blocking by default, but we can make it non-blocking later if needed.
-    // However, the prompt review mentioned blocking recv as the main issue.
-    if (connect(m_tcpSocket, (struct sockaddr*)&clientAddr, sizeof(clientAddr)) == SOCKET_ERROR) {
+    if (connect(m_tcpSocket, (struct sockaddr*)&m_remoteAddr, sizeof(m_remoteAddr)) == SOCKET_ERROR) {
 #ifdef _WIN32
         if (WSAGetLastError() != WSAEWOULDBLOCK) return false;
 #else
         if (errno != EINPROGRESS) return false;
 #endif
     }
-
-#ifdef _WIN32
-    ioctlsocket(m_tcpSocket, FIONBIO, &mode);
-#else
-    fcntl(m_tcpSocket, F_SETFL, O_NONBLOCK);
-#endif
+    SetNonBlocking(m_tcpSocket);
 
     m_running = true;
     return true;
+}
+
+static int SafeSend(Socket s, const char* data, int len) {
+    int sent = 0;
+    while (sent < len) {
+        int result = send(s, data + sent, len - sent, 0);
+        if (result == SOCKET_ERROR) {
+#ifdef _WIN32
+            if (WSAGetLastError() == WSAEWOULDBLOCK) continue;
+#else
+            if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
+#endif
+            return SOCKET_ERROR;
+        }
+        sent += result;
+    }
+    return sent;
 }
 
 void NetworkManager::SendPacketToGroup(const Packet& packet, unsigned int groupId) {
@@ -127,9 +128,7 @@ void NetworkManager::SendPacket(const Packet& packet) {
     if (!m_running || m_udpSocket == INVALID_SOCKET_HANDLE) return;
 
     if (packet.type == PacketType::Movement || packet.type == PacketType::AbsoluteMovement) {
-        // UDP for movement (Low Latency)
         if (m_isServer) {
-            // Server broadcasts movement to all known UDP peers
             for (auto const& [id, peer] : m_udpPeerMap) {
                 sendto(m_udpSocket, (const char*)&packet, sizeof(packet), 0, (struct sockaddr*)&peer.addr, sizeof(sockaddr_in));
             }
@@ -137,29 +136,26 @@ void NetworkManager::SendPacket(const Packet& packet) {
             sendto(m_udpSocket, (const char*)&packet, sizeof(packet), 0, (struct sockaddr*)&m_remoteAddr, sizeof(sockaddr_in));
         }
     } else {
-        // TCP for clicks/sync
-        if (!m_clients.empty()) {
+        if (m_isServer) {
             for (auto& client : m_clients) {
-                send(client.socket, (const char*)&packet, sizeof(packet), 0);
+                SafeSend(client.socket, (const char*)&packet, sizeof(packet));
             }
-        } else if (m_tcpSocket != INVALID_SOCKET_HANDLE && !m_isServer) {
-            send(m_tcpSocket, (const char*)&packet, sizeof(packet), 0);
+        } else if (m_tcpSocket != INVALID_SOCKET_HANDLE) {
+            SafeSend(m_tcpSocket, (const char*)&packet, sizeof(packet));
         }
     }
 }
 
 bool NetworkManager::BroadcastDiscovery(int port) {
-    if (m_udpSocket == INVALID_SOCKET_HANDLE) {
-        m_udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-        if (m_udpSocket == INVALID_SOCKET_HANDLE) return false;
-    }
+    Socket s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (s == INVALID_SOCKET_HANDLE) return false;
 
 #ifdef _WIN32
     BOOL broadcast = TRUE;
-    setsockopt(m_udpSocket, SOL_SOCKET, SO_BROADCAST, (const char*)&broadcast, sizeof(broadcast));
+    setsockopt(s, SOL_SOCKET, SO_BROADCAST, (const char*)&broadcast, sizeof(broadcast));
 #else
     int broadcast = 1;
-    setsockopt(m_udpSocket, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast));
+    setsockopt(s, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast));
 #endif
 
     sockaddr_in broadcastAddr;
@@ -169,71 +165,35 @@ bool NetworkManager::BroadcastDiscovery(int port) {
 
     DiscoveryPacket pkt = {0};
     gethostname(pkt.hostname, sizeof(pkt.hostname) - 1);
-    pkt.hostname[sizeof(pkt.hostname) - 1] = '\0';
-    pkt.port = port;
+    pkt.port = 5555; // Core port
 
-    sendto(m_udpSocket, (const char*)&pkt, sizeof(pkt), 0, (struct sockaddr*)&broadcastAddr, sizeof(broadcastAddr));
+    sendto(s, (const char*)&pkt, sizeof(pkt), 0, (struct sockaddr*)&broadcastAddr, sizeof(broadcastAddr));
+    closesocket(s);
     return true;
 }
 
 bool NetworkManager::ListenForPeers(DiscoveryPacket& pkt) {
-    if (m_udpSocket == INVALID_SOCKET_HANDLE) {
-        m_udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-        if (m_udpSocket == INVALID_SOCKET_HANDLE) return false;
-
-        sockaddr_in addr;
-        addr.sin_family = AF_INET;
-        addr.sin_addr.s_addr = INADDR_ANY;
-        addr.sin_port = htons(5556); // Discovery port
-        bind(m_udpSocket, (struct sockaddr*)&addr, sizeof(addr));
-
-#ifdef _WIN32
-        unsigned long mode = 1;
-        ioctlsocket(m_udpSocket, FIONBIO, &mode);
-#else
-        fcntl(m_udpSocket, F_SETFL, O_NONBLOCK);
-#endif
-    }
-
-    sockaddr_in fromAddr;
-    socklen_t fromLen = sizeof(fromAddr);
-    int result = recvfrom(m_udpSocket, (char*)&pkt, sizeof(pkt), 0, (struct sockaddr*)&fromAddr, &fromLen);
-
-    if (result > 0) {
-        if (!m_hasRemoteAddr) {
-            m_remoteAddr = fromAddr;
-            m_hasRemoteAddr = true;
-        }
-        return true;
-    }
-    return false;
+    return PollDiscovery(pkt);
 }
 
 bool NetworkManager::PollDiscovery(DiscoveryPacket& pkt) {
-    if (m_udpSocket == INVALID_SOCKET_HANDLE) {
-        m_udpSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-        if (m_udpSocket == INVALID_SOCKET_HANDLE) return false;
-
+    static Socket s_disc = INVALID_SOCKET_HANDLE;
+    if (s_disc == INVALID_SOCKET_HANDLE) {
+        s_disc = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         sockaddr_in addr;
         addr.sin_family = AF_INET;
         addr.sin_addr.s_addr = INADDR_ANY;
-        addr.sin_port = htons(5556); // Discovery port
-        bind(m_udpSocket, (struct sockaddr*)&addr, sizeof(addr));
-
-#ifdef _WIN32
-        unsigned long mode = 1;
-        ioctlsocket(m_udpSocket, FIONBIO, &mode);
-#else
-        fcntl(m_udpSocket, F_SETFL, O_NONBLOCK);
-#endif
+        addr.sin_port = htons(5556);
+        bind(s_disc, (struct sockaddr*)&addr, sizeof(addr));
+        SetNonBlocking(s_disc);
     }
 
     sockaddr_in fromAddr;
     socklen_t fromLen = sizeof(fromAddr);
-    int result = recvfrom(m_udpSocket, (char*)&pkt, sizeof(pkt), 0, (struct sockaddr*)&fromAddr, &fromLen);
+    int result = recvfrom(s_disc, (char*)&pkt, sizeof(pkt), 0, (struct sockaddr*)&fromAddr, &fromLen);
 
     if (result >= (int)sizeof(pkt)) {
-        pkt.hostname[sizeof(pkt.hostname) - 1] = '\0'; // Safety null-termination
+        pkt.hostname[sizeof(pkt.hostname) - 1] = '\0';
         return true;
     }
     return false;
@@ -242,49 +202,30 @@ bool NetworkManager::PollDiscovery(DiscoveryPacket& pkt) {
 bool NetworkManager::ReceivePacket(Packet& packet) {
     if (!m_running) return false;
 
-    // 1. Accept new TCP connections
     if (m_isServer && m_tcpSocket != INVALID_SOCKET_HANDLE) {
         sockaddr_in clientAddr;
         socklen_t clientAddrLen = sizeof(clientAddr);
         Socket newClient = accept(m_tcpSocket, (struct sockaddr*)&clientAddr, &clientAddrLen);
         if (newClient != INVALID_SOCKET_HANDLE) {
-            std::cout << "[Network] Accepted new TCP connection." << std::endl;
-#ifdef _WIN32
-            unsigned long mode = 1;
-            ioctlsocket(newClient, FIONBIO, &mode);
-#else
-            fcntl(newClient, F_SETFL, O_NONBLOCK);
-#endif
+            SetNonBlocking(newClient);
             m_clients.push_back({newClient, {}});
+            std::cout << "[Network] Client connected from " << inet_ntoa(clientAddr.sin_addr) << std::endl;
         }
     }
 
-    // 2. Check UDP movement (Low Latency)
     sockaddr_in fromAddr;
     socklen_t fromLen = sizeof(fromAddr);
     int result = recvfrom(m_udpSocket, (char*)&packet, sizeof(packet), 0, (struct sockaddr*)&fromAddr, &fromLen);
     if (result >= (int)sizeof(Packet)) {
-        if (m_isServer) {
-            // Update/Add peer to UDP routing map
-            m_udpPeerMap[packet.senderId] = { fromAddr, packet.groupId };
-        }
-
-        if (!m_hasRemoteAddr) {
-            m_remoteAddr = fromAddr;
-            m_hasRemoteAddr = true;
-        }
+        if (m_isServer) m_udpPeerMap[packet.senderId] = { fromAddr, packet.groupId };
+        if (!m_hasRemoteAddr) { m_remoteAddr = fromAddr; m_hasRemoteAddr = true; }
         return true;
     }
 
-    // 3. Process Per-Client TCP buffers to prevent interleaving
     for (auto it = m_clients.begin(); it != m_clients.end(); ) {
-        char tempBuf[sizeof(Packet) * 10];
-        while(true) {
-            result = recv(it->socket, tempBuf, sizeof(tempBuf), 0);
-            if (result > 0) {
-                it->buffer.insert(it->buffer.end(), tempBuf, tempBuf + result);
-            } else break;
-        }
+        char tempBuf[sizeof(Packet) * 4];
+        result = recv(it->socket, tempBuf, sizeof(tempBuf), 0);
+        if (result > 0) it->buffer.insert(it->buffer.end(), tempBuf, tempBuf + result);
 
         if (it->buffer.size() >= sizeof(Packet)) {
             std::memcpy(&packet, it->buffer.data(), sizeof(Packet));
@@ -293,21 +234,16 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
         }
 
         if (result == 0) {
-            std::cout << "[Network] Peer closed connection." << std::endl;
+            std::cout << "[Network] Peer disconnected." << std::endl;
             closesocket(it->socket);
             it = m_clients.erase(it);
         } else ++it;
     }
 
-    // 4. Process Connector TCP buffer (Client-side)
-    if (!m_isServer && m_tcpSocket != INVALID_SOCKET_HANDLE && m_hasRemoteAddr) {
-        char tempBuf[sizeof(Packet) * 10];
-        while(true) {
-            result = recv(m_tcpSocket, tempBuf, sizeof(tempBuf), 0);
-            if (result > 0) {
-                m_connectorBuffer.insert(m_connectorBuffer.end(), tempBuf, tempBuf + result);
-            } else break;
-        }
+    if (!m_isServer && m_tcpSocket != INVALID_SOCKET_HANDLE) {
+        char tempBuf[sizeof(Packet) * 4];
+        result = recv(m_tcpSocket, tempBuf, sizeof(tempBuf), 0);
+        if (result > 0) m_connectorBuffer.insert(m_connectorBuffer.end(), tempBuf, tempBuf + result);
 
         if (m_connectorBuffer.size() >= sizeof(Packet)) {
             std::memcpy(&packet, m_connectorBuffer.data(), sizeof(Packet));
@@ -316,7 +252,7 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
         }
 
         if (result == 0) {
-            std::cout << "[Network] Server closed connection." << std::endl;
+            std::cout << "[Network] Connection lost." << std::endl;
             closesocket(m_tcpSocket);
             m_tcpSocket = INVALID_SOCKET_HANDLE;
         }
@@ -327,20 +263,12 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
 
 void NetworkManager::Shutdown() {
     if (m_running) {
-        std::cout << "[Network] Shutting down connections..." << std::endl;
-        if (m_udpSocket != INVALID_SOCKET_HANDLE) {
-            closesocket(m_udpSocket);
-            m_udpSocket = INVALID_SOCKET_HANDLE;
-        }
-        if (m_tcpSocket != INVALID_SOCKET_HANDLE) {
-            closesocket(m_tcpSocket);
-            m_tcpSocket = INVALID_SOCKET_HANDLE;
-        }
-        for (auto& client : m_clients) {
-            closesocket(client.socket);
-        }
-        m_clients.clear();
-        m_hasRemoteAddr = false;
         m_running = false;
+        if (m_udpSocket != INVALID_SOCKET_HANDLE) closesocket(m_udpSocket);
+        if (m_tcpSocket != INVALID_SOCKET_HANDLE) closesocket(m_tcpSocket);
+        for (auto& client : m_clients) closesocket(client.socket);
+        m_clients.clear();
+        m_udpSocket = INVALID_SOCKET_HANDLE;
+        m_tcpSocket = INVALID_SOCKET_HANDLE;
     }
 }
