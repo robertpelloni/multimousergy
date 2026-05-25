@@ -12,6 +12,7 @@ struct AppSettings {
     unsigned int groupId = 0;
     std::string groupName = "DefaultGroup";
     std::string sessionName = "DefaultSession";
+    std::string securityKey = "";
 };
 
 class ConfigManager {

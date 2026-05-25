@@ -57,7 +57,7 @@ bool DriverInterface::Initialize(DriverType type) {
         std::cout << "[Driver] Attempting Interception initialization..." << std::endl;
         // In a real build: m_context = interception_create_context();
         // Here we simulate the logic:
-        m_context = (void*)1;
+        m_context = nullptr; // Mock as failing to ensure software fallback works
         m_device = 12; // Typical virtual device ID
 
         if (m_context) {
@@ -71,7 +71,7 @@ bool DriverInterface::Initialize(DriverType type) {
     if (m_type == DriverType::Auto || m_type == DriverType::ViGEmBus) {
         std::cout << "[Driver] Attempting ViGEmBus initialization..." << std::endl;
         // In a real build: m_vigemClient = vigem_alloc();
-        m_vigemClient = (void*)1;
+        m_vigemClient = nullptr; // Mock as failing
         m_vigemPad = (void*)2;
 
         if (m_vigemClient) {
@@ -84,6 +84,7 @@ bool DriverInterface::Initialize(DriverType type) {
 #endif
 
     m_initialized = false;
+    std::cout << "[Driver] All hardware drivers unavailable. Software fallback engaged." << std::endl;
     return false;
 }
 

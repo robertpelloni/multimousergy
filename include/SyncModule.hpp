@@ -23,6 +23,7 @@ struct PeerState {
     int screenHeight;
     int normalizedX; // 0-65535
     int normalizedY;
+    bool isAuthenticated;
     unsigned char colorR;
     unsigned char colorG;
     unsigned char colorB;
@@ -42,6 +43,7 @@ public:
     ~SyncModule();
 
     void UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp = 0, const char* name = nullptr, const char* groupName = nullptr);
+    void SetAuthenticated(unsigned long long id, bool auth);
     void UpdatePeerResolution(unsigned long long id, int width, int height);
     void UpdateLatency(unsigned long long id, double latency);
     void UpdateClockOffset(unsigned long long id, double remoteTime, double localTime);

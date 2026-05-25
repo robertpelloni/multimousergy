@@ -11,6 +11,13 @@
 SyncModule::SyncModule() {}
 SyncModule::~SyncModule() {}
 
+void SyncModule::SetAuthenticated(unsigned long long id, bool auth) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_peers.count(id)) {
+        m_peers[id].isAuthenticated = auth;
+    }
+}
+
 void SyncModule::UpdatePeerResolution(unsigned long long id, int width, int height) {
     std::lock_guard<std::mutex> lock(m_mutex);
     PeerState& peer = m_peers[id];
@@ -78,6 +85,10 @@ void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int nor
     peer.targetY = newTargetY;
 
     peer.lastSeen = timestamp;
+    // By default, new peers are not authenticated
+    if (peer.id != 0 && peer.lastSeen == timestamp) {
+         // peer.isAuthenticated = false; // Initialized by compiler or map ctor
+    }
     peer.isStalled = false;
 
     if (packetTimestamp > 0) {

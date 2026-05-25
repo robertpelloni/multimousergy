@@ -21,6 +21,7 @@ static HWND s_hwndUseD3D11 = nullptr;
 static HWND s_hwndGroupId = nullptr;
 static HWND s_hwndGroupName = nullptr;
 static HWND s_hwndSessionName = nullptr;
+static HWND s_hwndSecurityKey = nullptr;
 static HWND s_hwndCursorMonitor = nullptr;
 
 enum ControlIDs {
@@ -31,7 +32,8 @@ enum ControlIDs {
     ID_GROUP_ID = 5,
     ID_SESSION_NAME = 6,
     ID_GROUP_NAME = 7,
-    ID_CURSOR_MONITOR = 8
+    ID_SECURITY_KEY = 8,
+    ID_CURSOR_MONITOR = 9
 };
 
 LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -73,8 +75,11 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             CreateWindow("STATIC", "Session:", WS_VISIBLE | WS_CHILD, 10, 390, 100, 20, hwnd, NULL, NULL, NULL);
             s_hwndSessionName = CreateWindow("EDIT", s_currentSettings->sessionName.c_str(), WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | WS_BORDER, 110, 390, 150, 20, hwnd, (HMENU)ID_SESSION_NAME, NULL, NULL);
 
-            CreateWindow("STATIC", "Real-Time Monitor:", WS_VISIBLE | WS_CHILD, 10, 420, 150, 20, hwnd, NULL, NULL, NULL);
-            s_hwndCursorMonitor = CreateWindow("STATIC", "", WS_VISIBLE | WS_CHILD | SS_OWNERDRAW | WS_BORDER, 10, 440, 280, 100, hwnd, (HMENU)ID_CURSOR_MONITOR, NULL, NULL);
+            CreateWindow("STATIC", "Security Key:", WS_VISIBLE | WS_CHILD, 10, 420, 100, 20, hwnd, NULL, NULL, NULL);
+            s_hwndSecurityKey = CreateWindow("EDIT", s_currentSettings->securityKey.c_str(), WS_VISIBLE | WS_CHILD | ES_PASSWORD | ES_AUTOHSCROLL | WS_BORDER, 110, 420, 150, 20, hwnd, (HMENU)ID_SECURITY_KEY, NULL, NULL);
+
+            CreateWindow("STATIC", "Real-Time Monitor:", WS_VISIBLE | WS_CHILD, 10, 450, 150, 20, hwnd, NULL, NULL, NULL);
+            s_hwndCursorMonitor = CreateWindow("STATIC", "", WS_VISIBLE | WS_CHILD | SS_OWNERDRAW | WS_BORDER, 10, 470, 280, 100, hwnd, (HMENU)ID_CURSOR_MONITOR, NULL, NULL);
             break;
 
         case WM_DRAWITEM:
@@ -118,6 +123,9 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
                     GetWindowText(s_hwndSessionName, buffer, 256);
                     s_currentSettings->sessionName = buffer;
+
+                    GetWindowText(s_hwndSecurityKey, buffer, 256);
+                    s_currentSettings->securityKey = buffer;
 
                     GetWindowText(s_hwndIp, buffer, 256);
                     s_currentSettings->remoteIp = buffer;

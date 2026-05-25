@@ -33,7 +33,9 @@ enum class PacketType {
     MasterStateSync,
     Ping,
     InputEvent,
-    ResolutionUpdate
+    ResolutionUpdate,
+    AuthChallenge,
+    AuthResponse
 };
 
 struct Packet {
