@@ -12,6 +12,7 @@ void test_concurrent_cursor_sync();
 void test_network_concurrency();
 void test_group_isolation();
 void test_high_concurrency_sync();
+void test_simultaneous_editing_sync();
 
 // External declarations from test_stress.cpp
 void test_sync_stress();
@@ -195,6 +196,7 @@ int main() {
     test_network_concurrency();
     test_group_isolation();
     test_high_concurrency_sync();
+    test_simultaneous_editing_sync();
     test_session_metadata();
     test_clipboard_module();
     test_sync_stress();

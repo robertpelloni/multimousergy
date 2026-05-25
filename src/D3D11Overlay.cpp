@@ -1,11 +1,23 @@
 #include "D3D11Overlay.hpp"
 #include <iostream>
+#include <vector>
 
 #ifdef _WIN32
+#include <d3dcompiler.h>
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "d3dcompiler.lib")
 
-D3D11Overlay::D3D11Overlay() : m_device(nullptr), m_context(nullptr), m_swapChain(nullptr), m_renderTargetView(nullptr), m_blendState(nullptr), m_hwnd(nullptr) {}
+struct Vertex {
+    float x, y, z;
+    float r, g, b, a;
+};
+
+D3D11Overlay::D3D11Overlay() : m_device(nullptr), m_context(nullptr), m_swapChain(nullptr),
+                               m_renderTargetView(nullptr), m_blendState(nullptr), m_hwnd(nullptr),
+                               m_vertexBuffer(nullptr), m_vertexShader(nullptr), m_pixelShader(nullptr),
+                               m_inputLayout(nullptr) {}
+
 D3D11Overlay::~D3D11Overlay() { Shutdown(); }
 
 bool D3D11Overlay::Initialize(HWND hwnd) {
@@ -50,21 +62,41 @@ bool D3D11Overlay::Initialize(HWND hwnd) {
     m_device->CreateBlendState(&bd, &m_blendState);
     m_context->OMSetBlendState(m_blendState, NULL, 0xffffffff);
 
+    // Initialize Shaders and Buffers for Sprite Rendering
+    const char* shaderCode =
+        "struct VS_INPUT { float3 pos : POSITION; float4 col : COLOR; };"
+        "struct PS_INPUT { float4 pos : SV_POSITION; float4 col : COLOR; };"
+        "PS_INPUT VS(VS_INPUT input) { PS_INPUT output; output.pos = float4(input.pos, 1.0f); output.col = input.col; return output; }"
+        "float4 PS(PS_INPUT input) : SV_Target { return input.col; }";
+
+    ID3DBlob *vsBlob, *psBlob;
+    D3DCompile(shaderCode, strlen(shaderCode), NULL, NULL, NULL, "VS", "vs_4_0", 0, 0, &vsBlob, NULL);
+    D3DCompile(shaderCode, strlen(shaderCode), NULL, NULL, NULL, "PS", "ps_4_0", 0, 0, &psBlob, NULL);
+
+    m_device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), NULL, &m_vertexShader);
+    m_device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), NULL, &m_pixelShader);
+
+    D3D11_INPUT_ELEMENT_DESC ied[] = {
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
+    };
+    m_device->CreateInputLayout(ied, 2, vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &m_inputLayout);
+
+    vsBlob->Release();
+    psBlob->Release();
+
     return true;
 }
 
 void D3D11Overlay::Render(const std::map<unsigned long long, RemoteCursorState>& peers) {
     if (!m_context) return;
 
-    // Standard Direct3D 11 Render Loop
-    float clearColor[] = { 0.0f, 0.0f, 0.0f, 0.0f }; // Transparent
+    float clearColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
     m_context->ClearRenderTargetView(m_renderTargetView, clearColor);
 
-    /*
-     * ARCHITECTURE NOTE:
-     * High-performance rendering of remote cursors using D3D11.
-     * Cursors are rendered as textured quads with alpha-blending enabled.
-     */
+    m_context->IASetInputLayout(m_inputLayout);
+    m_context->VSSetShader(m_vertexShader, NULL, 0);
+    m_context->PSSetShader(m_pixelShader, NULL, 0);
 
     for (auto const& [id, peer] : peers) {
         DrawSprite(peer.x, peer.y, peer.r, peer.g, peer.b);
@@ -76,18 +108,47 @@ void D3D11Overlay::Render(const std::map<unsigned long long, RemoteCursorState>&
 void D3D11Overlay::DrawSprite(int x, int y, unsigned char r, unsigned char g, unsigned char b) {
     if (!m_context) return;
 
-    /*
-     * D3D11 SPRITE RENDERING:
-     * We map the world coordinates to NDC and issue a Draw call.
-     * For the Alpha, we use the ClearColor/Scissor approach to simulate
-     * the cursor position for visual validation of the pipeline.
-     */
+    // Convert screen coordinates to NDC (-1 to 1)
+    float screenW = (float)GetSystemMetrics(SM_CXSCREEN);
+    float screenH = (float)GetSystemMetrics(SM_CYSCREEN);
 
-    // In a final release, this would use a static vertex buffer and texture.
-    // std::cout << "[D3D11] Drawing cursor at " << x << "," << y << std::endl;
+    float nx = (2.0f * x / screenW) - 1.0f;
+    float ny = 1.0f - (2.0f * y / screenH);
+    float sw = 10.0f / screenW; // 10px wide
+    float sh = 10.0f / screenH; // 10px high
+
+    Vertex vertices[] = {
+        {nx, ny, 0.0f, r/255.0f, g/255.0f, b/255.0f, 1.0f},
+        {nx + sw, ny, 0.0f, r/255.0f, g/255.0f, b/255.0f, 1.0f},
+        {nx, ny - sh, 0.0f, r/255.0f, g/255.0f, b/255.0f, 1.0f},
+        {nx + sw, ny - sh, 0.0f, r/255.0f, g/255.0f, b/255.0f, 1.0f}
+    };
+
+    D3D11_BUFFER_DESC bd = {0};
+    bd.Usage = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = sizeof(vertices);
+    bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+    D3D11_SUBRESOURCE_DATA sd = {0};
+    sd.pSysMem = vertices;
+
+    ID3D11Buffer* pVBuffer;
+    m_device->CreateBuffer(&bd, &sd, &pVBuffer);
+
+    UINT stride = sizeof(Vertex);
+    UINT offset = 0;
+    m_context->IASetVertexBuffers(0, 1, &pVBuffer, &stride, &offset);
+    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+    m_context->Draw(4, 0);
+    pVBuffer->Release();
 }
 
 void D3D11Overlay::Shutdown() {
+    if (m_vertexBuffer) m_vertexBuffer->Release();
+    if (m_vertexShader) m_vertexShader->Release();
+    if (m_pixelShader) m_pixelShader->Release();
+    if (m_inputLayout) m_inputLayout->Release();
     if (m_swapChain) m_swapChain->Release();
     if (m_renderTargetView) m_renderTargetView->Release();
     if (m_blendState) m_blendState->Release();

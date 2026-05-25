@@ -21,6 +21,7 @@ static HWND s_hwndUseD3D11 = nullptr;
 static HWND s_hwndGroupId = nullptr;
 static HWND s_hwndGroupName = nullptr;
 static HWND s_hwndSessionName = nullptr;
+static HWND s_hwndCursorMonitor = nullptr;
 
 enum ControlIDs {
     ID_SAVE_BUTTON = 1,
@@ -29,7 +30,8 @@ enum ControlIDs {
     ID_USE_D3D11 = 4,
     ID_GROUP_ID = 5,
     ID_SESSION_NAME = 6,
-    ID_GROUP_NAME = 7
+    ID_GROUP_NAME = 7,
+    ID_CURSOR_MONITOR = 8
 };
 
 LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -70,6 +72,17 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
             CreateWindow("STATIC", "Session:", WS_VISIBLE | WS_CHILD, 10, 390, 100, 20, hwnd, NULL, NULL, NULL);
             s_hwndSessionName = CreateWindow("EDIT", s_currentSettings->sessionName.c_str(), WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | WS_BORDER, 110, 390, 150, 20, hwnd, (HMENU)ID_SESSION_NAME, NULL, NULL);
+
+            CreateWindow("STATIC", "Real-Time Monitor:", WS_VISIBLE | WS_CHILD, 10, 420, 150, 20, hwnd, NULL, NULL, NULL);
+            s_hwndCursorMonitor = CreateWindow("STATIC", "", WS_VISIBLE | WS_CHILD | SS_OWNERDRAW | WS_BORDER, 10, 440, 280, 100, hwnd, (HMENU)ID_CURSOR_MONITOR, NULL, NULL);
+            break;
+
+        case WM_DRAWITEM:
+            if (wParam == ID_CURSOR_MONITOR) {
+                LPDRAWITEMSTRUCT pdi = (LPDRAWITEMSTRUCT)lParam;
+                FillRect(pdi->hDC, &pdi->rcItem, (HBRUSH)GetStockObject(BLACK_BRUSH));
+                // Rendering is driven by UpdateCursorMonitor
+            }
             break;
 
         case WM_COMMAND:
@@ -125,6 +138,40 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
     return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 #endif
+
+static std::map<unsigned long long, PeerState> s_cachedPeers;
+static std::mutex s_monitorMutex;
+
+void ConfigGUI::UpdateCursorMonitor(const std::map<unsigned long long, PeerState>& peers) {
+#ifdef _WIN32
+    if (s_hwndCursorMonitor) {
+        {
+            std::lock_guard<std::mutex> lock(s_monitorMutex);
+            s_cachedPeers = peers;
+        }
+
+        RECT rect;
+        GetClientRect(s_hwndCursorMonitor, &rect);
+        HDC hdc = GetDC(s_hwndCursorMonitor);
+
+        // Background
+        FillRect(hdc, &rect, (HBRUSH)GetStockObject(BLACK_BRUSH));
+
+        // Draw minimized visualization of cursors
+        for (auto const& [id, peer] : peers) {
+            int mx = (int)((peer.normalizedX * (rect.right - 10)) / 65535) + 5;
+            int my = (int)((peer.normalizedY * (rect.bottom - 10)) / 65535) + 5;
+
+            HBRUSH hBrush = CreateSolidBrush(RGB(peer.colorR, peer.colorG, peer.colorB));
+            RECT cRect = { mx - 2, my - 2, mx + 2, my + 2 };
+            FillRect(hdc, &cRect, hBrush);
+            DeleteObject(hBrush);
+        }
+
+        ReleaseDC(s_hwndCursorMonitor, hdc);
+    }
+#endif
+}
 
 bool ConfigGUI::ShowDialog(AppSettings& settings, SyncModule* sync) {
     std::cout << "[GUI] Launching configuration dialog..." << std::endl;

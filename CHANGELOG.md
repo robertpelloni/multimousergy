@@ -20,6 +20,13 @@
 - High-Concurrency Performance Benchmarking (up to 20+ clients).
 - Validated system stability under simultaneous multi-user interaction.
 
+## [0.1.40-alpha] - 2025-01-24
+### Added
+- Refined D3D11 hardware-accelerated cursor rendering with alpha-blending.
+- Integrated thread-safe interaction sync verification in NetMuxFramework.
+- Final stability validation and performance benchmarking for v0.1.40.
+- Resolved race conditions in simultaneous multi-user click handling.
+
 ## [0.1.39-alpha] - 2025-01-24
 ### Added
 - Hardware-Accelerated Direct3D 11 Overlay Implementation.

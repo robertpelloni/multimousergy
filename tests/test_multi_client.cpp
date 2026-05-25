@@ -195,3 +195,28 @@ void test_high_concurrency_sync() {
     }
     std::cout << "High-concurrency simulation verified successfully." << std::endl;
 }
+
+void test_simultaneous_editing_sync() {
+    std::cout << "Testing simultaneous interaction synchronization..." << std::endl;
+    SyncModule sync;
+
+    // Setup Peer A and B with synchronized clocks (0 offset)
+    sync.UpdatePeer(101, 1, 0, 0, 0, "PeerA");
+    sync.UpdatePeer(102, 1, 0, 0, 0, "PeerB");
+    sync.UpdateClockOffset(101, 1000, 1000);
+    sync.UpdateClockOffset(102, 1000, 1000);
+
+    // Initial claim by Peer A at T=2000
+    assert(sync.ResolveConflict(101, 2000.0) == true);
+    assert(sync.GetActivePeer() == 101);
+
+    // Peer B tries to claim at T=2050 (later than A, should fail)
+    assert(sync.ResolveConflict(102, 2050.0) == false);
+
+    // Peer B sends a click with an EARLIER timestamp (T=1950) due to network delay,
+    // which arrives late but should win focus due to 'Timestamp-First' model.
+    assert(sync.ResolveConflict(102, 1950.0) == true);
+    assert(sync.GetActivePeer() == 102);
+
+    std::cout << "Simultaneous interaction synchronization verified." << std::endl;
+}

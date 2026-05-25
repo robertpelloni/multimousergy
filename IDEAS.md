@@ -8,3 +8,6 @@
 - **Custom Cursor Themes**: Allow users to skin the secondary cursors.
 - **Multi-Monitor Awareness**: Intelligent handling of multi-monitor setups on either side of the network.
 - **Port to Rust**: Rewriting core logic in Rust for memory safety and modern concurrency.
+- **Dynamic Resolution Scaling**: Automatic scaling of normalized coordinates based on monitor DPI and peer resolution changes.
+- **Voice Overlay**: Integrated voice chat bound to cursor focus areas for remote collaboration.
+- **VR/AR Extension**: Projecting network cursors into 3D space for spatial computing environments.

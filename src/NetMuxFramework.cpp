@@ -1,4 +1,5 @@
 #include "NetMuxFramework.hpp"
+#include "ConfigGUI.hpp"
 #include <iostream>
 #include <algorithm>
 #include <thread>
@@ -135,6 +136,7 @@ void NetMuxFramework::Run() {
                 }
             }
             m_overlay.RenderPeers(overlayPeers);
+            ConfigGUI::UpdateCursorMonitor(peers);
             m_renderTimer.Reset();
         }
 
