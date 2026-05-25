@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Driver Support (Optional)
-option(ENABLE_INTERCEPTION "Enable Interception driver support" ON)
+option(ENABLE_INTERCEPTION "Enable Interception driver support" OFF)
 option(ENABLE_VIGEM "Enable ViGEmBus driver support" OFF)
 
 # Library files
@@ -14,13 +14,13 @@ set(LIB_SOURCES
     src/InputEngine.cpp
     src/NetworkManager.cpp
     src/OverlayEngine.cpp
-    src/D3D11Overlay.cpp
     src/ConfigManager.cpp
     src/ConfigGUI.cpp
     src/Timer.cpp
     src/NetMuxFramework.cpp
     src/SyncModule.cpp
     src/ClipboardModule.cpp
+    src/D3D11Overlay.cpp
 )
 
 # Library
@@ -34,23 +34,19 @@ target_include_directories(NetMux PRIVATE include)
 
 # Windows specific libraries
 if(WIN32)
-    target_link_directories(NetMuxLib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/x64)
-    target_link_libraries(NetMuxLib user32 gdi32 d3d11 dxgi ws2_32 d3dcompiler interception)
+    target_link_libraries(NetMuxLib user32 gdi32 d3d11 dxgi ws2_32 d3dcompiler)
 
     if(ENABLE_INTERCEPTION)
+        # find_library(INTERCEPTION_LIB interception)
+        # target_link_libraries(NetMuxLib ${INTERCEPTION_LIB})
         target_compile_definitions(NetMuxLib PRIVATE USE_INTERCEPTION)
     endif()
 
     if(ENABLE_VIGEM)
+        # find_package(ViGEmClient REQUIRED)
+        # target_link_libraries(NetMuxLib ViGEmClient::ViGEmClient)
         target_compile_definitions(NetMuxLib PRIVATE USE_VIGEM)
     endif()
-
-    # Copy interception.dll to output directory
-    add_custom_command(TARGET NetMux POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/interception.dll"
-        $<TARGET_FILE_DIR:NetMux>
-    )
 endif()
 
 # Tests
@@ -65,11 +61,3 @@ add_executable(NetMuxTests
 )
 target_link_libraries(NetMuxTests NetMuxLib)
 add_test(NAME CoreTests COMMAND NetMuxTests)
-
-if(WIN32)
-    add_custom_command(TARGET NetMuxTests POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/interception.dll"
-        $<TARGET_FILE_DIR:NetMuxTests>
-    )
-endif()

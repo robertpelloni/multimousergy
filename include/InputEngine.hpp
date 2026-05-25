@@ -26,16 +26,6 @@ public:
 
     bool IsCaptured() const { return m_isCaptured; }
 
-    // Hook accessors
-    void SetCaptured(bool captured) { m_isCaptured = captured; }
-    void ResetAccumulatedX() { m_accumulatedX = 0; }
-    void SetVirtualPos(int x, int y) { m_virtualX = x; m_virtualY = y; }
-    int GetVirtualX() const { return m_virtualX; }
-    int GetVirtualY() const { return m_virtualY; }
-    long GetAccumulatedX() const { return m_accumulatedX; }
-    const Config& GetConfig() const { return m_config; }
-    void SetLastLocalActivity(double time) { m_lastLocalActivity = time; }
-
 private:
     bool m_active;
     bool m_isCaptured;

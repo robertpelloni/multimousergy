@@ -7,7 +7,7 @@ enum class MouseButton {
     Middle = 2
 };
 
-enum class HardwareDriverType {
+enum class DriverType {
     Interception,
     ViGEmBus,
     Auto
@@ -18,7 +18,7 @@ public:
     DriverInterface();
     ~DriverInterface();
 
-    bool Initialize(HardwareDriverType type = HardwareDriverType::Auto);
+    bool Initialize(DriverType type = DriverType::Auto);
     void Shutdown();
 
     bool SendMouseMovement(long dx, long dy);
@@ -26,7 +26,7 @@ public:
 
 private:
     bool m_initialized;
-    HardwareDriverType m_type;
+    DriverType m_type;
     long m_lastX = 0;
     long m_lastY = 0;
     int m_buttonState = 0; // bitmask

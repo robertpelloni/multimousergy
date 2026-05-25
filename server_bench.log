@@ -1,0 +1,20 @@
+NetMux starting...
+[Network] Starting server on port 9999...
+[Input] Initializing Raw Input and Hooks...
+[Overlay] Initializing Layered Window...
+[Driver] Initializing virtual HID device (Interception)...
+[Warning] Virtual HID Driver not available. Using software fallback.
+[Bench] Benchmarking mode enabled.
+[Perf] Frame: 1.12427ms | RTT: 0ms | E2E: 0ms | Peers: 0
+[Perf] Frame: 1.15299ms | RTT: 0ms | E2E: 0ms | Peers: 0
+[Network] Accepted new TCP connection.
+[Network] Handshake from peer: DefaultSession (Group: DefaultGroup)
+[Perf] Frame: 2.48478ms | RTT: 0ms | E2E: 0ms | Peers: 1
+[Perf] Frame: 1.13873ms | RTT: 0ms | E2E: 0ms | Peers: 1
+[Perf] Frame: 1.1884ms | RTT: 0ms | E2E: 0ms | Peers: 1
+[Perf] Frame: 1.16594ms | RTT: 0ms | E2E: 0ms | Peers: 1
+[Perf] Frame: 1.16338ms | RTT: 0ms | E2E: 0ms | Peers: 1
+[Perf] Frame: 1.186ms | RTT: 0ms | E2E: 0ms | Peers: 1
+[Perf] Frame: 1.14995ms | RTT: 0ms | E2E: 0ms | Peers: 1
+[Perf] Frame: 1.13106ms | RTT: 0ms | E2E: 0ms | Peers: 1
+[Perf] Frame: 1.2153ms | RTT: 0ms | E2E: 0ms | Peers: 1

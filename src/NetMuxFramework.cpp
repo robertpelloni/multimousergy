@@ -294,7 +294,8 @@ void NetMuxFramework::ProcessIncomingPackets() {
         } else if (inPkt.type == PacketType::ClipboardSync) {
             PeerState peer;
             if (m_sync.GetPeerState(peerId, peer) && (peer.isAuthenticated || m_settings.securityKey.empty())) {
-                std::string text(inPkt.payload, inPkt.payloadSize);
+                int size = std::min(inPkt.payloadSize, (int)sizeof(inPkt.payload));
+                std::string text(inPkt.payload, size);
                 m_clipboard.SetText(text);
 
                 if (m_settings.isServer) {
@@ -302,7 +303,8 @@ void NetMuxFramework::ProcessIncomingPackets() {
                 }
             }
         } else if (inPkt.type == PacketType::Handshake) {
-            std::string meta(inPkt.payload, inPkt.payloadSize);
+            int size = std::min(inPkt.payloadSize, (int)sizeof(inPkt.payload));
+            std::string meta(inPkt.payload, size);
             size_t sep = meta.find('|');
             std::string remoteName = (sep != std::string::npos) ? meta.substr(0, sep) : meta;
             std::string remoteGroupName = (sep != std::string::npos) ? meta.substr(sep + 1) : "";
@@ -365,7 +367,8 @@ void NetMuxFramework::ProcessIncomingPackets() {
             m_sync.SetActivePeer(newOwner);
             std::cout << "[Sync] Focus ownership transferred to peer " << newOwner << std::endl;
         } else if (inPkt.type == PacketType::SessionUpdate) {
-            std::string meta(inPkt.payload, inPkt.payloadSize);
+            int size = std::min(inPkt.payloadSize, (int)sizeof(inPkt.payload));
+            std::string meta(inPkt.payload, size);
             size_t sep = meta.find('|');
             std::string sessionName = (sep != std::string::npos) ? meta.substr(0, sep) : meta;
             std::string groupName = (sep != std::string::npos) ? meta.substr(sep + 1) : "";

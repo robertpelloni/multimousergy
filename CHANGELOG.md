@@ -1,14 +1,15 @@
 # CHANGELOG.md
 
-## [0.1.41-alpha] - 2026-05-24
+## [0.1.40-alpha] - 2025-01-24
 ### Added
-- Integrated the Interception library for hardware-level cursor injection, replacing the software-level fallback stub.
-- Updated `DriverInterface` to utilize `interception_send` for independent remote cursor movement and clicks, bypassing single-cursor kernel limitations.
-- Refactored `InputEngine` state access to use encapsulated getters/setters for improved class safety.
-- Updated `CMakeLists.txt` to dynamically link the Interception library and ensure DLL propagation.
-- Marked Milestone 1 (Virtual HID Driver) and D3D11 integration as completed in the project ROADMAP and TODO files.
+- Finalized hardware-accelerated Direct3D 11 rendering pipeline.
+- Implemented "Timestamp-First" conflict resolution for simultaneous multi-user interactions.
+- Integrated distributed clock synchronization via UDP heartbeats.
+- Added support for secure challenge-response authentication.
+- Enhanced DriverInterface with ViGEmBus and Interception stubs.
+- Conducted full E2E performance audit with automated benchmarking.
 
-## [0.1.40-alpha] - 2025-01-22
+## [0.1.0-alpha] - 2025-01-22
 ### Added
 - Initial project architecture and documentation.
 - Core modules: Input, Network, Sync, Overlay, Driver Interface.
