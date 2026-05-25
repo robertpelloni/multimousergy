@@ -32,7 +32,8 @@ enum class PacketType {
     SessionUpdate,
     MasterStateSync,
     Ping,
-    InputEvent
+    InputEvent,
+    ResolutionUpdate
 };
 
 struct Packet {

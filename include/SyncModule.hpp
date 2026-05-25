@@ -19,6 +19,8 @@ struct PeerState {
     float y;
     float targetX; // Target denormalized coordinate for interpolation
     float targetY;
+    int screenWidth; // Remote screen resolution for normalization context
+    int screenHeight;
     int normalizedX; // 0-65535
     int normalizedY;
     unsigned char colorR;
@@ -40,6 +42,7 @@ public:
     ~SyncModule();
 
     void UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp = 0, const char* name = nullptr, const char* groupName = nullptr);
+    void UpdatePeerResolution(unsigned long long id, int width, int height);
     void UpdateLatency(unsigned long long id, double latency);
     void UpdateClockOffset(unsigned long long id, double remoteTime, double localTime);
 

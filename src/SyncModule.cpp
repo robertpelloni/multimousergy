@@ -11,6 +11,13 @@
 SyncModule::SyncModule() {}
 SyncModule::~SyncModule() {}
 
+void SyncModule::UpdatePeerResolution(unsigned long long id, int width, int height) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    PeerState& peer = m_peers[id];
+    peer.screenWidth = width;
+    peer.screenHeight = height;
+}
+
 void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp, const char* name, const char* gname) {
     std::lock_guard<std::mutex> lock(m_mutex);
     PeerState& peer = m_peers[id];
@@ -44,18 +51,21 @@ void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int nor
     peer.normalizedX = target.nx;
     peer.normalizedY = target.ny;
 
-    int screenWidth = 1920, screenHeight = 1080;
+    // LOCAL CONTEXT: Use our resolution for denormalization
+    int localScreenWidth = 1920, localScreenHeight = 1080;
     int screenLeft = 0, screenTop = 0;
 #ifdef _WIN32
     // Handle Virtual Screen (Multi-Monitor)
     screenLeft = GetSystemMetrics(SM_XVIRTUALSCREEN);
     screenTop = GetSystemMetrics(SM_YVIRTUALSCREEN);
-    screenWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-    screenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+    localScreenWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+    localScreenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 #endif
 
-    float newTargetX = (float)(screenLeft + Denormalize(peer.normalizedX, screenWidth));
-    float newTargetY = (float)(screenTop + Denormalize(peer.normalizedY, screenHeight));
+    // SCALE RESOLUTION: If remote resolution is known, we could perform
+    // aspect-ratio correction here. For now, we denormalize to local space.
+    float newTargetX = (float)(screenLeft + Denormalize(peer.normalizedX, localScreenWidth));
+    float newTargetY = (float)(screenTop + Denormalize(peer.normalizedY, localScreenHeight));
 
     // Calculate velocity for prediction
     double dt = timestamp - peer.lastSeen;

@@ -54,6 +54,16 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
         std::cout << "[Warning] Virtual HID Driver not available. Using software fallback." << std::endl;
     }
 
+    // Broadcast initial resolution
+    int sw = 1920;
+    int sh = 1080;
+#ifdef _WIN32
+    sw = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+    sh = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+#endif
+    Packet resPkt = { m_localId, m_settings.groupId, 0.0, PacketType::ResolutionUpdate, sw, sh, 0, false, "", 0 };
+    m_network.SendPacket(resPkt);
+
     // Default color
     m_overlay.SetColor(255, 0, 0);
 
@@ -310,6 +320,9 @@ void NetMuxFramework::ProcessIncomingPackets() {
                 // Client adopts server's authoritative position
                 m_sync.UpdatePeer(peerId, inPkt.groupId, inPkt.x, inPkt.y, inPkt.localTimestamp);
             }
+        } else if (inPkt.type == PacketType::ResolutionUpdate) {
+            m_sync.UpdatePeerResolution(peerId, inPkt.x, inPkt.y);
+            if (m_settings.isServer) m_network.SendPacket(inPkt);
         } else if (inPkt.type == PacketType::Ping) {
             // Reply with Heartbeat (Pong)
             Packet pong = { m_localId, m_settings.groupId, 0.0, PacketType::Heartbeat, 0, 0, 0, false, "", 0 };

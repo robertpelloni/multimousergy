@@ -7,12 +7,18 @@ enum class MouseButton {
     Middle = 2
 };
 
+enum class DriverType {
+    Interception,
+    ViGEmBus,
+    Auto
+};
+
 class DriverInterface {
 public:
     DriverInterface();
     ~DriverInterface();
 
-    bool Initialize();
+    bool Initialize(DriverType type = DriverType::Auto);
     void Shutdown();
 
     bool SendMouseMovement(long dx, long dy);
@@ -20,6 +26,7 @@ public:
 
 private:
     bool m_initialized;
+    DriverType m_type;
     long m_lastX = 0;
     long m_lastY = 0;
     int m_buttonState = 0; // bitmask
@@ -27,5 +34,7 @@ private:
 #ifdef _WIN32
     void* m_context; // Interception context
     int m_device;    // Virtual mouse device ID
+    void* m_vigemClient; // ViGEm client handle
+    void* m_vigemPad;    // ViGEm target handle
 #endif
 };
