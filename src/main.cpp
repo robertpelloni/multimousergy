@@ -91,7 +91,19 @@ int main(int argc, char* argv[]) {
         framework.EnableBenchmarking(true);
     }
 
-    framework.Run();
+    // Integrated Execution Loop
+    std::thread frameworkThread([&]() {
+        framework.Run();
+    });
+
+    ConfigGUI::Initialize(settings, framework.GetSyncModule());
+    while (ConfigGUI::IsRunning()) {
+        ConfigGUI::Tick();
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
+    }
+
+    framework.Shutdown();
+    if (frameworkThread.joinable()) frameworkThread.join();
 
     return 0;
 }

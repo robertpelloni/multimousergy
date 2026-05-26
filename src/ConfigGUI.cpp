@@ -2,13 +2,18 @@
 #include <iostream>
 #include <thread>
 #include <string>
+#include <mutex>
 
 #ifdef _WIN32
 #include <windows.h>
 #endif
 
-#ifdef _WIN32
 static AppSettings* s_currentSettings = nullptr;
+static SyncModule* s_currentSync = nullptr;
+static bool s_isRunning = false;
+
+#ifdef _WIN32
+static HWND s_hwndMain = nullptr;
 static HWND s_hwndServer = nullptr;
 static HWND s_hwndIp = nullptr;
 static HWND s_hwndPort = nullptr;
@@ -30,12 +35,12 @@ enum ControlIDs {
     ID_PEER_LIST = 2,
     ID_CURSOR_SCALE = 3,
     ID_USE_D3D11 = 4,
-    ID_DRIVER_TYPE = 10,
     ID_GROUP_ID = 5,
     ID_SESSION_NAME = 6,
     ID_GROUP_NAME = 7,
     ID_SECURITY_KEY = 8,
-    ID_CURSOR_MONITOR = 9
+    ID_CURSOR_MONITOR = 9,
+    ID_DRIVER_TYPE = 10
 };
 
 LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -56,11 +61,8 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
             CreateWindow("BUTTON", "Save & Start", WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 80, 140, 120, 30, hwnd, (HMENU)ID_SAVE_BUTTON, NULL, NULL);
 
-            CreateWindow("STATIC", "Discovered Peers:", WS_VISIBLE | WS_CHILD, 10, 180, 120, 20, hwnd, NULL, NULL, NULL);
-            s_hwndPeerList = CreateWindow("COMBOBOX", "", WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST, 110, 180, 150, 100, hwnd, (HMENU)ID_PEER_LIST, NULL, NULL);
-
-            s_hwndLatency = CreateWindow("STATIC", "Latency: --- ms", WS_VISIBLE | WS_CHILD, 10, 210, 200, 20, hwnd, NULL, NULL, NULL);
-            s_hwndActiveUser = CreateWindow("STATIC", "Active User: 0", WS_VISIBLE | WS_CHILD, 10, 240, 200, 20, hwnd, NULL, NULL, NULL);
+            CreateWindow("STATIC", "Network Metrics:", WS_VISIBLE | WS_CHILD, 10, 180, 120, 20, hwnd, NULL, NULL, NULL);
+            s_hwndPeerList = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 10, 200, 250, 60, hwnd, (HMENU)ID_PEER_LIST, NULL, NULL);
 
             CreateWindow("STATIC", "Cursor Scale:", WS_VISIBLE | WS_CHILD, 10, 270, 100, 20, hwnd, NULL, NULL, NULL);
             s_hwndCursorScale = CreateWindow("EDIT", "100", WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 110, 270, 50, 20, hwnd, (HMENU)ID_CURSOR_SCALE, NULL, NULL);
@@ -95,28 +97,18 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             if (wParam == ID_CURSOR_MONITOR) {
                 LPDRAWITEMSTRUCT pdi = (LPDRAWITEMSTRUCT)lParam;
                 FillRect(pdi->hDC, &pdi->rcItem, (HBRUSH)GetStockObject(BLACK_BRUSH));
-                // Rendering is driven by UpdateCursorMonitor
             }
             break;
 
         case WM_COMMAND:
-            if (LOWORD(wParam) == ID_PEER_LIST && HIWORD(wParam) == CBN_SELCHANGE) {
-                char buffer[256];
-                int index = (int)SendMessage(s_hwndPeerList, CB_GETCURSEL, 0, 0);
-                if (index != CB_ERR) {
-                    SendMessage(s_hwndPeerList, CB_GETLBTEXT, index, (LPARAM)buffer);
-                    SetWindowText(s_hwndIp, buffer);
-                }
-            }
-
             if (LOWORD(wParam) == ID_SAVE_BUTTON) {
                 char buffer[256];
                 try {
                     GetWindowText(s_hwndPort, buffer, 256);
-                    int port = std::stoi(buffer);
+                    s_currentSettings->port = std::stoi(buffer);
 
                     GetWindowText(s_hwndBoundary, buffer, 256);
-                    int boundaryX = std::stoi(buffer);
+                    s_currentSettings->inputConfig.boundaryX = std::stoi(buffer);
 
                     GetWindowText(s_hwndCursorScale, buffer, 256);
                     s_currentSettings->cursorScale = (float)std::stoi(buffer) / 100.0f;
@@ -139,17 +131,19 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
                     GetWindowText(s_hwndIp, buffer, 256);
                     s_currentSettings->remoteIp = buffer;
-                    s_currentSettings->port = port;
-                    s_currentSettings->inputConfig.boundaryX = boundaryX;
 
-                    PostQuitMessage(1);
-                } catch (const std::exception&) {
-                    MessageBox(hwnd, "Please enter valid numeric values for Port and Boundary.", "Input Error", MB_OK | MB_ICONERROR);
-                }
+                    // Signal main thread to re-initialize
+                    PostMessage(hwnd, WM_USER + 1, 0, 0);
+                } catch (...) {}
             }
             break;
 
         case WM_CLOSE:
+            s_isRunning = false;
+            DestroyWindow(hwnd);
+            break;
+
+        case WM_DESTROY:
             PostQuitMessage(0);
             break;
     }
@@ -157,97 +151,98 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 }
 #endif
 
-static std::map<unsigned long long, PeerState> s_cachedPeers;
 static std::mutex s_monitorMutex;
+
+void ConfigGUI::Initialize(AppSettings& settings, SyncModule* sync) {
+    s_currentSettings = &settings;
+    s_currentSync = sync;
+
+#ifdef _WIN32
+    WNDCLASS wc = {0};
+    wc.lpfnWndProc = SettingsWndProc;
+    wc.hInstance = GetModuleHandle(NULL);
+    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wc.lpszClassName = "NetMuxIntegratedGUI";
+    RegisterClass(&wc);
+
+    s_hwndMain = CreateWindow("NetMuxIntegratedGUI", "NetMux Monitor", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 320, 620, NULL, NULL, GetModuleHandle(NULL), NULL);
+    s_isRunning = (s_hwndMain != NULL);
+#else
+    s_isRunning = true;
+#endif
+}
+
+void ConfigGUI::Tick() {
+#ifdef _WIN32
+    MSG msg;
+    while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+        if (msg.message == WM_QUIT) s_isRunning = false;
+    }
+
+    if (s_isRunning && s_currentSync) {
+        auto peers = s_currentSync->GetAllPeers();
+
+        // Update ListBox metrics
+        SendMessage(s_hwndPeerList, LB_RESETCONTENT, 0, 0);
+        for (auto const& [id, peer] : peers) {
+            char info[256];
+            snprintf(info, sizeof(info), "%s | %dms | %.1fpx | %s",
+                peer.sessionName, (int)peer.latency, peer.drift,
+                peer.isAuthenticated ? "Auth" : "Locked");
+            SendMessage(s_hwndPeerList, LB_ADDSTRING, 0, (LPARAM)info);
+        }
+    }
+#endif
+}
+
+bool ConfigGUI::IsRunning() {
+    return s_isRunning;
+}
+
+void ConfigGUI::Shutdown() {
+#ifdef _WIN32
+    if (s_hwndMain) DestroyWindow(s_hwndMain);
+#endif
+    s_isRunning = false;
+}
 
 void ConfigGUI::UpdateCursorMonitor(const std::map<unsigned long long, PeerState>& peers) {
 #ifdef _WIN32
     if (s_hwndCursorMonitor) {
-        {
-            std::lock_guard<std::mutex> lock(s_monitorMutex);
-            s_cachedPeers = peers;
-        }
-
         RECT rect;
         GetClientRect(s_hwndCursorMonitor, &rect);
         HDC hdc = GetDC(s_hwndCursorMonitor);
-
-        // Background
         FillRect(hdc, &rect, (HBRUSH)GetStockObject(BLACK_BRUSH));
 
-        // Draw minimized visualization of cursors
         for (auto const& [id, peer] : peers) {
             int mx = (int)((peer.normalizedX * (rect.right - 10)) / 65535) + 5;
             int my = (int)((peer.normalizedY * (rect.bottom - 10)) / 65535) + 5;
-
             HBRUSH hBrush = CreateSolidBrush(RGB(peer.colorR, peer.colorG, peer.colorB));
             RECT cRect = { mx - 2, my - 2, mx + 2, my + 2 };
             FillRect(hdc, &cRect, hBrush);
             DeleteObject(hBrush);
         }
-
         ReleaseDC(s_hwndCursorMonitor, hdc);
     }
 #endif
 }
 
 bool ConfigGUI::ShowDialog(AppSettings& settings, SyncModule* sync) {
-    std::cout << "[GUI] Launching configuration dialog..." << std::endl;
+    s_currentSettings = &settings;
+    s_currentSync = sync;
+    Initialize(settings, sync);
 
 #ifdef _WIN32
-    s_currentSettings = &settings;
-
-    WNDCLASS wc = {0};
-    wc.lpfnWndProc = SettingsWndProc;
-    wc.hInstance = GetModuleHandle(NULL);
-    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    wc.lpszClassName = "NetMuxSettings";
-    RegisterClass(&wc);
-
-    HWND hwnd = CreateWindow("NetMuxSettings", "NetMux Settings", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 300, 400, NULL, NULL, GetModuleHandle(NULL), NULL);
-    if (!hwnd) return false;
-
-    NetworkManager discoveryNetwork;
-
     MSG msg;
-    while (true) {
-        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-            if (msg.message == WM_QUIT) break;
+    while (s_isRunning) {
+        if (GetMessage(&msg, NULL, 0, 0)) {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
-        } else {
-            // Poll for discovery or update peer list from SyncModule
-            if (sync) {
-                auto peers = sync->GetAllPeers();
-                for (auto const& [id, peer] : peers) {
-                    char info[256];
-                    snprintf(info, sizeof(info), "%s | %dms | %.1fpx | %s",
-                        peer.sessionName, (int)peer.latency, peer.drift,
-                        peer.isAuthenticated ? "Auth" : "Locked");
-
-                    int idx = (int)SendMessage(s_hwndPeerList, CB_FINDSTRING, -1, (LPARAM)peer.sessionName);
-                    if (idx == CB_ERR) {
-                        SendMessage(s_hwndPeerList, CB_ADDSTRING, 0, (LPARAM)info);
-                    } else {
-                        // Update existing entry if changed significantly
-                        SendMessage(s_hwndPeerList, CB_DELETESTRING, idx, 0);
-                        SendMessage(s_hwndPeerList, CB_INSERTSTRING, idx, (LPARAM)info);
-                    }
-                }
-            } else {
-                DiscoveryPacket dp;
-                if (discoveryNetwork.PollDiscovery(dp)) {
-                    if (SendMessage(s_hwndPeerList, CB_FINDSTRINGEXACT, -1, (LPARAM)dp.hostname) == CB_ERR) {
-                        SendMessage(s_hwndPeerList, CB_ADDSTRING, 0, (LPARAM)dp.hostname);
-                    }
-                }
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
+            if (msg.message == WM_USER + 1) break; // Re-init signal
+        } else break;
     }
-
-    return (msg.wParam == 1);
-#else
-    return true;
 #endif
+    return true;
 }
