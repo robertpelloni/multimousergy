@@ -165,6 +165,9 @@ void NetMuxFramework::Run() {
                 // Active cursor visual indicator (White for owner, original for others)
                 if (id == activeId) {
                     overlayPeers[id].r = 255; overlayPeers[id].g = 255; overlayPeers[id].b = 255;
+                } else if (peer.drift > 327) {
+                    // Visual indicator for "Out of Sync" or "Conflict" potential
+                    overlayPeers[id].r = 255; overlayPeers[id].g = 165; overlayPeers[id].b = 0; // Orange
                 }
             }
             m_overlay.RenderPeers(overlayPeers);
@@ -209,7 +212,7 @@ void NetMuxFramework::ProcessInteractionQueue() {
         if (m_sync.GetPeerState(event.peerId, peer)) {
             unsigned long long previousOwner = m_sync.GetActivePeer();
 
-            if (m_sync.ResolveConflict(event.peerId, m_loopTimer.ElapsedMilliseconds())) {
+            if (m_sync.ResolveInteraction(event.peerId, event.timestamp, !event.down)) {
                 if (!m_driver.SendMouseButton(event.button, event.down)) {
                     m_input.PerformWarpClickRestore((int)peer.x, (int)peer.y, event.button, event.down);
                 }
@@ -285,7 +288,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
             PeerState peer;
             if (m_sync.GetPeerState(peerId, peer) && (peer.isAuthenticated || m_settings.securityKey.empty())) {
                 std::lock_guard<std::mutex> lock(m_interactionMutex);
-                m_interactionQueue.push({peerId, inPkt.button, inPkt.down, inPkt.groupId});
+                m_interactionQueue.push({peerId, inPkt.button, inPkt.down, inPkt.localTimestamp, inPkt.groupId});
             }
         } else if (inPkt.type == PacketType::Sync) {
             if (m_settings.isServer) {

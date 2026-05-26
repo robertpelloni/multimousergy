@@ -56,8 +56,8 @@ public:
     static int Normalize(int val, int max);
     static int Denormalize(int val, int max);
 
-    // Conflict Resolution: returns true if interaction is permitted
-    bool ResolveConflict(unsigned long long id, double timestamp);
+    // Interaction Ownership: returns true if interaction is permitted
+    bool ResolveInteraction(unsigned long long id, double timestamp, bool isRelease = false);
 
     // Focus validation for arbitrary input events
     bool DispatchInputEvent(unsigned long long id, double timestamp);

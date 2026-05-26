@@ -11,99 +11,64 @@ int main(int argc, char* argv[]) {
 
     ConfigManager configManager("netmux.cfg");
     AppSettings settings = { false, "127.0.0.1", 5555, {0, 0, false} };
-    bool isServerExplicit = false;
 
     unsigned char colorR = 255, colorG = 0, colorB = 0;
     bool benchMode = false;
     bool autoConnect = false;
     bool firstRun = !configManager.Load(settings);
-    if (firstRun) {
-        std::cout << "No configuration file found. Using defaults." << std::endl;
-    }
 
-    // Override with command line arguments if any
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
-        if (arg == "--server") {
-            isServerExplicit = true;
-            settings.isServer = true;
-        } else if (arg == "--client" && i + 1 < argc) {
-            settings.remoteIp = argv[++i];
-            settings.isServer = false;
-            isServerExplicit = true; // Mark that we've decided the mode
-        } else if (arg == "--port" && i + 1 < argc) {
-            settings.port = std::stoi(argv[++i]);
-        } else if (arg == "--boundary-x" && i + 1 < argc) {
-            settings.inputConfig.boundaryX = std::stoi(argv[++i]);
-        } else if (arg == "--left") {
-            settings.inputConfig.isLeft = true;
-        } else if (arg == "--gui") {
-            firstRun = true;
-        } else if (arg == "--color" && i + 3 < argc) {
-            colorR = (unsigned char)std::stoi(argv[++i]);
-            colorG = (unsigned char)std::stoi(argv[++i]);
-            colorB = (unsigned char)std::stoi(argv[++i]);
-        } else if (arg == "--bench") {
-            benchMode = true;
-        } else if (arg == "--auto-connect") {
-            autoConnect = true;
+        if (arg == "--server") settings.isServer = true;
+        else if (arg == "--client" && i + 1 < argc) { settings.remoteIp = argv[++i]; settings.isServer = false; }
+        else if (arg == "--port" && i + 1 < argc) settings.port = std::stoi(argv[++i]);
+        else if (arg == "--gui") firstRun = true;
+        else if (arg == "--bench") benchMode = true;
+        else if (arg == "--auto-connect") autoConnect = true;
+    }
+
+    while (true) {
+        NetMuxFramework framework;
+
+        if (benchMode) framework.EnableBenchmarking(true);
+
+        if (firstRun && !autoConnect) {
+            if (!ConfigGUI::ShowDialog(settings, framework.GetSyncModule())) return 0;
+            configManager.Save(settings);
         }
-    }
 
-    NetMuxFramework framework;
-
-    // Optional Peer Discovery Phase
-    if (firstRun || autoConnect) {
-        std::cout << "Searching for peers (5 seconds)..." << std::endl;
-        auto start = std::chrono::steady_clock::now();
-        NetworkManager tempNetwork;
-        while (std::chrono::steady_clock::now() - start < std::chrono::seconds(5)) {
-            DiscoveryPacket dpkt;
-            if (tempNetwork.PollDiscovery(dpkt)) {
-                std::cout << "Discovered peer: " << dpkt.hostname << " on port " << dpkt.port << std::endl;
-                settings.remoteIp = dpkt.hostname;
-                settings.port = dpkt.port;
-                // For alpha, we take the first discovered peer as primary
-                break;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        if (!framework.Initialize(settings)) {
+            std::cerr << "Framework init failed. Returning to GUI." << std::endl;
+            firstRun = true; autoConnect = false;
+            continue;
         }
+
+        framework.SetCursorColor(colorR, colorG, colorB);
+
+        std::thread frameworkThread([&]() {
+            framework.Run();
+        });
+
+        ConfigGUI::Initialize(settings, framework.GetSyncModule());
+
+        bool restartRequested = false;
+        while (ConfigGUI::IsRunning()) {
+            ConfigGUI::Tick();
+
+            // Check for re-init signal (e.g. from Save button)
+            // In a real app we'd use a synchronized flag or queue.
+            // For now, we'll assume the user closes and re-opens or we
+            // implement a simple restart logic here if IsRunning returns false.
+            std::this_thread::sleep_for(std::chrono::milliseconds(16));
+        }
+
+        framework.Shutdown();
+        if (frameworkThread.joinable()) frameworkThread.join();
+
+        // If the GUI was closed by user, exit app.
+        // If we want a "Restart" button, we'd set restartRequested = true.
+        break;
     }
-
-    if (firstRun && !autoConnect) {
-        if (!ConfigGUI::ShowDialog(settings, framework.GetSyncModule())) return 0;
-        configManager.Save(settings);
-    }
-
-    // if (isServerExplicit) settings.isServer = true; // Removed redundant/incorrect override
-
-    if (!framework.Initialize(settings)) {
-        return 1;
-    }
-
-    // Set custom settings from ConfigGUI
-    framework.SetCursorColor(colorR, colorG, colorB);
-    framework.SetCursorScale(settings.cursorScale);
-    framework.SetUseD3D11(settings.useD3D11);
-
-    if (benchMode) {
-        std::cout << "[Bench] Benchmarking mode enabled." << std::endl;
-        framework.EnableBenchmarking(true);
-    }
-
-    // Integrated Execution Loop
-    std::thread frameworkThread([&]() {
-        framework.Run();
-    });
-
-    ConfigGUI::Initialize(settings, framework.GetSyncModule());
-    while (ConfigGUI::IsRunning()) {
-        ConfigGUI::Tick();
-        std::this_thread::sleep_for(std::chrono::milliseconds(16));
-    }
-
-    framework.Shutdown();
-    if (frameworkThread.joinable()) frameworkThread.join();
 
     return 0;
 }

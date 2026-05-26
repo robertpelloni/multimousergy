@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <iostream>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -170,47 +171,56 @@ int SyncModule::Denormalize(int val, int max) {
     return (val * (max - 1)) / 65535;
 }
 
-bool SyncModule::ResolveConflict(unsigned long long id, double timestamp) {
+bool SyncModule::ResolveInteraction(unsigned long long id, double timestamp, bool isRelease) {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    // Timestamp-First model for simultaneous interaction:
-    // We adjust the incoming remote timestamp by its clock offset
-    // to place it on our local unified timeline.
+    // Interaction Ownership Model:
+    // Uses unified timelines to handle simultaneous edits.
     double adjustedTimestamp = timestamp;
     if (m_peers.count(id)) {
-        adjustedTimestamp += m_peers[id].clockOffset;
+        adjustedTimestamp -= m_peers[id].clockOffset; // SUBTRACT offset to get physical occurrence time
     }
 
-    // First-to-Claim priority for interaction (clicks)
+    if (isRelease) {
+        if (m_activePeerId == id) {
+            // Soft Release: Keep focus for a small cooldown to prevent jitter
+            m_lastActiveSwitch = adjustedTimestamp;
+        }
+        return true;
+    }
+
+    // Initial claim
     if (m_activePeerId == 0) {
         m_activePeerId = id;
         m_lastActiveSwitch = adjustedTimestamp;
         return true;
     }
 
+    // Ownership check
     if (m_activePeerId == id) {
         m_lastActiveSwitch = adjustedTimestamp;
         return true;
     }
 
-    // SIMULTANEOUS EDITING LOGIC:
-    // If a click arrives with an EARLIER adjusted timestamp than our
-    // current active owner's start time, and it's within a small 'race window' (e.g. 100ms),
-    // we allow the switch.
-    if (adjustedTimestamp < m_lastActiveSwitch && (m_lastActiveSwitch - adjustedTimestamp < 100.0)) {
+    // Conflict: Simultaneous Click Resolution
+    // If another click arrived with an earlier timestamp during the race window,
+    // we must respect the physical order of events.
+    if (adjustedTimestamp < m_lastActiveSwitch) {
+        // Preemptive Switch: The new interaction is actually older (occurred first)
+        std::cout << "[Sync] Preemptive Ownership: " << id << " stealing from " << m_activePeerId << " (Diff: " << (m_lastActiveSwitch - adjustedTimestamp) << "ms)" << std::endl;
         m_activePeerId = id;
         m_lastActiveSwitch = adjustedTimestamp;
         return true;
     }
 
-    // If another peer is active, check for 2-second interaction timeout
+    // Interaction Timeout (2 seconds)
     if (adjustedTimestamp - m_lastActiveSwitch > 2000.0) {
         m_activePeerId = id;
         m_lastActiveSwitch = adjustedTimestamp;
         return true;
     }
 
-    return false; // Conflict: Focus is owned by someone else with earlier priority
+    return false;
 }
 
 bool SyncModule::DispatchInputEvent(unsigned long long id, double timestamp) {
@@ -241,10 +251,8 @@ void SyncModule::SetActivePeer(unsigned long long id) {
     auto now = std::chrono::steady_clock::now();
     double currentMs = std::chrono::duration<double, std::milli>(now - startTime).count();
 
-    if (currentMs - m_lastActiveSwitch > 500.0) {
-        m_activePeerId = id;
-        m_lastActiveSwitch = currentMs;
-    }
+    m_activePeerId = id;
+    m_lastActiveSwitch = currentMs;
 }
 
 void SyncModule::Step(double deltaTime) {

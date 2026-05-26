@@ -71,6 +71,7 @@ private:
         unsigned long long peerId;
         int button;
         bool down;
+        double timestamp;
         unsigned int groupId;
     };
     std::queue<InteractionEvent> m_interactionQueue;

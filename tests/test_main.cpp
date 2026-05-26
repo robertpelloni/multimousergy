@@ -24,6 +24,7 @@ void test_network_discovery_logic();
 void test_concurrent_packet_handling();
 void test_coordinate_normalization_fidelity();
 void test_clock_offset_calculation();
+void test_simultaneous_edit_resolution();
 void test_boundary_logic();
 
 void test_sync_module_interpolation() {
@@ -209,6 +210,7 @@ int main() {
     test_concurrent_packet_handling();
     test_coordinate_normalization_fidelity();
     test_clock_offset_calculation();
+    test_simultaneous_edit_resolution();
     test_boundary_logic();
 
     std::cout << "All tests passed!" << std::endl;

@@ -63,7 +63,7 @@ bool D3D11Overlay::Initialize(HWND hwnd) {
     m_device->CreateBlendState(&bd, &m_blendState);
     m_context->OMSetBlendState(m_blendState, NULL, 0xffffffff);
 
-    // Initialize Shaders and Buffers for Sprite Rendering
+    // Initialize Shaders
     const char* shaderCode =
         "Texture2D tex : register(t0);"
         "SamplerState samp : register(s0);"
@@ -89,7 +89,17 @@ bool D3D11Overlay::Initialize(HWND hwnd) {
     vsBlob->Release();
     psBlob->Release();
 
-    // Create a simple 8x8 white texture for the cursor
+    // PERFORMANCE OPTIMIZATION:
+    // Create a larger dynamic vertex buffer once.
+    // We can draw many cursors in one call or multiple calls using Map/Unmap.
+    D3D11_BUFFER_DESC vbd = {0};
+    vbd.Usage = D3D11_USAGE_DYNAMIC;
+    vbd.ByteWidth = sizeof(Vertex) * 4 * 64; // Support up to 64 cursors per draw call
+    vbd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    vbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    m_device->CreateBuffer(&vbd, NULL, &m_vertexBuffer);
+
+    // Create a simple 8x8 white texture
     unsigned int pixels[64];
     for (int i = 0; i < 64; ++i) pixels[i] = 0xFFFFFFFF;
 
@@ -121,7 +131,7 @@ bool D3D11Overlay::Initialize(HWND hwnd) {
 }
 
 void D3D11Overlay::Render(const std::map<unsigned long long, RemoteCursorState>& peers) {
-    if (!m_context) return;
+    if (!m_context || peers.empty()) return;
 
     float clearColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
     m_context->ClearRenderTargetView(m_renderTargetView, clearColor);
@@ -132,49 +142,52 @@ void D3D11Overlay::Render(const std::map<unsigned long long, RemoteCursorState>&
     m_context->PSSetShaderResources(0, 1, &m_textureView);
     m_context->PSSetSamplers(0, 1, &m_sampler);
 
+    UINT stride = sizeof(Vertex);
+    UINT offset = 0;
+    m_context->IASetVertexBuffers(0, 1, &m_vertexBuffer, &stride, &offset);
+    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+    float screenW = (float)GetSystemMetrics(SM_CXSCREEN);
+    float screenH = (float)GetSystemMetrics(SM_CYSCREEN);
+
+    // Batch all cursors into the dynamic buffer
+    D3D11_MAPPED_SUBRESOURCE ms;
+    m_context->Map(m_vertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
+    Vertex* v = (Vertex*)ms.pData;
+
+    int count = 0;
     for (auto const& [id, peer] : peers) {
-        DrawSprite(peer.x, peer.y, peer.r, peer.g, peer.b);
+        if (count >= 64) break;
+
+        float nx = (2.0f * peer.x / screenW) - 1.0f;
+        float ny = 1.0f - (2.0f * peer.y / screenH);
+        float sw = 16.0f / screenW;
+        float sh = 16.0f / screenH;
+        float r = peer.r / 255.0f;
+        float g = peer.g / 255.0f;
+        float b = peer.b / 255.0f;
+
+        // Quad for one cursor
+        v[count*4+0] = {nx, ny, 0.0f, 0.0f, 0.0f, r, g, b, 1.0f};
+        v[count*4+1] = {nx + sw, ny, 0.0f, 1.0f, 0.0f, r, g, b, 1.0f};
+        v[count*4+2] = {nx, ny - sh, 0.0f, 0.0f, 1.0f, r, g, b, 1.0f};
+        v[count*4+3] = {nx + sw, ny - sh, 0.0f, 1.0f, 1.0f, r, g, b, 1.0f};
+        count++;
+    }
+    m_context->Unmap(m_vertexBuffer, 0);
+
+    // Draw all quads (We use TriangleStrip with degenerate triangles or multiple draw calls)
+    // For simplicity with TriangleStrip, we issue one draw call per cursor but with the pre-mapped buffer.
+    // This is still much faster than re-creating the buffer.
+    for(int i=0; i<count; ++i) {
+        m_context->Draw(4, i*4);
     }
 
     m_swapChain->Present(1, 0);
 }
 
 void D3D11Overlay::DrawSprite(int x, int y, unsigned char r, unsigned char g, unsigned char b) {
-    if (!m_context) return;
-
-    float screenW = (float)GetSystemMetrics(SM_CXSCREEN);
-    float screenH = (float)GetSystemMetrics(SM_CYSCREEN);
-
-    float nx = (2.0f * x / screenW) - 1.0f;
-    float ny = 1.0f - (2.0f * y / screenH);
-    float sw = 16.0f / screenW; // 16px wide
-    float sh = 16.0f / screenH; // 16px high
-
-    Vertex vertices[] = {
-        {nx, ny, 0.0f, 0.0f, 0.0f, r/255.0f, g/255.0f, b/255.0f, 1.0f},
-        {nx + sw, ny, 0.0f, 1.0f, 0.0f, r/255.0f, g/255.0f, b/255.0f, 1.0f},
-        {nx, ny - sh, 0.0f, 0.0f, 1.0f, r/255.0f, g/255.0f, b/255.0f, 1.0f},
-        {nx + sw, ny - sh, 0.0f, 1.0f, 1.0f, r/255.0f, g/255.0f, b/255.0f, 1.0f}
-    };
-
-    D3D11_BUFFER_DESC bd = {0};
-    bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof(vertices);
-    bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-    D3D11_SUBRESOURCE_DATA sd = {0};
-    sd.pSysMem = vertices;
-
-    ID3D11Buffer* pVBuffer;
-    m_device->CreateBuffer(&bd, &sd, &pVBuffer);
-
-    UINT stride = sizeof(Vertex);
-    UINT offset = 0;
-    m_context->IASetVertexBuffers(0, 1, &pVBuffer, &stride, &offset);
-    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-    m_context->Draw(4, 0);
-    pVBuffer->Release();
+    // Deprecated in favor of batched Render()
 }
 
 void D3D11Overlay::Shutdown() {
@@ -190,6 +203,19 @@ void D3D11Overlay::Shutdown() {
     if (m_blendState) m_blendState->Release();
     if (m_device) m_device->Release();
     if (m_context) m_context->Release();
+
+    m_texture = nullptr;
+    m_textureView = nullptr;
+    m_sampler = nullptr;
+    m_vertexBuffer = nullptr;
+    m_vertexShader = nullptr;
+    m_pixelShader = nullptr;
+    m_inputLayout = nullptr;
+    m_swapChain = nullptr;
+    m_renderTargetView = nullptr;
+    m_blendState = nullptr;
+    m_device = nullptr;
+    m_context = nullptr;
 }
 
 #endif
