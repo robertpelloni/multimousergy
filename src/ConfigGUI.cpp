@@ -188,9 +188,15 @@ void ConfigGUI::Tick() {
         SendMessage(s_hwndPeerList, LB_RESETCONTENT, 0, 0);
         for (auto const& [id, peer] : peers) {
             char info[256];
-            snprintf(info, sizeof(info), "%s | %dms | %.1fpx | %s",
+            char btnStr[16] = "---";
+            if (peer.buttonState & 1) btnStr[0] = 'L';
+            if (peer.buttonState & 2) btnStr[1] = 'R';
+            if (peer.buttonState & 4) btnStr[2] = 'M';
+
+            snprintf(info, sizeof(info), "%s | %dms | %.1fpx | %s | %s %s",
                 peer.sessionName, (int)peer.latency, peer.drift,
-                peer.isAuthenticated ? "Auth" : "Locked");
+                peer.isAuthenticated ? "Auth" : "Locked",
+                btnStr, peer.isSelecting ? "[Sel]" : "");
             SendMessage(s_hwndPeerList, LB_ADDSTRING, 0, (LPARAM)info);
         }
     }

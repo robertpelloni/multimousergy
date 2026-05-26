@@ -33,6 +33,14 @@ void SyncModule::UpdateDrift(unsigned long long id, float drift) {
     }
 }
 
+void SyncModule::UpdatePeerButtons(unsigned long long id, int button, bool down) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_peers.count(id)) {
+        if (down) m_peers[id].buttonState |= (1 << button);
+        else m_peers[id].buttonState &= ~(1 << button);
+    }
+}
+
 void SyncModule::UpdatePeerSelection(unsigned long long id, bool selecting, int startX, int startY) {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_peers.count(id)) {

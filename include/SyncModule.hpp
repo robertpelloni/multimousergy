@@ -28,6 +28,7 @@ struct PeerState {
     int normalizedY;
     bool isAuthenticated;
     bool isConflictBlocked;
+    int buttonState; // Bitmask of current button states
     unsigned char colorR;
     unsigned char colorG;
     unsigned char colorB;
@@ -48,6 +49,7 @@ public:
     ~SyncModule();
 
     void UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp = 0, const char* name = nullptr, const char* groupName = nullptr);
+    void UpdatePeerButtons(unsigned long long id, int button, bool down);
     void UpdatePeerSelection(unsigned long long id, bool selecting, int startX, int startY);
     void SetAuthenticated(unsigned long long id, bool auth);
     void UpdatePeerResolution(unsigned long long id, int width, int height);

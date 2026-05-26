@@ -289,6 +289,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
         } else if (inPkt.type == PacketType::Click) {
             PeerState peer;
             if (m_sync.GetPeerState(peerId, peer) && (peer.isAuthenticated || m_settings.securityKey.empty())) {
+                m_sync.UpdatePeerButtons(peerId, inPkt.button, inPkt.down);
                 std::lock_guard<std::mutex> lock(m_interactionMutex);
                 m_interactionQueue.push({peerId, inPkt.button, inPkt.down, inPkt.localTimestamp, inPkt.groupId});
             }

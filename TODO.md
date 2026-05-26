@@ -1,16 +1,14 @@
 # TODO.md
 
 - [x] Create basic project structure (CMake, src, include).
-- [ ] Implement `DriverInterface` with actual ViGEmBus integration.
+- [ ] Implement `DriverInterface` with actual ViGEmBus/Interception SDK linking.
 - [x] Implement `InputEngine` with `WM_INPUT` and `WH_MOUSE_LL` hooks.
 - [x] Implement `NetworkManager` with automated peer discovery.
-- [x] Implement `OverlayEngine` with optimized `UpdateLayeredWindow` and resource pre-allocation.
-- [x] Implement `ConfigManager` and programmatic `ConfigGUI`.
-- [x] Setup unit testing framework.
-- [x] Create automated test scripts (`run_server.bat`, `run_client.bat`).
-- [x] Refactor `OverlayEngine` to support cursor sprite rendering (v0.1.3+).
-- [x] Implement Dynamic Cursor Grouping across all modules (v0.1.26+).
-- [x] Perform E2E Performance Validation and Telemetry Audit.
-- [x] Complete Final Alpha Stability and Load Balancing Polish.
-- [x] Implement Hardware-Accelerated D3D11 Cursor Overlay.
-- [x] Integrate Simultaneous Interaction Sync Validation.
+- [x] Implement `OverlayEngine` with Direct3D 11 hardware acceleration.
+- [x] Implement SHA-256 Challenge-Response Authentication.
+- [x] Implement Real-Time Sync Guard (Drift Detection & Correction).
+- [x] Implement Collaborative Selection Synchronization.
+- [x] Integrated Persistent Monitoring UI (ConfigGUI).
+- [x] Implement "Custom Cursor Themes" (BMP Loading).
+- [x] Implement Multi-Monitor DPI Awareness (SetProcessDPIAware).
+- [ ] Refactor Network Protocol to use formal serialization (Protobuf/Flatbuffers).
