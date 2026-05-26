@@ -27,6 +27,7 @@ struct PeerState {
     int normalizedX; // 0-65535
     int normalizedY;
     bool isAuthenticated;
+    bool isConflictBlocked;
     unsigned char colorR;
     unsigned char colorG;
     unsigned char colorB;

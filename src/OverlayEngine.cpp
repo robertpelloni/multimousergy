@@ -172,6 +172,28 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
         }
         DeleteObject(hBrushColor);
 
+        // Focus Halo for the active peer
+        if (id == m_activePeerId) {
+            HPEN hHaloPen = CreatePen(PS_DOT, 1, RGB(255, 255, 255));
+            SelectObject(hdcMem, GetStockObject(NULL_BRUSH));
+            HPEN hOldP = (HPEN)SelectObject(hdcMem, hHaloPen);
+            Ellipse(hdcMem, peer.x - 10, peer.y - 10, peer.x + 10, peer.y + 10);
+            SelectObject(hdcMem, hOldP);
+            DeleteObject(hHaloPen);
+        }
+
+        // Conflict Feedback: Draw an 'X' over blocked cursors
+        if (peer.isConflictBlocked) {
+            HPEN hRedPen = CreatePen(PS_SOLID, 2, RGB(255, 0, 0));
+            HPEN hOldP = (HPEN)SelectObject(hdcMem, hRedPen);
+            MoveToEx(hdcMem, peer.x - 5, peer.y - 5, NULL);
+            LineTo(hdcMem, peer.x + 5, peer.y + 5);
+            MoveToEx(hdcMem, peer.x + 5, peer.y - 5, NULL);
+            LineTo(hdcMem, peer.x - 5, peer.y + 5);
+            SelectObject(hdcMem, hOldP);
+            DeleteObject(hRedPen);
+        }
+
         // Draw Selection Rectangle if active
         if (peer.isSelecting) {
             RECT selRect;

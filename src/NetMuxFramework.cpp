@@ -160,16 +160,18 @@ void NetMuxFramework::Run() {
             unsigned long long activeId = m_sync.GetActivePeer();
 
             for (auto const& [id, peer] : peers) {
-                overlayPeers[id] = { (int)peer.x, (int)peer.y, peer.colorR, peer.colorG, peer.colorB, peer.groupId, peer.isSelecting, (int)peer.selStartX, (int)peer.selStartY };
+                overlayPeers[id] = { (int)peer.x, (int)peer.y, peer.colorR, peer.colorG, peer.colorB, peer.groupId, peer.isSelecting, peer.isConflictBlocked, (int)peer.selStartX, (int)peer.selStartY };
 
                 // Active cursor visual indicator (White for owner, original for others)
                 if (id == activeId) {
                     overlayPeers[id].r = 255; overlayPeers[id].g = 255; overlayPeers[id].b = 255;
+                    // TODO: Draw Focus Halo in OverlayEngine based on activeId
                 } else if (peer.drift > 327) {
                     // Visual indicator for "Out of Sync" or "Conflict" potential
                     overlayPeers[id].r = 255; overlayPeers[id].g = 165; overlayPeers[id].b = 0; // Orange
                 }
             }
+            m_overlay.SetActivePeer(activeId);
             m_overlay.RenderPeers(overlayPeers);
             ConfigGUI::UpdateCursorMonitor(peers);
             m_renderTimer.Reset();

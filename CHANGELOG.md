@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## [0.1.42-alpha] - 2025-01-24
+### Added
+- Implemented "Gesture Integrity" in conflict resolution.
+- Added visual feedback for interaction conflicts (Red 'X').
+- Added "Focus Halo" to highlight active interaction owner.
+- Implemented Adaptive Smoothing for better low-latency tracking.
+- Verified simultaneous edit resolution with concurrency tests.
+
 ## [0.1.41-alpha] - 2025-01-24
 ### Added
 - Robust SHA-256 challenge-response authentication (Windows/Linux support).

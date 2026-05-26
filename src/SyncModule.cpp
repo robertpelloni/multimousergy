@@ -120,6 +120,7 @@ void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int nor
     peer.targetY = newTargetY;
 
     peer.lastSeen = timestamp;
+    peer.isConflictBlocked = false; // Reset block status on movement
     // By default, new peers are not authenticated
     if (peer.id != 0 && peer.lastSeen == timestamp) {
          // peer.isAuthenticated = false; // Initialized by compiler or map ctor
@@ -222,6 +223,12 @@ bool SyncModule::ResolveInteraction(unsigned long long id, double timestamp, boo
     // If another click arrived with an earlier timestamp during the race window,
     // we must respect the physical order of events.
     if (adjustedTimestamp < m_lastActiveSwitch) {
+        // GESTURE INTEGRITY: Prevent focus theft if the current owner is actively selecting/dragging.
+        if (m_peers.count(m_activePeerId) && m_peers[m_activePeerId].isSelecting) {
+            std::cout << "[Sync] Conflict: " << id << " denied. Current owner " << m_activePeerId << " is in active gesture." << std::endl;
+            return false;
+        }
+
         // Preemptive Switch: The new interaction is actually older (occurred first)
         std::cout << "[Sync] Preemptive Ownership: " << id << " stealing from " << m_activePeerId << " (Diff: " << (m_lastActiveSwitch - adjustedTimestamp) << "ms)" << std::endl;
         m_activePeerId = id;
@@ -236,6 +243,8 @@ bool SyncModule::ResolveInteraction(unsigned long long id, double timestamp, boo
         return true;
     }
 
+    // If we reached here, focus is owned by someone else
+    if (m_peers.count(id)) m_peers[id].isConflictBlocked = true;
     return false;
 }
 
@@ -302,7 +311,13 @@ void SyncModule::Step(double deltaTime) {
         int predictedTargetX = (int)peer.targetX + (int)(peer.vx * predictionMs);
         int predictedTargetY = (int)peer.targetY + (int)(peer.vy * predictionMs);
 
-        peer.x += (predictedTargetX - peer.x) * lerpFactor;
-        peer.y += (predictedTargetY - peer.y) * lerpFactor;
+        // ADAPTIVE SMOOTHING:
+        // Increase responsiveness (lerpFactor) if drift is high, or if latency is very low.
+        float adaptiveLerp = lerpFactor;
+        if (peer.drift > 500) adaptiveLerp = std::min(1.0f, adaptiveLerp * 2.0f);
+        if (peer.latency < 5.0) adaptiveLerp = std::min(1.0f, adaptiveLerp * 1.5f);
+
+        peer.x += (predictedTargetX - peer.x) * adaptiveLerp;
+        peer.y += (predictedTargetY - peer.y) * adaptiveLerp;
     }
 }
