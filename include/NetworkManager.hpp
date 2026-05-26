@@ -36,7 +36,8 @@ enum class PacketType {
     ResolutionUpdate,
     AuthChallenge,
     AuthResponse,
-    SyncCheck
+    SyncCheck,
+    SelectionUpdate
 };
 
 struct Packet {
@@ -48,6 +49,9 @@ struct Packet {
     int y;
     int button;
     bool down;
+    bool isSelecting;
+    int selectionStartX;
+    int selectionStartY;
     char payload[1024]; // Dynamic data payload (e.g. clipboard text)
     int payloadSize;
 };

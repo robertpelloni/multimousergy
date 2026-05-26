@@ -173,6 +173,19 @@ void D3D11Overlay::Render(const std::map<unsigned long long, RemoteCursorState>&
         v[count*4+2] = {nx, ny - sh, 0.0f, 0.0f, 1.0f, r, g, b, 1.0f};
         v[count*4+3] = {nx + sw, ny - sh, 0.0f, 1.0f, 1.0f, r, g, b, 1.0f};
         count++;
+
+        // Render selection box if active
+        if (peer.isSelecting) {
+            float snx = (2.0f * peer.selStartX / screenW) - 1.0f;
+            float sny = 1.0f - (2.0f * peer.selStartY / screenH);
+
+            // Draw a box from (snx, sny) to (nx, ny)
+            v[count*4+0] = {snx, sny, 0.0f, 0.0f, 0.0f, r, g, b, 0.3f}; // Translucent
+            v[count*4+1] = {nx,  sny, 0.0f, 1.0f, 0.0f, r, g, b, 0.3f};
+            v[count*4+2] = {snx, ny,  0.0f, 0.0f, 1.0f, r, g, b, 0.3f};
+            v[count*4+3] = {nx,  ny,  0.0f, 1.0f, 1.0f, r, g, b, 0.3f};
+            count++;
+        }
     }
     m_context->Unmap(m_vertexBuffer, 0);
 

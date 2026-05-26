@@ -171,6 +171,20 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
             Polygon(hdcMem, pts, 4);
         }
         DeleteObject(hBrushColor);
+
+        // Draw Selection Rectangle if active
+        if (peer.isSelecting) {
+            RECT selRect;
+            selRect.left = std::min(peer.selStartX, peer.x);
+            selRect.top = std::min(peer.selStartY, peer.y);
+            selRect.right = std::max(peer.selStartX, peer.x);
+            selRect.bottom = std::max(peer.selStartY, peer.y);
+
+            // Semi-transparent selection fill (simulated via HatchBrush in GDI)
+            HBRUSH hHatch = CreateHatchBrush(HS_BDIAGONAL, RGB(peer.r, peer.g, peer.b));
+            FrameRect(hdcMem, &selRect, hHatch);
+            DeleteObject(hHatch);
+        }
     }
 
     POINT ptSrc = { 0, 0 };

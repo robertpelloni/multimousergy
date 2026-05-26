@@ -33,6 +33,22 @@ void SyncModule::UpdateDrift(unsigned long long id, float drift) {
     }
 }
 
+void SyncModule::UpdatePeerSelection(unsigned long long id, bool selecting, int startX, int startY) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_peers.count(id)) {
+        PeerState& peer = m_peers[id];
+        peer.isSelecting = selecting;
+
+        int sw = 1920, sh = 1080;
+#ifdef _WIN32
+        sw = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+        sh = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+#endif
+        peer.selStartX = (float)Denormalize(startX, sw);
+        peer.selStartY = (float)Denormalize(startY, sh);
+    }
+}
+
 void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp, const char* name, const char* gname) {
     std::lock_guard<std::mutex> lock(m_mutex);
     PeerState& peer = m_peers[id];

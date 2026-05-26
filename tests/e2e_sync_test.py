@@ -21,6 +21,7 @@ import math
 PACKET_FORMAT = "Q I 4x d i i i i b 1024s i"
 
 def test_sync_validation():
+    test_selection_sync()
     print("--- NetMux E2E Synchronization Validation ---")
 
     server_addr = ("127.0.0.1", 5555)
@@ -64,5 +65,33 @@ def test_sync_validation():
 
     print("E2E Validation packets sent. Check NetMux logs for 'Corrective MasterSync issued'.")
 
+def test_selection_sync():
+    print("--- NetMux Selection Sync Validation ---")
+    server_addr = ("127.0.0.1", 5555)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    # 1. Simulate Client A starting a selection
+    client_a_id = 2001
+    group_id = 2
+    start_x, start_y = 10000, 10000
+    curr_x, curr_y = 20000, 20000
+
+    print(f"Client A ({client_a_id}) broadcasting SelectionUpdate (Selecting=True)")
+    # PACKET_FORMAT = "Q I 4x d i i i i b ? 2x i i 1024s i" (Updated below)
+    # Refined format to match the new struct with isSelecting/selectionX/Y
+    # struct Packet {
+    #   u64, u32, 4x pad, f64, i32 type, i32 x, i32 y, i32 btn, bool down, bool isSel, 2x pad, i32 selX, i32 selY, 1024s, i32
+    # }
+    FMT = "Q I 4x d i i i i b b 2x i i 1024s i"
+
+    # PacketType::SelectionUpdate = 14
+    packet = struct.pack(FMT,
+                         client_a_id, group_id, time.time(),
+                         14, curr_x, curr_y, 0, False, True, start_x, start_y, b"", 0)
+
+    sock.sendto(packet, server_addr)
+    print("Selection start packet sent.")
+
 if __name__ == "__main__":
     test_sync_validation()
+    test_selection_sync()

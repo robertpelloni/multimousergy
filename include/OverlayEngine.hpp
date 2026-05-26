@@ -13,6 +13,9 @@ struct RemoteCursorState {
     unsigned char g;
     unsigned char b;
     unsigned int groupId;
+    bool isSelecting;
+    int selStartX;
+    int selStartY;
 };
 
 class OverlayEngine {

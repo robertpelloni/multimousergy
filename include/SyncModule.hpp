@@ -15,6 +15,9 @@ struct PeerState {
     unsigned int groupId;
     char groupName[64];
     char sessionName[64];
+    bool isSelecting;
+    float selStartX;
+    float selStartY;
     float x; // Current denormalized screen coordinate
     float y;
     float targetX; // Target denormalized coordinate for interpolation
@@ -44,6 +47,7 @@ public:
     ~SyncModule();
 
     void UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp = 0, const char* name = nullptr, const char* groupName = nullptr);
+    void UpdatePeerSelection(unsigned long long id, bool selecting, int startX, int startY);
     void SetAuthenticated(unsigned long long id, bool auth);
     void UpdatePeerResolution(unsigned long long id, int width, int height);
     void UpdateDrift(unsigned long long id, float drift);

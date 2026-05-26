@@ -29,6 +29,9 @@ public:
 private:
     bool m_active;
     bool m_isCaptured;
+    bool m_isSelecting;
+    int m_selStartX;
+    int m_selStartY;
     long m_accumulatedX;
     int m_virtualX;
     int m_virtualY;
