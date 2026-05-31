@@ -79,8 +79,8 @@ void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int nor
 
     peer.jitterBuffer.push_back({normX, normY, timestamp});
 
-    // Keep buffer small (e.g. 5 points)
-    if (peer.jitterBuffer.size() > 5) {
+    // LOW LATENCY MODE: Keep buffer very small (3 points)
+    if (peer.jitterBuffer.size() > 3) {
         peer.jitterBuffer.erase(peer.jitterBuffer.begin());
     }
 
@@ -170,6 +170,47 @@ void SyncModule::UpdateClockOffset(unsigned long long id, double remoteTime, dou
         double travelTime = peer.latency * 0.5;
         double estimatedRemoteTimeAtArrival = remoteTime + travelTime;
         peer.clockOffset = localTime - estimatedRemoteTimeAtArrival;
+    }
+}
+
+void SyncModule::UpdateLocalState(unsigned long long localId, unsigned int groupId, int normX, int normY, bool isSelecting, int startX, int startY) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_localId = localId;
+    PeerState& peer = m_peers[localId];
+    peer.id = localId;
+    peer.groupId = groupId;
+    peer.normalizedX = normX;
+    peer.normalizedY = normY;
+    peer.isSelecting = isSelecting;
+
+    int sw = 1920, sh = 1080;
+    int sl = 0, st = 0;
+#ifdef _WIN32
+    sl = GetSystemMetrics(SM_XVIRTUALSCREEN);
+    st = GetSystemMetrics(SM_YVIRTUALSCREEN);
+    sw = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+    sh = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+#endif
+
+    peer.targetX = (float)(sl + Denormalize(normX, sw));
+    peer.targetY = (float)(st + Denormalize(normY, sh));
+    
+    // Snap local state immediately for responsiveness
+    peer.x = peer.targetX;
+    peer.y = peer.targetY;
+    
+    peer.isAuthenticated = true; // Local is always authenticated
+
+    if (isSelecting) {
+        peer.selStartX = (float)(sl + Denormalize(startX, sw));
+        peer.selStartY = (float)(st + Denormalize(startY, sh));
+    }
+
+    static auto startTime = std::chrono::steady_clock::now();
+    peer.lastSeen = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - startTime).count();
+    
+    if (peer.colorR == 0 && peer.colorG == 0 && peer.colorB == 0) {
+        peer.colorR = 255; peer.colorG = 255; peer.colorB = 255; // White for local
     }
 }
 

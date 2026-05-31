@@ -246,6 +246,12 @@ void NetMuxFramework::ProcessOutgoingPackets() {
             outPkt.senderId = m_localId;
             outPkt.groupId = m_settings.groupId;
             outPkt.localTimestamp = m_loopTimer.ElapsedMilliseconds();
+            
+            // Sync local state for rendering on our own overlay
+            if (outPkt.type == NetMuxPacketType::AbsoluteMovement || outPkt.type == NetMuxPacketType::SelectionUpdate) {
+                m_sync.UpdateLocalState(m_localId, m_settings.groupId, outPkt.x, outPkt.y, outPkt.isSelecting, outPkt.selectionStartX, outPkt.selectionStartY);
+            }
+
             m_network.SendPacket(outPkt);
         }
     }

@@ -57,6 +57,8 @@ public:
     void UpdateLatency(unsigned long long id, double latency);
     void UpdateClockOffset(unsigned long long id, double remoteTime, double localTime);
 
+    void UpdateLocalState(unsigned long long localId, unsigned int groupId, int normX, int normY, bool isSelecting, int selStartX, int selStartY);
+
     bool GetPeerState(unsigned long long id, PeerState& state);
     std::map<unsigned long long, PeerState> GetAllPeers();
 
@@ -78,6 +80,7 @@ public:
 private:
     std::map<unsigned long long, PeerState> m_peers;
     unsigned long long m_activePeerId = 0;
+    unsigned long long m_localId = 0;
     double m_lastActiveSwitch = 0;
     std::mutex m_mutex;
 };
