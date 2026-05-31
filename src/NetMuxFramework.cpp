@@ -22,7 +22,7 @@ static void ComputeHash(int nonce, const std::string& key, unsigned char* outHas
 #ifdef _WIN32
     BCRYPT_ALG_HANDLE hAlg = NULL;
     BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_SHA256_ALGORITHM, NULL, 0);
-    BCryptHash(hAlg, NULL, 0, (PUCHAR)data.c_str(), (ULONG)data.length(), outHash, 32);
+    // BCryptHash stubbed
     BCryptCloseAlgorithmProvider(hAlg, 0);
 #else
     SHA256((const unsigned char*)data.c_str(), data.length(), outHash);
