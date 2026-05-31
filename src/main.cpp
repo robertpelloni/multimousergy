@@ -41,7 +41,11 @@ int main(int argc, char* argv[]) {
         }
 
         if (!framework.Initialize(settings)) {
-            std::cerr << "Framework init failed. Returning to GUI." << std::endl;
+            std::cerr << "Framework init failed." << std::endl;
+            if (autoConnect || argc > 1) {
+                std::cerr << "Exiting due to initialization failure." << std::endl;
+                return 1;
+            }
             firstRun = true; autoConnect = false;
             continue;
         }

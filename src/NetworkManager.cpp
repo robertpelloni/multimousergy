@@ -45,7 +45,7 @@ bool NetworkManager::StartServer(int port) {
     serverAddr.sin_port = htons(port);
 
     if (bind(m_udpSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
-        std::cerr << "[Network] UDP Bind failed: " << port << std::endl;
+        std::cerr << "[Network] UDP Bind failed on port " << port << " Error: " << WSAGetLastError() << std::endl;
         return false;
     }
 
@@ -57,7 +57,7 @@ bool NetworkManager::StartServer(int port) {
     setsockopt(m_tcpSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse));
 
     if (bind(m_tcpSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
-        std::cerr << "[Network] TCP Bind failed: " << port << std::endl;
+        std::cerr << "[Network] TCP Bind failed on port " << port << " Error: " << WSAGetLastError() << std::endl;
         return false;
     }
 
