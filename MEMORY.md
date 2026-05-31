@@ -20,3 +20,4 @@
 - **Authentication Lifecycle**: The system utilizes a stateful `AuthService` with mutual authentication. Handshakes trigger bidirectional challenges, ensuring both sides are trusted. Sensitive packet processing (Move, Click, Clipboard) is strictly gated by authentication status.
 - **Peer Management**: `SyncModule` handles active peer pruning based on a 10-second inactivity timeout. This ensures the monitor UI and internal state remain clean of stale connections.
 - **Linux Driver**: Hardware injection on Linux is supported via direct `evdev` writes to `/dev/input/event0`, bypassing high-level UI framework constraints.
+- **Protocol Serialization**: The system uses `PacketSerializer` for manual byte-level protocol management. This replaces fragile C-struct casting and ensures binary compatibility across different compiler architectures and operating systems while maintaining header-only optimizations for movement.

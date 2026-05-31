@@ -23,6 +23,7 @@ set(LIB_SOURCES
     src/D3D11Overlay.cpp
     src/AuthModule.cpp
     src/AuthService.cpp
+    src/PacketSerializer.cpp
 )
 
 # Library

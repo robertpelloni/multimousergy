@@ -10,6 +10,8 @@
 #include <windows.h>
 #endif
 
+static auto s_syncStartTime = std::chrono::steady_clock::now();
+
 SyncModule::SyncModule() {}
 SyncModule::~SyncModule() {}
 
@@ -73,9 +75,8 @@ void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int nor
     }
 
     // Add to jitter buffer with current local timestamp
-    static auto startTime = std::chrono::steady_clock::now();
     auto now = std::chrono::steady_clock::now();
-    double timestamp = std::chrono::duration<double, std::milli>(now - startTime).count();
+    double timestamp = std::chrono::duration<double, std::milli>(now - s_syncStartTime).count();
 
     peer.jitterBuffer.push_back({normX, normY, timestamp});
 
@@ -177,8 +178,8 @@ std::vector<unsigned long long> SyncModule::PruneInactivePeers(double timeoutMs)
     std::lock_guard<std::mutex> lock(m_mutex);
     std::vector<unsigned long long> pruned;
 
-    static auto startTime = std::chrono::steady_clock::now();
-    double currentMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - startTime).count();
+    // Use current time from the same steady_clock reference as UpdatePeer
+    double currentMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - s_syncStartTime).count();
 
     for (auto it = m_peers.begin(); it != m_peers.end(); ) {
         if (it->first != m_localId && (currentMs - it->second.lastSeen) > timeoutMs) {
@@ -225,8 +226,7 @@ void SyncModule::UpdateLocalState(unsigned long long localId, unsigned int group
         peer.selStartY = (float)(st + Denormalize(startY, sh));
     }
 
-    static auto startTime = std::chrono::steady_clock::now();
-    peer.lastSeen = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - startTime).count();
+    peer.lastSeen = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - s_syncStartTime).count();
     
     if (peer.colorR == 0 && peer.colorG == 0 && peer.colorB == 0) {
         peer.colorR = 255; peer.colorG = 255; peer.colorB = 255; // White for local
@@ -341,9 +341,8 @@ void SyncModule::SetActivePeer(unsigned long long id) {
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // Master Lock: Prevent rapid switching (500ms cooldown)
-    static auto startTime = std::chrono::steady_clock::now();
     auto now = std::chrono::steady_clock::now();
-    double currentMs = std::chrono::duration<double, std::milli>(now - startTime).count();
+    double currentMs = std::chrono::duration<double, std::milli>(now - s_syncStartTime).count();
 
     m_activePeerId = id;
     m_lastActiveSwitch = currentMs;
@@ -352,9 +351,8 @@ void SyncModule::SetActivePeer(unsigned long long id) {
 void SyncModule::Step(double deltaTime) {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    static auto startTime = std::chrono::steady_clock::now();
     auto now = std::chrono::steady_clock::now();
-    double currentMs = std::chrono::duration<double, std::milli>(now - startTime).count();
+    double currentMs = std::chrono::duration<double, std::milli>(now - s_syncStartTime).count();
 
     // Coordinated smoothing factor based on deltaTime
     // Ensuring frame-rate independent interpolation

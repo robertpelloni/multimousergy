@@ -25,5 +25,5 @@
 - [x] Multi-Monitor DPI Awareness.
 - [x] Bandwidth Optimization (Header-only movement packets).
 - [x] Focus Halo visual feedback.
+- [x] Formal Protocol Serialization.
 - [ ] Native Vendor SDK linking for Drivers.
-- [ ] Formal Protocol Serialization.

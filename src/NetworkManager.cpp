@@ -1,4 +1,5 @@
 #include "NetworkManager.hpp"
+#include "PacketSerializer.hpp"
 #include <iostream>
 #include <cstring>
 #include <algorithm>
@@ -128,14 +129,12 @@ static int SafeSend(Socket s, const char* data, int len) {
 void NetworkManager::SendPacketToGroup(const Packet& packet, unsigned int groupId) {
     if (!m_running || m_udpSocket == INVALID_SOCKET_HANDLE || !m_isServer) return;
 
-    size_t sendSize = sizeof(packet);
-    if (packet.type == NetMuxPacketType::Movement || packet.type == NetMuxPacketType::AbsoluteMovement) {
-        sendSize = offsetof(Packet, payload);
-    }
+    bool headerOnly = (packet.type == NetMuxPacketType::Movement || packet.type == NetMuxPacketType::AbsoluteMovement);
+    std::vector<uint8_t> data = PacketSerializer::Serialize(packet, headerOnly);
 
     for (auto const& [id, peer] : m_udpPeerMap) {
         if (peer.groupId == groupId) {
-            sendto(m_udpSocket, (const char*)&packet, (int)sendSize, 0, (struct sockaddr*)&peer.addr, sizeof(sockaddr_in));
+            sendto(m_udpSocket, (const char*)data.data(), (int)data.size(), 0, (struct sockaddr*)&peer.addr, sizeof(sockaddr_in));
         }
     }
 }
@@ -143,26 +142,24 @@ void NetworkManager::SendPacketToGroup(const Packet& packet, unsigned int groupI
 void NetworkManager::SendPacket(const Packet& packet) {
     if (!m_running || m_udpSocket == INVALID_SOCKET_HANDLE) return;
 
-    if (packet.type == NetMuxPacketType::Movement || packet.type == NetMuxPacketType::AbsoluteMovement) {
-        // OPTIMIZATION: Send only the header + coordinates, excluding the large payload buffer
-        // Packet layout: [senderId][groupId][localTimestamp][type][x][y][button][down][isSelecting][selectionStartX][selectionStartY][payload][payloadSize]
-        // We can safely truncate at 'payload' offset.
-        size_t optimizedSize = offsetof(Packet, payload);
+    bool headerOnly = (packet.type == NetMuxPacketType::Movement || packet.type == NetMuxPacketType::AbsoluteMovement);
+    std::vector<uint8_t> data = PacketSerializer::Serialize(packet, headerOnly);
 
+    if (headerOnly) {
         if (m_isServer) {
             for (auto const& [id, peer] : m_udpPeerMap) {
-                sendto(m_udpSocket, (const char*)&packet, (int)optimizedSize, 0, (struct sockaddr*)&peer.addr, sizeof(sockaddr_in));
+                sendto(m_udpSocket, (const char*)data.data(), (int)data.size(), 0, (struct sockaddr*)&peer.addr, sizeof(sockaddr_in));
             }
         } else if (m_hasRemoteAddr) {
-            sendto(m_udpSocket, (const char*)&packet, (int)optimizedSize, 0, (struct sockaddr*)&m_remoteAddr, sizeof(sockaddr_in));
+            sendto(m_udpSocket, (const char*)data.data(), (int)data.size(), 0, (struct sockaddr*)&m_remoteAddr, sizeof(sockaddr_in));
         }
     } else {
         if (m_isServer) {
             for (auto& client : m_clients) {
-                SafeSend(client.socket, (const char*)&packet, sizeof(packet));
+                SafeSend(client.socket, (const char*)data.data(), (int)data.size());
             }
         } else if (m_tcpSocket != INVALID_SOCKET_HANDLE) {
-            SafeSend(m_tcpSocket, (const char*)&packet, sizeof(packet));
+            SafeSend(m_tcpSocket, (const char*)data.data(), (int)data.size());
         }
     }
 }
@@ -236,22 +233,27 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
 
     sockaddr_in fromAddr;
     socklen_t fromLen = sizeof(fromAddr);
-    int result = recvfrom(m_udpSocket, (char*)&packet, sizeof(packet), 0, (struct sockaddr*)&fromAddr, &fromLen);
-    if (result >= (int)sizeof(Packet)) {
-        if (m_isServer) m_udpPeerMap[packet.senderId] = { fromAddr, packet.groupId };
-        if (!m_hasRemoteAddr) { m_remoteAddr = fromAddr; m_hasRemoteAddr = true; }
-        return true;
+    uint8_t udpBuf[sizeof(Packet) + 128];
+    int result = recvfrom(m_udpSocket, (char*)udpBuf, sizeof(udpBuf), 0, (struct sockaddr*)&fromAddr, &fromLen);
+    if (result >= (int)PacketSerializer::HEADER_SIZE) {
+        if (PacketSerializer::Deserialize(udpBuf, (size_t)result, packet) > 0) {
+            if (m_isServer) m_udpPeerMap[packet.senderId] = { fromAddr, packet.groupId };
+            if (!m_hasRemoteAddr) { m_remoteAddr = fromAddr; m_hasRemoteAddr = true; }
+            return true;
+        }
     }
 
     for (auto it = m_clients.begin(); it != m_clients.end(); ) {
-        char tempBuf[sizeof(Packet) * 4];
+        char tempBuf[sizeof(Packet) * 2];
         result = recv(it->socket, tempBuf, sizeof(tempBuf), 0);
         if (result > 0) it->buffer.insert(it->buffer.end(), tempBuf, tempBuf + result);
 
-        if (it->buffer.size() >= sizeof(Packet)) {
-            std::memcpy(&packet, it->buffer.data(), sizeof(Packet));
-            it->buffer.erase(it->buffer.begin(), it->buffer.begin() + sizeof(Packet));
-            return true;
+        if (it->buffer.size() >= PacketSerializer::HEADER_SIZE) {
+            size_t consumed = PacketSerializer::Deserialize((const uint8_t*)it->buffer.data(), it->buffer.size(), packet);
+            if (consumed > 0) {
+                it->buffer.erase(it->buffer.begin(), it->buffer.begin() + consumed);
+                return true;
+            }
         }
 
         if (result == 0) {
@@ -262,14 +264,16 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
     }
 
     if (!m_isServer && m_tcpSocket != INVALID_SOCKET_HANDLE) {
-        char tempBuf[sizeof(Packet) * 4];
+        char tempBuf[sizeof(Packet) * 2];
         result = recv(m_tcpSocket, tempBuf, sizeof(tempBuf), 0);
         if (result > 0) m_connectorBuffer.insert(m_connectorBuffer.end(), tempBuf, tempBuf + result);
 
-        if (m_connectorBuffer.size() >= sizeof(Packet)) {
-            std::memcpy(&packet, m_connectorBuffer.data(), sizeof(Packet));
-            m_connectorBuffer.erase(m_connectorBuffer.begin(), m_connectorBuffer.begin() + sizeof(Packet));
-            return true;
+        if (m_connectorBuffer.size() >= PacketSerializer::HEADER_SIZE) {
+            size_t consumed = PacketSerializer::Deserialize((const uint8_t*)m_connectorBuffer.data(), m_connectorBuffer.size(), packet);
+            if (consumed > 0) {
+                m_connectorBuffer.erase(m_connectorBuffer.begin(), m_connectorBuffer.begin() + consumed);
+                return true;
+            }
         }
 
         if (result == 0) {

@@ -1,4 +1,4 @@
-# HANDOFF.md - Session Summary (v0.1.44-alpha)
+# HANDOFF.md - Session Summary (v0.1.46-alpha)
 
 ## Overview
 This session focused on implementing a robust, stateful authentication service with mutual challenge-response, hardening security enforcement, and providing auxiliary performance and UI enhancements.
@@ -18,5 +18,5 @@ This session focused on implementing a robust, stateful authentication service w
 - **Restart Signal**: The GUI can trigger a framework restart via `s_restartRequested`, which is polled by the main loop.
 
 ## Final State
-**v0.1.44-alpha**
-Mutual authentication complete. Security hardened. Telemetry expanded. All unit tests passed. Ready for collaborative testing.
+**v0.1.46-alpha**
+Mutual authentication complete. Security hardened. Telemetry expanded. Protocol serialization implemented. Peer lifecycle management enabled. All unit tests passed.

@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## [0.1.46-alpha] - 2025-01-24
+### Added
+- Implemented formal network serialization layer via `PacketSerializer`.
+- Replaced raw memory casting with byte-level serialization for cross-platform binary compatibility.
+- Preserved movement update bandwidth optimization in the serialization layer.
+
 ## [0.1.45-alpha] - 2025-01-24
 ### Added
 - Implemented Peer Lifecycle Management: Inactive peers are now pruned after a timeout.
