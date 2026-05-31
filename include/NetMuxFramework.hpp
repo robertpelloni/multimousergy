@@ -37,6 +37,7 @@ public:
     void EnableBenchmarking(bool enable) { m_benchmarking = enable; }
     SyncModule& GetSyncModule() { return m_sync; }
     InputEngine& GetInputEngine() { return m_input; }
+    bool IsRunning() const { return m_running; }
 
 private:
     void ProcessOutgoingPackets();

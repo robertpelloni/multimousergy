@@ -61,14 +61,18 @@ int main(int argc, char* argv[]) {
         ConfigGUI::Initialize(settings, &framework.GetSyncModule());
 
         bool restartRequested = false;
-        while (ConfigGUI::IsRunning()) {
-            ConfigGUI::Tick();
-            framework.GetInputEngine().Update();
+        while (true) {
+            if (ConfigGUI::IsRunning()) {
+                ConfigGUI::Tick();
+            } else if (!autoConnect) {
+                // Exit if GUI is closed and we aren't in auto-connect mode
+                break;
+            }
 
-            // Check for re-init signal (e.g. from Save button)
-            // In a real app we'd use a synchronized flag or queue.
-            // For now, we'll assume the user closes and re-opens or we
-            // implement a simple restart logic here if IsRunning returns false.
+            framework.GetInputEngine().Update();
+            
+            if (!framework.IsRunning()) break;
+
             std::this_thread::sleep_for(std::chrono::milliseconds(16));
         }
 

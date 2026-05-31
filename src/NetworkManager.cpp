@@ -39,6 +39,9 @@ bool NetworkManager::StartServer(int port) {
     if (m_udpSocket == INVALID_SOCKET_HANDLE) return false;
     SetNonBlocking(m_udpSocket);
 
+    int reuse = 1;
+    setsockopt(m_udpSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse));
+
     sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_addr.s_addr = INADDR_ANY;
@@ -53,7 +56,6 @@ bool NetworkManager::StartServer(int port) {
     if (m_tcpSocket == INVALID_SOCKET_HANDLE) return false;
     SetNonBlocking(m_tcpSocket);
 
-    int reuse = 1;
     setsockopt(m_tcpSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse));
 
     if (bind(m_tcpSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
