@@ -1,8 +1,6 @@
 #include "ClipboardModule.hpp"
 #include <iostream>
 #include <vector>
-#include <codecvt>
-#include <locale>
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -19,7 +17,11 @@
 #include <X11/Xatom.h>
 #endif
 
+#ifdef __linux__
+ClipboardModule::ClipboardModule(void* xDisplay) : m_xDisplay(xDisplay), m_lastHash(0) {}
+#else
 ClipboardModule::ClipboardModule() : m_lastHash(0) {}
+#endif
 ClipboardModule::~ClipboardModule() {}
 
 bool ClipboardModule::HasChanged() {
@@ -40,8 +42,10 @@ bool ClipboardModule::HasChanged() {
 
     currentText = Utf16ToUtf8(wCurrentText);
 #elif defined(__linux__)
-    Display* display = XOpenDisplay(NULL);
+    Display* display = (Display*)m_xDisplay;
     if (display) {
+        // We use a temporary window for conversion, or we could use the framework's window.
+        // For reading, a temporary one is fine to avoid interfering with framework events.
         Window window = XCreateSimpleWindow(display, DefaultRootWindow(display), 0, 0, 1, 1, 0, 0, 0);
         Atom clipboard = XInternAtom(display, "CLIPBOARD", False);
         Atom target = XInternAtom(display, "UTF8_STRING", False);
@@ -72,7 +76,6 @@ bool ClipboardModule::HasChanged() {
             }
         }
         XDestroyWindow(display, window);
-        XCloseDisplay(display);
     }
 
     if (currentText.empty()) {
@@ -121,7 +124,20 @@ void ClipboardModule::SetText(const std::string& text) {
     }
     CloseClipboard();
 #elif defined(__linux__)
-    // For simplicity on Linux writing, we stick to xclip for now as X11 ownership is complex
+    Display* display = (Display*)m_xDisplay;
+    if (display) {
+        Atom clipboard = XInternAtom(display, "CLIPBOARD", False);
+        // We use our existing framework window to take ownership
+        // But since ClipboardModule doesn't know about it, we'll use a hidden root-owned window
+        // For production, we should pass the framework window handle here.
+        // For now, let's use the default root window or a simple invisible one.
+        Window window = XCreateSimpleWindow(display, DefaultRootWindow(display), 0, 0, 1, 1, 0, 0, 0);
+        XSetSelectionOwner(display, clipboard, window, CurrentTime);
+        XFlush(display);
+        // NOTE: The actual data serving happens in NetMuxFramework::ProcessX11Events
+    }
+
+    // Keep xclip as a reliable fallback for now
     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen("xclip -selection clipboard", "w"), pclose);
     if (pipe) {
         fwrite(text.c_str(), 1, text.size(), pipe.get());
@@ -135,20 +151,39 @@ void ClipboardModule::SetText(const std::string& text) {
 
 std::string ClipboardModule::Utf16ToUtf8(const std::wstring& wstr) {
     if (wstr.empty()) return "";
-    try {
-        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-        return converter.to_bytes(wstr);
-    } catch (...) {
-        return "";
+    std::string out;
+    for (wchar_t wc : wstr) {
+        if (wc < 0x80) {
+            out += (char)wc;
+        } else if (wc < 0x800) {
+            out += (char)(0xC0 | (wc >> 6));
+            out += (char)(0x80 | (wc & 0x3F));
+        } else {
+            out += (char)(0xE0 | (wc >> 12));
+            out += (char)(0x80 | ((wc >> 6) & 0x3F));
+            out += (char)(0x80 | (wc & 0x3F));
+        }
     }
+    return out;
 }
 
 std::wstring ClipboardModule::Utf8ToUtf16(const std::string& str) {
     if (str.empty()) return L"";
-    try {
-        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-        return converter.from_bytes(str);
-    } catch (...) {
-        return L"";
+    std::wstring out;
+    for (size_t i = 0; i < str.size(); ++i) {
+        unsigned char c = (unsigned char)str[i];
+        if (c < 0x80) {
+            out += (wchar_t)c;
+        } else if ((c & 0xE0) == 0xC0) {
+            wchar_t wc = (c & 0x1F) << 6;
+            wc |= (str[++i] & 0x3F);
+            out += wc;
+        } else if ((c & 0xF0) == 0xE0) {
+            wchar_t wc = (c & 0x0F) << 12;
+            wc |= (str[++i] & 0x3F) << 6;
+            wc |= (str[++i] & 0x3F);
+            out += wc;
+        }
     }
+    return out;
 }

@@ -3,7 +3,11 @@
 
 class ClipboardModule {
 public:
+#ifdef __linux__
+    ClipboardModule(void* xDisplay = nullptr);
+#else
     ClipboardModule();
+#endif
     ~ClipboardModule();
 
     bool HasChanged();
@@ -11,6 +15,9 @@ public:
     void SetText(const std::string& text);
 
 private:
+#ifdef __linux__
+    void* m_xDisplay = nullptr;
+#endif
     std::string m_lastText;
     size_t m_lastHash = 0;
 

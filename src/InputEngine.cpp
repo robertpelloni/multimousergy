@@ -108,7 +108,12 @@ LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
 }
 #endif
 
+#ifdef __linux__
+bool InputEngine::Initialize(const Config& config, void* xDisplay) {
+    m_xDisplay = xDisplay;
+#else
 bool InputEngine::Initialize(const Config& config) {
+#endif
     m_config = config;
     std::cout << "[Input] Initializing Input Capture..." << std::endl;
 
@@ -173,7 +178,7 @@ void InputEngine::Update() {
 
 #ifdef __linux__
     // Try to sync virtual position with real X11 cursor if possible
-    Display* display = XOpenDisplay(NULL);
+    Display* display = (Display*)m_xDisplay;
     if (display) {
         Window root = DefaultRootWindow(display);
         Window root_return, child_return;
@@ -185,7 +190,6 @@ void InputEngine::Update() {
                 m_virtualY = root_y;
             }
         }
-        XCloseDisplay(display);
     }
 
     for (int fd : m_fds) {

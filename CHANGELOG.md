@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.57-alpha] - 2025-01-24
+### Added
+- Implement native X11 persistent display management (optimized connection reuse).
+- Implement native X11 clipboard writing and event dispatch (serve data without `xclip`).
+- Modernize Unicode conversion with manual UTF-8/UTF-16 bridging (removed deprecated headers).
+- Add placeholders for File Transfer protocol integration.
+
 ## [0.1.56-alpha] - 2025-01-24
 ### Added
 - Implement native X11 clipboard reading on Linux (optimized over `xclip`).

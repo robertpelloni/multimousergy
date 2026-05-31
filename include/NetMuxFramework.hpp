@@ -41,6 +41,10 @@ public:
     NetworkManager& GetNetworkManager() { return m_network; }
     bool IsRunning() const { return m_running; }
 
+#ifdef __linux__
+    void* m_xDisplay = nullptr;
+#endif
+
 private:
     void ProcessOutgoingPackets();
     void ProcessInteractionQueue();
@@ -54,12 +58,21 @@ private:
 
     bool IsPeerTrusted(unsigned long long peerId, NetMuxPacketType type);
 
+#ifdef __linux__
+    void ProcessX11Events();
+    unsigned long m_xWindow = 0;
+#endif
+
     NetworkManager m_network;
     InputEngine m_input;
     DriverInterface m_driver;
     OverlayEngine m_overlay;
     SyncModule m_sync;
+#ifdef __linux__
+    ClipboardModule m_clipboard{m_xDisplay};
+#else
     ClipboardModule m_clipboard;
+#endif
 
     AppSettings m_settings;
     bool m_running;

@@ -8,7 +8,11 @@ public:
     InputEngine();
     ~InputEngine();
 
+#ifdef __linux__
+    bool Initialize(const Config& config, void* xDisplay = nullptr);
+#else
     bool Initialize(const Config& config);
+#endif
     void Update();
     void Shutdown();
 
@@ -40,6 +44,7 @@ public:
 #endif
 #ifdef __linux__
     std::vector<int> m_fds;
+    void* m_xDisplay = nullptr;
 #endif
 
 private:

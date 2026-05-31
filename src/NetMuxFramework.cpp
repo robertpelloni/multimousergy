@@ -1,6 +1,11 @@
 #include "NetMuxFramework.hpp"
 #include "ConfigGUI.hpp"
 #include "AuthModule.hpp"
+
+#ifdef __linux__
+#include <X11/Xlib.h>
+#include <X11/Xatom.h>
+#endif
 #include <iostream>
 #include <cmath>
 #include <algorithm>
@@ -19,10 +24,23 @@
 NetMuxFramework::NetMuxFramework()
     : m_running(false), m_lastSyncTime(0), m_lastPerfLog(0), m_overlayDirty(false) {
     m_localId = (unsigned long long)std::chrono::system_clock::now().time_since_epoch().count();
+#ifdef __linux__
+    m_xDisplay = XOpenDisplay(NULL);
+    if (m_xDisplay) {
+        m_xWindow = XCreateSimpleWindow((Display*)m_xDisplay, DefaultRootWindow((Display*)m_xDisplay), 0, 0, 1, 1, 0, 0, 0);
+    }
+#endif
 }
 
 NetMuxFramework::~NetMuxFramework() {
     Shutdown();
+#ifdef __linux__
+    if (m_xDisplay) {
+        XDestroyWindow((Display*)m_xDisplay, (Window)m_xWindow);
+        XCloseDisplay((Display*)m_xDisplay);
+        m_xDisplay = nullptr;
+    }
+#endif
 }
 
 bool NetMuxFramework::Initialize(const AppSettings& settings) {
@@ -94,6 +112,9 @@ void NetMuxFramework::Run() {
         PerformMasterStateSync();
         PerformSyncCheck();
         PerformPeerCleanup();
+#ifdef __linux__
+        ProcessX11Events();
+#endif
         ProcessOutgoingPackets();
         ProcessIncomingPackets();
         ProcessInteractionQueue();
@@ -581,6 +602,38 @@ void NetMuxFramework::PerformPeerCleanup() {
         lastCleanup = m_loopTimer.ElapsedMilliseconds();
     }
 }
+
+#ifdef __linux__
+void NetMuxFramework::ProcessX11Events() {
+    if (!m_xDisplay) return;
+    Display* display = (Display*)m_xDisplay;
+    XEvent event;
+    while (XPending(display)) {
+        XNextEvent(display, &event);
+        if (event.type == SelectionRequest) {
+            XSelectionRequestEvent* req = &event.xselectionrequest;
+            XSelectionEvent sev = {0};
+            sev.type = SelectionNotify;
+            sev.display = req->display;
+            sev.requestor = req->requestor;
+            sev.selection = req->selection;
+            sev.target = req->target;
+            sev.property = req->property;
+            sev.time = req->time;
+
+            Atom utf8 = XInternAtom(display, "UTF8_STRING", False);
+            if (req->target == utf8 || req->target == XA_STRING) {
+                std::string text = m_clipboard.GetText();
+                XChangeProperty(display, req->requestor, req->property, req->target, 8, PropModeReplace,
+                                (unsigned char*)text.c_str(), text.size());
+            } else {
+                sev.property = None;
+            }
+            XSendEvent(display, req->requestor, True, 0, (XEvent*)&sev);
+        }
+    }
+}
+#endif
 
 void NetMuxFramework::PerformClipboardSync() {
     static double lastCheck = 0;

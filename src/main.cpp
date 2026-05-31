@@ -51,7 +51,11 @@ int main(int argc, char* argv[]) {
             continue;
         }
 
+#ifdef __linux__
+        framework.GetInputEngine().Initialize(settings.inputConfig, framework.m_xDisplay);
+#else
         framework.GetInputEngine().Initialize(settings.inputConfig);
+#endif
 
         framework.SetCursorColor(colorR, colorG, colorB);
 

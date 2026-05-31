@@ -18,4 +18,5 @@
 - [x] Implement multi-part chunking for clipboard synchronization.
 - [x] Enable D3D11 texture synchronization for custom cursor themes.
 - [x] Implement native X11 clipboard integration for Linux.
+- [ ] Implement robust File Transfer protocol handlers.
 - [ ] Refactor Network Protocol to use formal serialization (Protobuf/Flatbuffers).

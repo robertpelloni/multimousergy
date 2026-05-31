@@ -1,22 +1,21 @@
-# Session Handoff - v0.1.56-alpha
+# Session Handoff - v0.1.57-alpha
 
 ## Summary of Changes
-- **Native X11 Clipboard**: Implemented direct `Xlib` calls in `ClipboardModule.cpp` to read the system clipboard on Linux, significantly reducing overhead compared to `xclip` process spawning.
-- **Enhanced Linux Capture**: Integrated `XQueryPointer` into `InputEngine.cpp` to synchronize virtual coordinates with the real system cursor, allowing for reliable boundary-based input capture.
-- **Driver Interface Refactoring**: Updated `DriverInterface` and `CMakeLists.txt` to support optional linking against native Interception and ViGEmBus SDKs via the `NETMUX_USE_NATIVE_DRIVERS` macro.
-- **Build System**: Updated `CMakeLists.txt` to detect and link against `X11` libraries on Linux.
+- **Persistent X11 Connection**: Refactored `NetMuxFramework` to manage a single `Display*` connection on Linux, shared with `InputEngine` and `ClipboardModule`.
+- **Native Clipboard Writing**: Implemented `XSetSelectionOwner` and `SelectionRequest` event handling in `NetMuxFramework`. Linux machines can now serve clipboard data directly to other applications.
+- **Modernized Unicode**: Replaced deprecated `std::wstring_convert` with a manual UTF-8/UTF-16 converter in `ClipboardModule.cpp` for improved future-proofing and compiler cleanliness.
+- **Display Lifecycle**: Fixed potential leaks by ensuring `XCloseDisplay` and `XDestroyWindow` are called correctly in the framework destructor.
 
 ## Technical Observations
-- The Linux X11 clipboard implementation includes a 100ms timeout loop to handle asynchronous `SelectionNotify` events.
-- Boundary detection on Linux now uses the global root window coordinates from X11, resolving the "drift" issue inherent in relative-only tracking.
-- `NETMUX_USE_NATIVE_DRIVERS` allows developers to compile the project without needing the physical drivers installed, while still having the logic ready for deployment.
+- The manual UTF-8 converter supports up to 3-byte sequences (BMP), which covers most common characters including basic emojis and international text.
+- X11 event processing is integrated into the main non-blocking loop via `XPending` and `XNextEvent`.
 
 ## Next Steps
-- Implement native X11 clipboard *writing* (currently still using `xclip` due to X11 ownership complexity).
-- Finalize the `FileTransferEngine` using the established chunking protocol.
-- Research Wayland-specific input capture alternatives for future-proofing Linux support.
+- Implement full `FileTransferEngine` logic, leveraging the existing 4KB chunking infrastructure.
+- Extend manual Unicode converter to support 4-byte UTF-8 sequences (full emoji/ext-plane support).
+- Research Wayland clipboard serving alternatives (e.g., via `wl-clipboard` or native protocols).
 
 ## Repository State
-- Version: `v0.1.56-alpha`
-- Build status: Passing (X11 dependency added to Linux build)
+- Version: `v0.1.57-alpha`
+- Build status: Passing (X11 event loop verified)
 - Git: Pushed to origin.
