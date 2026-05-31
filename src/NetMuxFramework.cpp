@@ -394,6 +394,9 @@ void NetMuxFramework::ProcessIncomingPackets() {
             m_sync.UpdatePeerResolution(peerId, inPkt.x, inPkt.y);
             if (m_settings.isServer) m_network.SendPacket(inPkt);
         } else if (inPkt.type == NetMuxPacketType::SyncCheck) {
+            PeerState peer;
+            if (m_sync.GetPeerState(peerId, peer) && !peer.isAuthenticated && !m_settings.securityKey.empty()) continue;
+
             if (m_settings.isServer) {
                 unsigned long long subjectPeerId = (unsigned long long)inPkt.button;
                 PeerState authoritative;
@@ -413,6 +416,9 @@ void NetMuxFramework::ProcessIncomingPackets() {
                 }
             }
         } else if (inPkt.type == NetMuxPacketType::SelectionUpdate) {
+            PeerState peer;
+            if (m_sync.GetPeerState(peerId, peer) && !peer.isAuthenticated && !m_settings.securityKey.empty()) continue;
+
             m_sync.UpdatePeerSelection(peerId, inPkt.isSelecting, inPkt.selectionStartX, inPkt.selectionStartY);
             if (m_settings.isServer) {
                 m_network.SendPacketToGroup(inPkt, inPkt.groupId);

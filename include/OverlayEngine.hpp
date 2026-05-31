@@ -35,7 +35,7 @@ public:
 
     void SetScale(float scale) { m_scale = scale; }
     void SetBackend(OverlayBackend backend) { m_backend = backend; }
-    void SetActivePeer(unsigned long long id) { m_activePeerId = id; }
+    void SetActivePeer(unsigned long long id);
 
 private:
     bool m_active;

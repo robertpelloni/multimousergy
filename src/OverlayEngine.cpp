@@ -1,6 +1,7 @@
 #include "OverlayEngine.hpp"
 #include "D3D11Overlay.hpp"
 #include <iostream>
+#include <algorithm>
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -218,6 +219,15 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
     UpdateLayeredWindow(hwnd, hdcScreen, &ptDest, &size, hdcMem, &ptSrc, RGB(0,0,0), &blend, ULW_COLORKEY);
 
     ReleaseDC(NULL, hdcScreen);
+#endif
+}
+
+void OverlayEngine::SetActivePeer(unsigned long long id) {
+    m_activePeerId = id;
+#ifdef _WIN32
+    if (m_backend == OverlayBackend::D3D11 && m_d3dOverlay) {
+        static_cast<D3D11Overlay*>(m_d3dOverlay)->SetActivePeer(id);
+    }
 #endif
 }
 
