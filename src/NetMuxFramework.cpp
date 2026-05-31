@@ -258,9 +258,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
             }
         } else if (inPkt.type == NetMuxPacketType::AbsoluteMovement) {
             PeerState peer;
-            bool auth = false;
-            if (m_sync.GetPeerState(peerId, peer)) auth = peer.isAuthenticated;
-            if (!auth && !m_settings.securityKey.empty()) continue;
+            if (m_sync.GetPeerState(peerId, peer) && !peer.isAuthenticated && !m_settings.securityKey.empty()) continue;
 
             PeerState oldPeer;
             m_sync.GetPeerState(peerId, oldPeer);
@@ -329,13 +327,12 @@ void NetMuxFramework::ProcessIncomingPackets() {
 
             m_sync.UpdatePeer(peerId, inPkt.groupId, 0, 0, 0, remoteName.c_str(), remoteGroupName.c_str());
 
-            if (m_settings.isServer) {
-                Packet challenge = { m_localId, m_settings.groupId, 0.0, NetMuxPacketType::AuthChallenge, 0, 0, 0, false, false, 0, 0, "", 0 };
-                int nonce = rand();
-                challenge.x = nonce;
-                m_pendingNonces[peerId] = nonce;
-                m_network.SendPacket(challenge);
+            // Mutual Authentication: Both sides challenge each other
+            Packet challenge = { m_localId, m_settings.groupId, 0.0, NetMuxPacketType::AuthChallenge, 0, 0, 0, false, false, 0, 0, "", 0 };
+            challenge.x = m_authService.CreateChallenge(peerId);
+            m_network.SendPacket(challenge);
 
+            if (m_settings.isServer) {
                 Packet reply = { m_localId, m_settings.groupId, 0.0, NetMuxPacketType::Handshake, 0, 0, 0, false, false, 0, 0, "", 0 };
                 std::string sMeta = m_settings.sessionName + "|" + m_settings.groupName;
                 strncpy(reply.payload, sMeta.c_str(), sizeof(reply.payload) - 1);
@@ -354,31 +351,30 @@ void NetMuxFramework::ProcessIncomingPackets() {
             std::cout << "[Security] Auth response (Hash) sent." << std::endl;
 
         } else if (inPkt.type == NetMuxPacketType::AuthResponse) {
-            if (m_settings.isServer) {
-                std::cout << "[Security] Auth response received from peer " << peerId << std::endl;
+            std::cout << "[Security] Auth response received from peer " << peerId << std::endl;
 
-                bool authenticated = false;
-                if (m_settings.securityKey.empty()) {
+            bool authenticated = false;
+            if (m_settings.securityKey.empty()) {
+                authenticated = true;
+            } else {
+                if (inPkt.payloadSize == 32 && m_authService.VerifyResponse(peerId, m_settings.securityKey, (const unsigned char*)inPkt.payload)) {
                     authenticated = true;
-                } else if (m_pendingNonces.count(peerId)) {
-                    int nonce = m_pendingNonces[peerId];
-                    if (inPkt.payloadSize == 32 && AuthModule::VerifyResponse(nonce, m_settings.securityKey, (const unsigned char*)inPkt.payload)) {
-                        authenticated = true;
-                    } else {
-                        std::cerr << "[Security] Auth FAILED for peer " << peerId << " (Hash mismatch)" << std::endl;
-                    }
-                    m_pendingNonces.erase(peerId);
+                } else {
+                    std::cerr << "[Security] Auth FAILED for peer " << peerId << " (Hash mismatch or invalid nonce)" << std::endl;
                 }
+            }
 
-                if (authenticated) {
-                    m_sync.SetAuthenticated(peerId, true);
-                    std::cout << "[Security] Peer " << peerId << " authenticated successfully." << std::endl;
-                }
+            if (authenticated) {
+                m_sync.SetAuthenticated(peerId, true);
+                std::cout << "[Security] Peer " << peerId << " authenticated successfully." << std::endl;
             }
         } else if (inPkt.type == NetMuxPacketType::FocusUpdate) {
             unsigned long long newOwner = (unsigned long long)inPkt.button;
             m_sync.SetActivePeer(newOwner);
         } else if (inPkt.type == NetMuxPacketType::SessionUpdate) {
+            PeerState peer;
+            if (m_sync.GetPeerState(peerId, peer) && !peer.isAuthenticated && !m_settings.securityKey.empty()) continue;
+
             int size = std::min(inPkt.payloadSize, (int)sizeof(inPkt.payload));
             std::string meta(inPkt.payload, size);
             size_t sep = meta.find('|');
@@ -391,6 +387,9 @@ void NetMuxFramework::ProcessIncomingPackets() {
                 m_network.SendPacket(inPkt);
             }
         } else if (inPkt.type == NetMuxPacketType::ResolutionUpdate) {
+            PeerState peer;
+            if (m_sync.GetPeerState(peerId, peer) && !peer.isAuthenticated && !m_settings.securityKey.empty()) continue;
+
             m_sync.UpdatePeerResolution(peerId, inPkt.x, inPkt.y);
             if (m_settings.isServer) m_network.SendPacket(inPkt);
         } else if (inPkt.type == NetMuxPacketType::SyncCheck) {

@@ -28,6 +28,7 @@ int main(int argc, char* argv[]) {
         else if (arg == "--gui") firstRun = true;
         else if (arg == "--bench") benchMode = true;
         else if (arg == "--auto-connect") autoConnect = true;
+        else if ((arg == "--key" || arg == "-k") && i + 1 < argc) settings.securityKey = argv[++i];
     }
 
     while (true) {

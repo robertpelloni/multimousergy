@@ -6,6 +6,7 @@
 #include "SyncModule.hpp"
 #include "ClipboardModule.hpp"
 #include "ConfigManager.hpp"
+#include "AuthService.hpp"
 #include "Timer.hpp"
 #include <map>
 #include <queue>
@@ -78,5 +79,5 @@ private:
     };
     std::queue<InteractionEvent> m_interactionQueue;
     std::mutex m_interactionMutex;
-    std::map<unsigned long long, int> m_pendingNonces;
+    AuthService m_authService;
 };

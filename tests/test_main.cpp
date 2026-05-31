@@ -21,6 +21,7 @@ void test_clock_offset_calculation();
 void test_simultaneous_edit_resolution();
 void test_boundary_logic();
 void test_auth_module();
+void test_auth_service();
 
 void test_sync_module_interpolation() {
     std::cout << "Testing SyncModule interpolation..." << std::endl;
@@ -51,6 +52,7 @@ int main() {
     std::cout << "Running unit tests..." << std::endl;
     test_config_manager();
     test_auth_module();
+    test_auth_service();
     test_sync_module_interpolation();
     test_concurrent_cursor_sync();
     test_high_concurrency_sync();

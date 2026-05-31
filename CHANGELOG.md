@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## [0.1.44-alpha] - 2025-01-24
+### Added
+- Implemented stateful `AuthService` for secure challenge-response management.
+- Added Mutual Authentication: Both client and server now challenge each other.
+- Hardened security: unauthenticated peers are strictly dropped from sensitive state updates.
+- Added CLI support for security keys (`--key` / `-k`).
+- Integrated comprehensive unit tests for `AuthService`.
+
 ## [0.1.43-alpha] - 2025-01-24
 ### Added
 - Implemented Network Bandwidth Optimization (header-only movement packets).

@@ -17,3 +17,4 @@
 - **D3D11 Pipeline**: The hardware rendering path is fully integrated into the `OverlayEngine`, providing sub-millisecond frame preparation for cursor updates.
 - **Performance Gap**: Benchmarking reveals that the D3D11 backend reduces CPU frame preparation time by approximately 30% compared to GDI `UpdateLayeredWindow`, especially under high peer counts.
 - **Sync Reliability**: The "Timestamp-First" model combined with Clock Synchronization has proven robust against jitter-induced out-of-order interactions.
+- **Authentication Lifecycle**: The system utilizes a stateful `AuthService` with mutual authentication. Handshakes trigger bidirectional challenges, ensuring both sides are trusted. Sensitive packet processing (Move, Click, Clipboard) is strictly gated by authentication status.

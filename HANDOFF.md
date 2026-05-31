@@ -1,20 +1,22 @@
-# HANDOFF.md - Session Summary (v0.1.42-alpha)
+# HANDOFF.md - Session Summary (v0.1.44-alpha)
 
 ## Overview
-This session focused on full repository synchronization, branch reconciliation, and the integration of persistent real-time monitoring into the NetMux UI framework.
+This session focused on implementing a robust, stateful authentication service with mutual challenge-response, hardening security enforcement, and providing auxiliary performance and UI enhancements.
 
 ## Significant Achievements
-1.  **Dual-Direction Merge**: Reconciled the `main` branch with the divergent `netmux-initial-architecture-...` tree. Used `allow-unrelated-histories` to successfully bridge the repository state after a significant structural shift.
-2.  **Persistent Monitoring**: Refactored `ConfigGUI` to support a non-blocking message pump. The NetMux Monitor window now remains active during execution, providing live telemetry on latency, drift, and authentication.
-3.  **Integrated Execution**: Refactored `main.cpp` to launch the framework in a background thread while the main thread drives the Win32 UI.
-4.  **E2E Synchronization Validation**: Implemented `tests/e2e_sync_test.py` to simulate cross-network movement and verify the `SyncCheck` protocol for drift detection.
-5.  **Documentation & Versioning**: Maintained strict governance. The project is now at **v0.1.42-alpha**.
+1.  **Stateful AuthService**: Developed `AuthService` to manage challenge nonces with cryptographically sound random generation.
+2.  **Mutual Authentication**: Implemented bidirectional challenges during the handshake phase, ensuring both client and server are verified.
+3.  **Security Hardening**: Hardened `NetMuxFramework` to strictly drop sensitive packets (Move, Click, Clipboard, Session, Resolution) from unauthenticated peers when a security key is configured.
+4.  **Performance Optimization**: Implemented packet truncation for high-frequency movement updates, significantly reducing UDP bandwidth.
+5.  **Enhanced Visual Feedback**: Added "Focus Halo" rendering in both D3D11 and GDI backends to highlight the active interaction owner.
+6.  **Telemetry Expansion**: Expanded the ConfigGUI monitor to display real-time RTT, E2E latency, and coordinate drift.
+7.  **CLI Support**: Added `--key` / `-k` support for headless authentication configuration.
 
 ## Technical Details for Successor
-- **Branch Strategy**: `main` is now synchronized with origin feature branches. Use `git push origin main` and `git checkout jules-...` for feature parity.
-- **UI Architecture**: `ConfigGUI` handles the message pump via `Tick()`. If `Tick()` is not called at 60Hz+, UI responsiveness will degrade.
-- **Sync Guard**: The 5px drift threshold is enforced via `PacketType::SyncCheck`. If corrective syncs are too frequent, investigate the jitter buffer size in `SyncModule`.
+- **Authentication Lifecycle**: Both sides issue `AuthChallenge` upon receiving `Handshake`. `AuthResponse` must be verified by `AuthService` before `isAuthenticated` is set in `SyncModule`.
+- **Packet Truncation**: `NetworkManager` uses `offsetof(Packet, payload)` for movement updates. Ensure receivers handle truncated packets if strict size checks are added later.
+- **Restart Signal**: The GUI can trigger a framework restart via `s_restartRequested`, which is polled by the main loop.
 
 ## Final State
-**v0.1.43-alpha**
-All merges complete. E2E tests verified. Bandwidth optimization, telemetry expansion, and Focus Halo implemented. Ready for deployment testing.
+**v0.1.44-alpha**
+Mutual authentication complete. Security hardened. Telemetry expanded. All unit tests passed. Ready for collaborative testing.

@@ -17,7 +17,7 @@
 
 ## Milestone 4: Collaborative Features (COMPLETED)
 - [x] Collaborative Selection and Drag Sync.
-- [x] Secure SHA-256 Challenge-Response Authentication.
+- [x] Secure SHA-256 Mutual Authentication.
 - [x] Persistent Monitor UI with live telemetry.
 
 ## Milestone 5: Optimization & Polish (IN PROGRESS)
