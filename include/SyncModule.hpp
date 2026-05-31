@@ -40,6 +40,8 @@ struct PeerState {
     bool isStalled;
     float vx; // Velocity pixels/ms
     float vy;
+    unsigned int totalPacketsReceived;
+    double lastAuthTime;
     std::vector<HistoryPoint> jitterBuffer;
 };
 
@@ -80,6 +82,7 @@ public:
 
     void SetActivePeer(unsigned long long id);
     unsigned long long GetActivePeer() const { return m_activePeerId; }
+    unsigned long long GetLocalId() const { return m_localId; }
 
 private:
     std::map<unsigned long long, PeerState> m_peers;

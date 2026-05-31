@@ -1,5 +1,18 @@
 # CHANGELOG.md
 
+## [0.1.48-alpha] - 2025-01-24
+### Added
+- Implemented Replay Attack Protection via sequence numbers.
+- Expanded ConfigGUI with a real-time Security Event Log.
+- Enhanced SyncModule with persistent peer metadata (Total Packets, Last Auth).
+
+## [0.1.47-alpha] - 2025-01-24
+### Added
+- Implemented Auto-Challenge mechanism for seamless re-authentication.
+- Enhanced ConfigGUI with detailed mutual authentication telemetry (LOCKED/OPEN/AUTH).
+- Added explicit `Disconnect` packet for graceful session termination.
+- Centralized security enforcement via `IsPeerTrusted` helper.
+
 ## [0.1.46-alpha] - 2025-01-24
 ### Added
 - Implemented formal network serialization layer via `PacketSerializer`.

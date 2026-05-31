@@ -19,6 +19,10 @@ void SyncModule::SetAuthenticated(unsigned long long id, bool auth) {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_peers.count(id)) {
         m_peers[id].isAuthenticated = auth;
+        if (auth) {
+            auto now = std::chrono::steady_clock::now();
+            m_peers[id].lastAuthTime = std::chrono::duration<double, std::milli>(now - s_syncStartTime).count();
+        }
     }
 }
 
@@ -140,6 +144,7 @@ void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int nor
     if (packetTimestamp > 0) {
         peer.e2eLatency = timestamp - packetTimestamp;
     }
+    peer.totalPacketsReceived++;
 
     // If it's the first update, snap immediately
     if (peer.x == 0 && peer.y == 0) {

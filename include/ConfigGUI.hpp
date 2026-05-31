@@ -15,4 +15,6 @@ public:
     static bool IsRunning();
     static bool RestartRequested();
     static void Shutdown();
+
+    static void LogSecurityEvent(const std::string& event);
 };

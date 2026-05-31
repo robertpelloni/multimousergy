@@ -31,6 +31,7 @@ static HWND s_hwndGroupName = nullptr;
 static HWND s_hwndSessionName = nullptr;
 static HWND s_hwndSecurityKey = nullptr;
 static HWND s_hwndCursorMonitor = nullptr;
+static HWND s_hwndSecurityLog = nullptr;
 
 enum ControlIDs {
     ID_SAVE_BUTTON = 1,
@@ -42,8 +43,11 @@ enum ControlIDs {
     ID_GROUP_NAME = 7,
     ID_SECURITY_KEY = 8,
     ID_CURSOR_MONITOR = 9,
-    ID_DRIVER_TYPE = 10
+    ID_DRIVER_TYPE = 10,
+    ID_SECURITY_LOG = 11
 };
+
+static HWND s_hwndSecurityStatus = nullptr;
 
 LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
@@ -91,8 +95,15 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             CreateWindow("STATIC", "Security Key:", WS_VISIBLE | WS_CHILD, 10, 420, 100, 20, hwnd, NULL, NULL, NULL);
             s_hwndSecurityKey = CreateWindow("EDIT", s_currentSettings->securityKey.c_str(), WS_VISIBLE | WS_CHILD | ES_PASSWORD | ES_AUTOHSCROLL | WS_BORDER, 110, 420, 150, 20, hwnd, (HMENU)ID_SECURITY_KEY, NULL, NULL);
 
-            CreateWindow("STATIC", "Real-Time Monitor:", WS_VISIBLE | WS_CHILD, 10, 450, 150, 20, hwnd, NULL, NULL, NULL);
-            s_hwndCursorMonitor = CreateWindow("STATIC", "", WS_VISIBLE | WS_CHILD | SS_OWNERDRAW | WS_BORDER, 10, 470, 280, 100, hwnd, (HMENU)ID_CURSOR_MONITOR, NULL, NULL);
+            s_hwndSecurityStatus = CreateWindow("STATIC", "", WS_VISIBLE | WS_CHILD, 10, 445, 280, 20, hwnd, NULL, NULL, NULL);
+            if (s_currentSettings->securityKey.empty()) SetWindowText(s_hwndSecurityStatus, "System Status: UNSECURED");
+            else SetWindowText(s_hwndSecurityStatus, "System Status: ENCRYPTED (Mutual Auth)");
+
+            CreateWindow("STATIC", "Real-Time Monitor:", WS_VISIBLE | WS_CHILD, 10, 465, 150, 20, hwnd, NULL, NULL, NULL);
+            s_hwndCursorMonitor = CreateWindow("STATIC", "", WS_VISIBLE | WS_CHILD | SS_OWNERDRAW | WS_BORDER, 10, 485, 280, 100, hwnd, (HMENU)ID_CURSOR_MONITOR, NULL, NULL);
+
+            CreateWindow("STATIC", "Security Log:", WS_VISIBLE | WS_CHILD, 10, 595, 150, 20, hwnd, NULL, NULL, NULL);
+            s_hwndSecurityLog = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 10, 615, 280, 100, hwnd, (HMENU)ID_SECURITY_LOG, NULL, NULL);
             break;
 
         case WM_DRAWITEM:
@@ -169,7 +180,7 @@ void ConfigGUI::Initialize(AppSettings& settings, SyncModule* sync) {
     wc.lpszClassName = "NetMuxIntegratedGUI";
     RegisterClass(&wc);
 
-    s_hwndMain = CreateWindow("NetMuxIntegratedGUI", "NetMux Monitor", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 320, 620, NULL, NULL, GetModuleHandle(NULL), NULL);
+    s_hwndMain = CreateWindow("NetMuxIntegratedGUI", "NetMux Monitor", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 320, 780, NULL, NULL, GetModuleHandle(NULL), NULL);
     s_isRunning = (s_hwndMain != NULL);
 #else
     s_isRunning = true;
@@ -197,9 +208,13 @@ void ConfigGUI::Tick() {
             if (peer.buttonState & 2) btnStr[1] = 'R';
             if (peer.buttonState & 4) btnStr[2] = 'M';
 
-            snprintf(info, sizeof(info), "%s | RTT:%dms | E2E:%dms | Drift:%.1fpx | %s | %s %s",
+            const char* authStatus = "LOCKED";
+            if (id == s_currentSync->GetLocalId() || s_currentSettings->securityKey.empty()) authStatus = "OPEN";
+            else if (peer.isAuthenticated) authStatus = "AUTH";
+
+            snprintf(info, sizeof(info), "%s | RTT:%dms | E2E:%dms | Drift:%.1fpx | [%s] | %s %s",
                 peer.sessionName, (int)peer.latency, (int)peer.e2eLatency, peer.drift,
-                peer.isAuthenticated ? "Auth" : "Locked",
+                authStatus,
                 btnStr, peer.isSelecting ? "[Sel]" : "");
             SendMessage(s_hwndPeerList, LB_ADDSTRING, 0, (LPARAM)info);
         }
@@ -220,6 +235,17 @@ void ConfigGUI::Shutdown() {
     if (s_hwndMain) DestroyWindow(s_hwndMain);
 #endif
     s_isRunning = false;
+}
+
+void ConfigGUI::LogSecurityEvent(const std::string& event) {
+#ifdef _WIN32
+    if (s_hwndSecurityLog) {
+        SendMessage(s_hwndSecurityLog, LB_ADDSTRING, 0, (LPARAM)event.c_str());
+        int count = (int)SendMessage(s_hwndSecurityLog, LB_GETCOUNT, 0, 0);
+        SendMessage(s_hwndSecurityLog, LB_SETCURSEL, count - 1, 0);
+    }
+#endif
+    std::cout << "[Security Log] " << event << std::endl;
 }
 
 void ConfigGUI::UpdateCursorMonitor(const std::map<unsigned long long, PeerState>& peers) {

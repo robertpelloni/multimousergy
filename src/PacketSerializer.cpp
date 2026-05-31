@@ -24,6 +24,7 @@ std::vector<uint8_t> PacketSerializer::Serialize(const Packet& pkt, bool headerO
 
     WriteBuffer(buf, offset, pkt.senderId);
     WriteBuffer(buf, offset, pkt.groupId);
+    WriteBuffer(buf, offset, pkt.sequenceNumber);
     WriteBuffer(buf, offset, pkt.localTimestamp);
     WriteBuffer(buf, offset, (int32_t)pkt.type);
     WriteBuffer(buf, offset, pkt.x);
@@ -56,6 +57,7 @@ size_t PacketSerializer::Deserialize(const uint8_t* buffer, size_t size, Packet&
 
     ReadBuffer(buffer, offset, size, outPkt.senderId);
     ReadBuffer(buffer, offset, size, outPkt.groupId);
+    ReadBuffer(buffer, offset, size, outPkt.sequenceNumber);
     ReadBuffer(buffer, offset, size, outPkt.localTimestamp);
     ReadBuffer(buffer, offset, size, typeInt); outPkt.type = (NetMuxPacketType)typeInt;
     ReadBuffer(buffer, offset, size, outPkt.x);

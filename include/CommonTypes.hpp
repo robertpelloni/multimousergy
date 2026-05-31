@@ -31,12 +31,14 @@ enum class NetMuxPacketType {
     AuthChallenge,
     AuthResponse,
     SyncCheck,
-    SelectionUpdate
+    SelectionUpdate,
+    Disconnect
 };
 
 struct Packet {
     unsigned long long senderId;
     unsigned int groupId;
+    unsigned int sequenceNumber;
     double localTimestamp; // To measure E2E latency
     NetMuxPacketType type;
     int x;

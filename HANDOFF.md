@@ -1,22 +1,23 @@
-# HANDOFF.md - Session Summary (v0.1.46-alpha)
+# HANDOFF.md - Session Summary (v0.1.48-alpha)
 
 ## Overview
 This session focused on implementing a robust, stateful authentication service with mutual challenge-response, hardening security enforcement, and providing auxiliary performance and UI enhancements.
 
 ## Significant Achievements
 1.  **Stateful AuthService**: Developed `AuthService` to manage challenge nonces with cryptographically sound random generation.
-2.  **Mutual Authentication**: Implemented bidirectional challenges during the handshake phase, ensuring both client and server are verified.
-3.  **Security Hardening**: Hardened `NetMuxFramework` to strictly drop sensitive packets (Move, Click, Clipboard, Session, Resolution) from unauthenticated peers when a security key is configured.
-4.  **Performance Optimization**: Implemented packet truncation for high-frequency movement updates, significantly reducing UDP bandwidth.
-5.  **Enhanced Visual Feedback**: Added "Focus Halo" rendering in both D3D11 and GDI backends to highlight the active interaction owner.
-6.  **Telemetry Expansion**: Expanded the ConfigGUI monitor to display real-time RTT, E2E latency, and coordinate drift.
-7.  **CLI Support**: Added `--key` / `-k` support for headless authentication configuration.
+2.  **Mutual Authentication & Auto-Challenge**: Implemented bidirectional challenges during the handshake phase and an "Auto-Challenge" mechanism to recover trust if state is lost.
+3.  **Replay Protection**: Implemented monotonic sequence numbers in the protocol to prevent packet replay attacks.
+4.  **Security Hardening**: Hardened `NetMuxFramework` to strictly gate sensitive packets behind `IsPeerTrusted` checks.
+5.  **Packet Serialization**: Implemented `PacketSerializer` for robust, cross-platform binary protocol management.
+6.  **Enhanced UI & Logging**: Expanded `ConfigGUI` with real-time RTT/Drift telemetry and a dedicated Security Event Log.
+7.  **Linux Support**: Added `evdev` hardware injection support for Linux systems.
+8.  **Graceful Termination**: Implemented an explicit `Disconnect` packet to allow peers to immediately prune stale state.
 
 ## Technical Details for Successor
-- **Authentication Lifecycle**: Both sides issue `AuthChallenge` upon receiving `Handshake`. `AuthResponse` must be verified by `AuthService` before `isAuthenticated` is set in `SyncModule`.
-- **Packet Truncation**: `NetworkManager` uses `offsetof(Packet, payload)` for movement updates. Ensure receivers handle truncated packets if strict size checks are added later.
-- **Restart Signal**: The GUI can trigger a framework restart via `s_restartRequested`, which is polled by the main loop.
+- **Security Lifecycle**: Handshake -> AuthChallenge -> AuthResponse -> Verified. Sensitive packets from unverified peers trigger Auto-Challenge.
+- **Replay Guard**: `m_lastSequence` tracks the highest seen sequence per peer. Outdated packets are dropped.
+- **Serialization**: `PacketSerializer::Deserialize` returns consumed bytes to handle TCP fragmentation correctly.
 
 ## Final State
-**v0.1.46-alpha**
-Mutual authentication complete. Security hardened. Telemetry expanded. Protocol serialization implemented. Peer lifecycle management enabled. All unit tests passed.
+**v0.1.48-alpha**
+Mutual authentication, replay protection, and formal serialization complete. Linux support and session management enabled. All tests passed.

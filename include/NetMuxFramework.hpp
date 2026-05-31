@@ -51,6 +51,8 @@ private:
     void PerformClipboardSync();
     void PerformPeerCleanup();
 
+    bool IsPeerTrusted(unsigned long long peerId, NetMuxPacketType type);
+
     NetworkManager m_network;
     InputEngine m_input;
     DriverInterface m_driver;
@@ -62,6 +64,7 @@ private:
     bool m_running;
     bool m_benchmarking = false;
     unsigned long long m_localId;
+    unsigned int m_sequenceCounter = 0;
 
     Timer m_loopTimer;
     Timer m_syncTimer;
@@ -81,4 +84,5 @@ private:
     std::queue<InteractionEvent> m_interactionQueue;
     std::mutex m_interactionMutex;
     AuthService m_authService;
+    std::map<unsigned long long, unsigned int> m_lastSequence;
 };
