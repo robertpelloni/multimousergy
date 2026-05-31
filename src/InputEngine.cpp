@@ -217,7 +217,7 @@ void InputEngine::Update() {
                     m_virtualX += dx;
                     m_virtualY += dy;
 
-                    Packet pkt = { 0, 0, 0, 0.0, NetMuxPacketType::AbsoluteMovement, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+                    Packet pkt = Packet{ 0, 0, 0, 0.0, NetMuxPacketType::AbsoluteMovement, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
                     // Normalized coordinates (assuming 1920x1080 for simulation)
                     pkt.x = (std::max(0, std::min(1919, m_virtualX)) * 65535) / 1919;
                     pkt.y = (std::max(0, std::min(1079, m_virtualY)) * 65535) / 1079;
@@ -242,7 +242,7 @@ void InputEngine::Update() {
                 else if (ev.code == BTN_MIDDLE) button = 2;
 
                 if (button != -1) {
-                    Packet pkt = { 0, 0, 0, 0.0, type, 0, 0, button, ev.value != 0, false, 0, 0, 0, false, 0, 0, "", 0 };
+                    Packet pkt = Packet{ 0, 0, 0, 0.0, type, 0, 0, button, ev.value != 0, false, 0, 0, 0, false, 0, 0, "", 0 };
                     m_pendingPackets.push(pkt);
                 }
             }
@@ -275,7 +275,7 @@ void InputEngine::Update() {
                                 m_virtualY += raw->data.mouse.lLastY;
 
                                 // Send absolute position update instead of relative
-                                Packet pkt;
+                                Packet pkt{};
                                 pkt.senderId = 0;
                                 pkt.localTimestamp = 0.0; // Will be set in NetMuxFramework
                                 pkt.type = NetMuxPacketType::AbsoluteMovement;
@@ -307,7 +307,7 @@ void InputEngine::Update() {
                                     m_pendingPackets.push(selPkt);
                                 }
                             } else {
-                                Packet pkt;
+                                Packet pkt{};
                                 pkt.senderId = 0;
                                 pkt.localTimestamp = 0.0;
                                 pkt.type = NetMuxPacketType::Movement;
@@ -322,7 +322,7 @@ void InputEngine::Update() {
                         // Button events
                         USHORT flags = raw->data.mouse.usButtonFlags;
                         if (flags & RI_MOUSE_LEFT_BUTTON_DOWN) {
-                            m_pendingPackets.push({0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 0, true});
+                            m_pendingPackets.push(Packet{0, 0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 0, true, false, 0, 0, 0, false, 0, 0, "", 0});
                             if (m_isCaptured) {
                                 m_isSelecting = true;
                                 m_selStartX = m_virtualX;
@@ -330,25 +330,25 @@ void InputEngine::Update() {
                             }
                         }
                         if (flags & RI_MOUSE_LEFT_BUTTON_UP) {
-                            m_pendingPackets.push({0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 0, false});
+                            m_pendingPackets.push(Packet{0, 0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0});
                             if (m_isCaptured && m_isSelecting) {
                                 m_isSelecting = false;
-                                Packet selPkt = { 0, 0, 0.0, NetMuxPacketType::SelectionUpdate, 0, 0, 0, false, false, 0, 0, "", 0 };
+                                Packet selPkt = Packet{ 0, 0, 0, 0.0, NetMuxPacketType::SelectionUpdate, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
                                 m_pendingPackets.push(selPkt);
                             }
                         }
-                        if (flags & RI_MOUSE_RIGHT_BUTTON_DOWN)  m_pendingPackets.push({0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 1, true});
-                        if (flags & RI_MOUSE_RIGHT_BUTTON_UP)    m_pendingPackets.push({0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 1, false});
-                        if (flags & RI_MOUSE_MIDDLE_BUTTON_DOWN) m_pendingPackets.push({0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 2, true});
-                        if (flags & RI_MOUSE_MIDDLE_BUTTON_UP)   m_pendingPackets.push({0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 2, false});
+                        if (flags & RI_MOUSE_RIGHT_BUTTON_DOWN)  m_pendingPackets.push(Packet{0, 0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 1, true, false, 0, 0, 0, false, 0, 0, "", 0});
+                        if (flags & RI_MOUSE_RIGHT_BUTTON_UP)    m_pendingPackets.push(Packet{0, 0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 1, false, false, 0, 0, 0, false, 0, 0, "", 0});
+                        if (flags & RI_MOUSE_MIDDLE_BUTTON_DOWN) m_pendingPackets.push(Packet{0, 0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 2, true, false, 0, 0, 0, false, 0, 0, "", 0});
+                        if (flags & RI_MOUSE_MIDDLE_BUTTON_UP)   m_pendingPackets.push(Packet{0, 0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 2, false, false, 0, 0, 0, false, 0, 0, "", 0});
 
                         if (flags & RI_MOUSE_WHEEL) {
                             short delta = (short)raw->data.mouse.usButtonData;
-                            m_pendingPackets.push({0, 0, 0, 0.0, NetMuxPacketType::Wheel, 0, 0, 0, false, false, 0, 0, (int)delta, false});
+                            m_pendingPackets.push(Packet{0, 0, 0, 0.0, NetMuxPacketType::Wheel, 0, 0, 0, false, false, 0, 0, (int)delta, false, 0, 0, "", 0});
                         }
                         if (flags & RI_MOUSE_HWHEEL) {
                             short delta = (short)raw->data.mouse.usButtonData;
-                            m_pendingPackets.push({0, 0, 0, 0.0, NetMuxPacketType::Wheel, 0, 0, 0, false, false, 0, 0, (int)delta, true});
+                            m_pendingPackets.push(Packet{0, 0, 0, 0.0, NetMuxPacketType::Wheel, 0, 0, 0, false, false, 0, 0, (int)delta, true, 0, 0, "", 0});
                         }
                     }
                 }
