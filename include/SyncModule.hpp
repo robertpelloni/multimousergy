@@ -81,6 +81,9 @@ public:
     // Interpolation step
     void Step(double deltaTime);
 
+    // Resolves remote timestamp to local timeline
+    double GetAdjustedTimestamp(unsigned long long id, double remoteTimestamp);
+
     void SetActivePeer(unsigned long long id);
     unsigned long long GetActivePeer() const { return m_activePeerId; }
     unsigned long long GetLocalId() const { return m_localId; }

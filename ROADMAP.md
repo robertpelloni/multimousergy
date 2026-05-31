@@ -30,4 +30,5 @@
 - [x] Bandwidth Optimization (Header-only movement packets).
 - [x] Focus Halo visual feedback.
 - [x] Formal Protocol Serialization.
+- [x] Unicode Clipboard & High-Capacity Payloads.
 - [ ] Native Vendor SDK linking for Drivers.

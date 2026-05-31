@@ -40,7 +40,7 @@ std::vector<uint8_t> PacketSerializer::Serialize(const Packet& pkt, bool headerO
     if (!headerOnly) {
         WriteBuffer(buf, offset, pkt.payloadSize);
         if (pkt.payloadSize > 0) {
-            size_t pSize = (pkt.payloadSize > 1024) ? 1024 : pkt.payloadSize;
+            size_t pSize = (pkt.payloadSize > 4096) ? 4096 : pkt.payloadSize;
             if (offset + pSize > buf.size()) buf.resize(offset + pSize);
             std::memcpy(buf.data() + offset, pkt.payload, pSize);
             offset += pSize;
@@ -85,7 +85,7 @@ size_t PacketSerializer::Deserialize(const uint8_t* buffer, size_t size, Packet&
     ReadBuffer(buffer, offset, size, outPkt.payloadSize);
 
     if (outPkt.payloadSize > 0) {
-        if (outPkt.payloadSize > 1024) return 0; // Protocol error/corrupted
+        if (outPkt.payloadSize > 4096) return 0; // Protocol error/corrupted
         if (offset + (size_t)outPkt.payloadSize > size) return 0; // Need more data for payload
 
         std::memcpy(outPkt.payload, buffer + offset, outPkt.payloadSize);

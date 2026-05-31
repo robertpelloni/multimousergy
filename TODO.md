@@ -11,4 +11,5 @@
 - [x] Integrated Persistent Monitoring UI (ConfigGUI).
 - [x] Implement "Custom Cursor Themes" (BMP Loading).
 - [x] Implement Multi-Monitor DPI Awareness (SetProcessDPIAware).
+- [x] Enhance Clipboard with Unicode support and conflict resolution.
 - [ ] Refactor Network Protocol to use formal serialization (Protobuf/Flatbuffers).

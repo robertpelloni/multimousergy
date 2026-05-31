@@ -86,4 +86,5 @@ private:
     std::mutex m_interactionMutex;
     AuthService m_authService;
     std::map<unsigned long long, unsigned int> m_lastSequence;
+    double m_lastClipboardTimestamp = 0;
 };

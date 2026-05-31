@@ -356,12 +356,19 @@ void NetMuxFramework::ProcessIncomingPackets() {
             }
         } else if (inPkt.type == NetMuxPacketType::ClipboardSync) {
             if (IsPeerTrusted(peerId, inPkt.type)) {
-                int size = std::min(inPkt.payloadSize, (int)sizeof(inPkt.payload));
-                std::string text(inPkt.payload, size);
-                m_clipboard.SetText(text);
+                // Conflict Resolution: Only apply if it's newer than our last applied update
+                // adjusted to local timeline
+                double remoteTimestamp = m_sync.GetAdjustedTimestamp(peerId, inPkt.localTimestamp);
 
-                if (m_settings.isServer) {
-                    m_network.SendPacket(inPkt);
+                if (remoteTimestamp > m_lastClipboardTimestamp) {
+                    int size = std::min(inPkt.payloadSize, (int)sizeof(inPkt.payload));
+                    std::string text(inPkt.payload, size);
+                    m_clipboard.SetText(text);
+                    m_lastClipboardTimestamp = remoteTimestamp;
+
+                    if (m_settings.isServer) {
+                        m_network.SendPacket(inPkt);
+                    }
                 }
             }
         } else if (inPkt.type == NetMuxPacketType::Handshake) {
@@ -573,11 +580,14 @@ void NetMuxFramework::PerformPeerCleanup() {
 void NetMuxFramework::PerformClipboardSync() {
     if (m_clipboard.HasChanged()) {
         std::string text = m_clipboard.GetText();
-        if (text.size() < 1024) {
-            Packet pkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::ClipboardSync, 0, 0, 0, false, false, 0, 0, 0, false, "", 0 };
+        if (text.size() < 4096) {
+            double now = m_loopTimer.ElapsedMilliseconds();
+            Packet pkt = { m_localId, m_settings.groupId, m_sequenceCounter++, now, NetMuxPacketType::ClipboardSync, 0, 0, 0, false, false, 0, 0, 0, false, "", 0 };
             memcpy(pkt.payload, text.c_str(), text.size());
             pkt.payloadSize = (int)text.size();
             m_network.SendPacket(pkt);
+
+            m_lastClipboardTimestamp = now;
         }
     }
 }

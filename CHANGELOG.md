@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.52-alpha] - 2025-01-24
+### Added
+- Expand network protocol payload capacity to 4096 bytes for larger clipboard transfers.
+- Implement Unicode (UTF-8/UTF-16) clipboard synchronization support via `CF_UNICODETEXT`.
+- Add hash-based clipboard change detection for optimized performance.
+- Implement temporal clipboard conflict resolution using unified framework timelines.
+
 ## [0.1.51-alpha] - 2025-01-24
 ### Added
 - Implemented full Mouse Wheel support (Vertical & Horizontal).

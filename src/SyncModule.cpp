@@ -179,6 +179,14 @@ void SyncModule::UpdateClockOffset(unsigned long long id, double remoteTime, dou
     }
 }
 
+double SyncModule::GetAdjustedTimestamp(unsigned long long id, double remoteTimestamp) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_peers.count(id)) {
+        return remoteTimestamp - m_peers[id].clockOffset;
+    }
+    return remoteTimestamp;
+}
+
 std::vector<unsigned long long> SyncModule::PruneInactivePeers(double timeoutMs) {
     std::lock_guard<std::mutex> lock(m_mutex);
     std::vector<unsigned long long> pruned;
