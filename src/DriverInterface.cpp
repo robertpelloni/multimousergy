@@ -2,6 +2,7 @@
 #include <iostream>
 
 #ifdef _WIN32
+#define NOMINMAX
 #include <windows.h>
 
 /*
@@ -39,7 +40,7 @@ typedef void* PVIGEM_CLIENT;
 typedef void* PVIGEM_TARGET;
 #endif
 
-DriverInterface::DriverInterface() : m_initialized(false), m_type(DriverType::Auto) {
+DriverInterface::DriverInterface() : m_initialized(false), m_type(NetMuxDriverType::Auto) {
 #ifdef _WIN32
     m_context = nullptr;
     m_device = 0;
@@ -52,12 +53,12 @@ DriverInterface::~DriverInterface() {
     Shutdown();
 }
 
-bool DriverInterface::Initialize(DriverType type) {
+bool DriverInterface::Initialize(NetMuxDriverType type) {
     m_type = type;
     std::cout << "[Driver] Initializing hardware abstraction layer..." << std::endl;
 
 #ifdef _WIN32
-    if (m_type == DriverType::Auto || m_type == DriverType::Interception) {
+    if (m_type == NetMuxDriverType::Auto || m_type == NetMuxDriverType::Interception) {
         std::cout << "[Driver] Attempting Interception initialization..." << std::endl;
 
         // m_context = interception_create_context();
@@ -66,18 +67,18 @@ bool DriverInterface::Initialize(DriverType type) {
         // For Alpha, we assume success if requested to enable the path
         m_context = (void*)1;
         m_device = 12; // Typical virtual device ID
-        m_type = DriverType::Interception;
+        m_type = NetMuxDriverType::Interception;
         m_initialized = true;
         std::cout << "[Driver] Interception driver path enabled." << std::endl;
         return true;
     }
 
-    if (m_type == DriverType::Auto || m_type == DriverType::ViGEmBus) {
+    if (m_type == NetMuxDriverType::Auto || m_type == NetMuxDriverType::ViGEmBus) {
         std::cout << "[Driver] Attempting ViGEmBus initialization..." << std::endl;
 
         m_vigemClient = (void*)1;
         m_vigemPad = (void*)2;
-        m_type = DriverType::ViGEmBus;
+        m_type = NetMuxDriverType::ViGEmBus;
         m_initialized = true;
         std::cout << "[Driver] ViGEmBus driver path enabled." << std::endl;
         return true;
@@ -92,7 +93,7 @@ void DriverInterface::Shutdown() {
     if (m_initialized) {
         std::cout << "[Driver] Shutting down hardware interface..." << std::endl;
 #ifdef _WIN32
-        if (m_type == DriverType::Interception && m_context && m_context != (void*)1) {
+        if (m_type == NetMuxDriverType::Interception && m_context && m_context != (void*)1) {
             // interception_destroy_context((InterceptionContext)m_context);
         }
         m_context = nullptr;
@@ -106,7 +107,7 @@ bool DriverInterface::SendMouseMovement(long dx, long dy) {
     if (!m_initialized) return false;
 
 #ifdef _WIN32
-    if (m_type == DriverType::Interception) {
+    if (m_type == NetMuxDriverType::Interception) {
         InterceptionMouseStroke stroke = {0};
         stroke.flags = INTERCEPTION_MOUSE_MOVE_RELATIVE;
         stroke.x = (int)dx;
@@ -124,7 +125,7 @@ bool DriverInterface::SendMouseButton(int button, bool down) {
     if (!m_initialized) return false;
 
 #ifdef _WIN32
-    if (m_type == DriverType::Interception) {
+    if (m_type == NetMuxDriverType::Interception) {
         InterceptionMouseStroke stroke = {0};
         if (button == 0) stroke.state = down ? INTERCEPTION_MOUSE_LEFT_BUTTON_DOWN : INTERCEPTION_MOUSE_LEFT_BUTTON_UP;
         else if (button == 1) stroke.state = down ? INTERCEPTION_MOUSE_RIGHT_BUTTON_DOWN : INTERCEPTION_MOUSE_RIGHT_BUTTON_UP;

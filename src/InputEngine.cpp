@@ -3,6 +3,7 @@
 #include <chrono>
 
 #ifdef _WIN32
+#define NOMINMAX
 #include <windows.h>
 static InputEngine* s_instance = nullptr;
 #endif
@@ -10,6 +11,7 @@ static InputEngine* s_instance = nullptr;
 InputEngine::InputEngine() : m_active(false), m_isCaptured(false), m_accumulatedX(0), m_virtualX(0), m_virtualY(0), m_lastLocalActivity(0) {
 #ifdef _WIN32
     m_mouseHook = nullptr;
+    m_keyboardHook = nullptr;
     m_hwnd = nullptr;
 #endif
 }
@@ -29,6 +31,22 @@ LRESULT CALLBACK InputWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
+LRESULT CALLBACK KeyboardHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
+    if (nCode >= 0 && s_instance) {
+        if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
+            KBDLLHOOKSTRUCT* kbd = (KBDLLHOOKSTRUCT*)lParam;
+            if (kbd->vkCode == VK_ESCAPE) {
+                if (s_instance->m_isCaptured) {
+                    std::cout << "[Input] Panic Escape! Releasing capture." << std::endl;
+                    s_instance->m_isCaptured = false;
+                    s_instance->m_accumulatedX = 0;
+                }
+            }
+        }
+    }
+    return CallNextHookEx(NULL, nCode, wParam, lParam);
+}
+
 LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode >= 0 && s_instance) {
         MSLLHOOKSTRUCT* mouseInfo = (MSLLHOOKSTRUCT*)lParam;
@@ -45,7 +63,7 @@ LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
         bool atBoundary = s_instance->IsAtBoundary(mouseInfo->pt.x, mouseInfo->pt.y);
 
-        if (atBoundary && !s_instance->m_isCaptured) {
+        if (atBoundary && !s_instance->m_isCaptured && s_instance->m_peerConnected) {
             // Trigger capture
             s_instance->m_isCaptured = true;
             s_instance->m_accumulatedX = 0;
@@ -112,6 +130,9 @@ bool InputEngine::Initialize(const Config& config) {
 
     m_mouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseHookProc, GetModuleHandle(NULL), 0);
     if (!m_mouseHook) return false;
+
+    m_keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardHookProc, GetModuleHandle(NULL), 0);
+    if (!m_keyboardHook) return false;
 #endif
 
     m_active = true;
@@ -123,6 +144,7 @@ void InputEngine::Update() {
 
 #ifdef _WIN32
     MSG msg;
+    // Process ALL messages in the queue to ensure hooks are pumped
     while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
         if (msg.message == WM_INPUT) {
             HRAWINPUT hRawInput = (HRAWINPUT)msg.lParam;
@@ -147,8 +169,8 @@ void InputEngine::Update() {
                                 // Send absolute position update instead of relative
                                 Packet pkt;
                                 pkt.senderId = 0;
-                                pkt.localTimestamp = 0; // Will be set in NetMuxFramework
-                                pkt.type = PacketType::AbsoluteMovement;
+                                pkt.localTimestamp = 0.0; // Will be set in NetMuxFramework
+                                pkt.type = NetMuxPacketType::AbsoluteMovement;
 
                                 // Normalized coordinates 0-65535 (Virtual Screen)
                                 int screenLeft = GetSystemMetrics(SM_XVIRTUALSCREEN);
@@ -170,7 +192,7 @@ void InputEngine::Update() {
 
                                 if (m_isSelecting) {
                                     Packet selPkt = pkt;
-                                    selPkt.type = PacketType::SelectionUpdate;
+                                    selPkt.type = NetMuxPacketType::SelectionUpdate;
                                     selPkt.isSelecting = true;
                                     selPkt.selectionStartX = ((m_selStartX - screenLeft) * 65535) / (screenWidth - 1);
                                     selPkt.selectionStartY = ((m_selStartY - screenTop) * 65535) / (screenHeight - 1);
@@ -179,8 +201,8 @@ void InputEngine::Update() {
                             } else {
                                 Packet pkt;
                                 pkt.senderId = 0;
-                                pkt.localTimestamp = 0;
-                                pkt.type = PacketType::Movement;
+                                pkt.localTimestamp = 0.0;
+                                pkt.type = NetMuxPacketType::Movement;
                                 pkt.x = raw->data.mouse.lLastX;
                                 pkt.y = raw->data.mouse.lLastY;
                                 pkt.button = 0;
@@ -192,7 +214,7 @@ void InputEngine::Update() {
                         // Button events
                         USHORT flags = raw->data.mouse.usButtonFlags;
                         if (flags & RI_MOUSE_LEFT_BUTTON_DOWN) {
-                            m_pendingPackets.push({0, 0, 0.0, PacketType::Click, 0, 0, 0, true});
+                            m_pendingPackets.push({0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 0, true});
                             if (m_isCaptured) {
                                 m_isSelecting = true;
                                 m_selStartX = m_virtualX;
@@ -200,17 +222,17 @@ void InputEngine::Update() {
                             }
                         }
                         if (flags & RI_MOUSE_LEFT_BUTTON_UP) {
-                            m_pendingPackets.push({0, 0, 0.0, PacketType::Click, 0, 0, 0, false});
+                            m_pendingPackets.push({0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 0, false});
                             if (m_isCaptured && m_isSelecting) {
                                 m_isSelecting = false;
-                                Packet selPkt = { 0, 0, 0.0, PacketType::SelectionUpdate, 0, 0, 0, false, false, 0, 0, "", 0 };
+                                Packet selPkt = { 0, 0, 0.0, NetMuxPacketType::SelectionUpdate, 0, 0, 0, false, false, 0, 0, "", 0 };
                                 m_pendingPackets.push(selPkt);
                             }
                         }
-                        if (flags & RI_MOUSE_RIGHT_BUTTON_DOWN)  m_pendingPackets.push({0, 0, 0.0, PacketType::Click, 0, 0, 1, true});
-                        if (flags & RI_MOUSE_RIGHT_BUTTON_UP)    m_pendingPackets.push({0, 0, PacketType::Click, 0, 0, 1, false});
-                        if (flags & RI_MOUSE_MIDDLE_BUTTON_DOWN) m_pendingPackets.push({0, 0, PacketType::Click, 0, 0, 2, true});
-                        if (flags & RI_MOUSE_MIDDLE_BUTTON_UP)   m_pendingPackets.push({0, 0, PacketType::Click, 0, 0, 2, false});
+                        if (flags & RI_MOUSE_RIGHT_BUTTON_DOWN)  m_pendingPackets.push({0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 1, true});
+                        if (flags & RI_MOUSE_RIGHT_BUTTON_UP)    m_pendingPackets.push({0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 1, false});
+                        if (flags & RI_MOUSE_MIDDLE_BUTTON_DOWN) m_pendingPackets.push({0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 2, true});
+                        if (flags & RI_MOUSE_MIDDLE_BUTTON_UP)   m_pendingPackets.push({0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 2, false});
                     }
                 }
             }
@@ -227,6 +249,10 @@ void InputEngine::Shutdown() {
         if (m_mouseHook) {
             UnhookWindowsHookEx((HHOOK)m_mouseHook);
             m_mouseHook = nullptr;
+        }
+        if (m_keyboardHook) {
+            UnhookWindowsHookEx((HHOOK)m_keyboardHook);
+            m_keyboardHook = nullptr;
         }
         if (m_hwnd) {
             DestroyWindow((HWND)m_hwnd);

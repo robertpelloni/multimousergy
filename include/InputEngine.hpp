@@ -1,13 +1,7 @@
 #pragma once
 #include <vector>
 #include <queue>
-#include "NetworkManager.hpp"
-
-struct Config {
-    int boundaryX; // Screen coordinate where crossing happens
-    int boundaryY;
-    bool isLeft;   // Crossing to the left or right
-};
+#include "CommonTypes.hpp"
 
 class InputEngine {
 public:
@@ -25,11 +19,12 @@ public:
     bool IsLocalUserActive() const;
 
     bool IsCaptured() const { return m_isCaptured; }
+    void SetPeerConnected(bool connected) { m_peerConnected = connected; }
 
-private:
     bool m_active;
     bool m_isCaptured;
     bool m_isSelecting;
+    bool m_peerConnected = false;
     int m_selStartX;
     int m_selStartY;
     long m_accumulatedX;
@@ -40,6 +35,9 @@ private:
     std::queue<Packet> m_pendingPackets;
 #ifdef _WIN32
     void* m_mouseHook;
+    void* m_keyboardHook;
     void* m_hwnd;
 #endif
+
+private:
 };

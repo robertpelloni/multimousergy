@@ -127,7 +127,7 @@ void NetworkManager::SendPacketToGroup(const Packet& packet, unsigned int groupI
 void NetworkManager::SendPacket(const Packet& packet) {
     if (!m_running || m_udpSocket == INVALID_SOCKET_HANDLE) return;
 
-    if (packet.type == PacketType::Movement || packet.type == PacketType::AbsoluteMovement) {
+    if (packet.type == NetMuxPacketType::Movement || packet.type == NetMuxPacketType::AbsoluteMovement) {
         if (m_isServer) {
             for (auto const& [id, peer] : m_udpPeerMap) {
                 sendto(m_udpSocket, (const char*)&packet, sizeof(packet), 0, (struct sockaddr*)&peer.addr, sizeof(sockaddr_in));

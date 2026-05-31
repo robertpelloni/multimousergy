@@ -38,9 +38,9 @@ void test_sync_module_interpolation() {
 void test_config_manager() {
     std::cout << "Testing ConfigManager..." << std::endl;
     ConfigManager cm("test.cfg");
-    AppSettings s1 = { true, "10.0.0.1", 1234, {100, 200, true}, 1.5f, false, DriverType::Interception, 42, "G", "S", "K" };
+    AppSettings s1 = { true, "10.0.0.1", 1234, {100, 200, true}, 1.5f, false, NetMuxDriverType::Interception, 42, "G", "S", "K" };
     cm.Save(s1);
-    AppSettings s2 = { false, "", 0, {0, 0, false}, 1.0f, false, DriverType::Auto, 0, "", "", "" };
+    AppSettings s2 = { false, "", 0, {0, 0, false}, 1.0f, false, NetMuxDriverType::Auto, 0, "", "", "" };
     assert(cm.Load(s2));
     assert(s2.isServer == s1.isServer);
     assert(s2.groupId == 42);

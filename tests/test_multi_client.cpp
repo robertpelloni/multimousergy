@@ -88,7 +88,7 @@ void test_network_concurrency() {
 
     // Send packets from all clients
     for (int i = 0; i < (int)clients.size(); ++i) {
-        Packet p = { (unsigned long long)i + 1, 0, 0, PacketType::AbsoluteMovement, 100 * i, 100 * i, 0, false, false, 0, 0, "", 0 };
+        Packet p = { (unsigned long long)i + 1, 0, 0, NetMuxPacketType::AbsoluteMovement, 100 * i, 100 * i, 0, false, false, 0, 0, "", 0 };
         clients[i]->SendPacket(p);
     }
 
@@ -100,7 +100,7 @@ void test_network_concurrency() {
     Packet inPkt;
     while (server.ReceivePacket(inPkt)) {
         receivedCount++;
-        assert(inPkt.type == PacketType::AbsoluteMovement);
+        assert(inPkt.type == NetMuxPacketType::AbsoluteMovement);
         std::cout << "Server received packet from sender " << inPkt.senderId << std::endl;
     }
 
@@ -136,7 +136,7 @@ void test_group_isolation() {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     // Client 1 sends movement in Group 1
-    Packet p1 = { 101, 1, 0.0, PacketType::AbsoluteMovement, 500, 500, 0, false, false, 0, 0, "", 0 };
+    Packet p1 = { 101, 1, 0.0, NetMuxPacketType::AbsoluteMovement, 500, 500, 0, false, false, 0, 0, "", 0 };
     c1.SendPacket(p1);
 
     // Server should receive and rebroadcast (Server receives all)

@@ -11,7 +11,7 @@ void test_packet_serialization_integrity() {
     Packet p1;
     p1.senderId = 0xABCDEF1234567890ULL;
     p1.groupId = 42;
-    p1.type = PacketType::AbsoluteMovement;
+    p1.type = NetMuxPacketType::AbsoluteMovement;
     p1.x = 32767;
     p1.y = 16383;
     p1.localTimestamp = 1234567.89;
@@ -56,7 +56,7 @@ void test_concurrent_packet_handling() {
         client.SetIsServer(false);
         if (client.Connect("127.0.0.1", 9991)) {
             for (int i = 0; i < packetsPerClient; ++i) {
-                Packet p = { (unsigned long long)id, 0, 0.0, PacketType::AbsoluteMovement, i, i, 0, false, false, 0, 0, "", 0 };
+                Packet p = { (unsigned long long)id, 0, 0.0, NetMuxPacketType::AbsoluteMovement, i, i, 0, false, false, 0, 0, "", 0 };
                 client.SendPacket(p);
                 totalSent++;
             }

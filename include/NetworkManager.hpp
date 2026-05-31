@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include "CommonTypes.hpp"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -19,49 +20,10 @@ typedef int Socket;
 #define SOCKET_ERROR -1
 #endif
 
-enum class PacketType {
-    Movement,
-    AbsoluteMovement,
-    Click,
-    Sync,
-    Discovery,
-    Heartbeat,
-    ClipboardSync,
-    Handshake,
-    FocusUpdate,
-    SessionUpdate,
-    MasterStateSync,
-    Ping,
-    InputEvent,
-    ResolutionUpdate,
-    AuthChallenge,
-    AuthResponse,
-    SyncCheck,
-    SelectionUpdate
-};
-
-struct Packet {
-    unsigned long long senderId;
-    unsigned int groupId;
-    double localTimestamp; // To measure E2E latency
-    PacketType type;
-    int x;
-    int y;
-    int button;
-    bool down;
-    bool isSelecting;
-    int selectionStartX;
-    int selectionStartY;
-    char payload[1024]; // Dynamic data payload (e.g. clipboard text)
-    int payloadSize;
-};
-
 struct DiscoveryPacket {
     char hostname[64];
     int port;
 };
-
-struct AppSettings;
 
 struct ClientConnection {
     Socket socket;

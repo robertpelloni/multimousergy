@@ -34,6 +34,7 @@ target_include_directories(NetMux PRIVATE include)
 
 # Windows specific libraries
 if(WIN32)
+    add_definitions(-DNOMINMAX)
     target_link_libraries(NetMuxLib user32 gdi32 d3d11 dxgi ws2_32 d3dcompiler bcrypt)
 
     if(ENABLE_INTERCEPTION)

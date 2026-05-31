@@ -1,24 +1,13 @@
 #pragma once
 #include <string>
-
-enum class MouseButton {
-    Left = 0,
-    Right = 1,
-    Middle = 2
-};
-
-enum class DriverType {
-    Interception,
-    ViGEmBus,
-    Auto
-};
+#include "NetworkManager.hpp"
 
 class DriverInterface {
 public:
     DriverInterface();
     ~DriverInterface();
 
-    bool Initialize(DriverType type = DriverType::Auto);
+    bool Initialize(NetMuxDriverType type = NetMuxDriverType::Auto);
     void Shutdown();
 
     bool SendMouseMovement(long dx, long dy);
@@ -26,7 +15,7 @@ public:
 
 private:
     bool m_initialized;
-    DriverType m_type;
+    NetMuxDriverType m_type;
     long m_lastX = 0;
     long m_lastY = 0;
     int m_buttonState = 0; // bitmask

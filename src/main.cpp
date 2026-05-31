@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
         if (benchMode) framework.EnableBenchmarking(true);
 
         if (firstRun && !autoConnect) {
-            if (!ConfigGUI::ShowDialog(settings, framework.GetSyncModule())) return 0;
+            if (!ConfigGUI::ShowDialog(settings, &framework.GetSyncModule())) return 0;
             configManager.Save(settings);
         }
 
@@ -46,17 +46,20 @@ int main(int argc, char* argv[]) {
             continue;
         }
 
+        framework.GetInputEngine().Initialize(settings.inputConfig);
+
         framework.SetCursorColor(colorR, colorG, colorB);
 
         std::thread frameworkThread([&]() {
             framework.Run();
         });
 
-        ConfigGUI::Initialize(settings, framework.GetSyncModule());
+        ConfigGUI::Initialize(settings, &framework.GetSyncModule());
 
         bool restartRequested = false;
         while (ConfigGUI::IsRunning()) {
             ConfigGUI::Tick();
+            framework.GetInputEngine().Update();
 
             // Check for re-init signal (e.g. from Save button)
             // In a real app we'd use a synchronized flag or queue.

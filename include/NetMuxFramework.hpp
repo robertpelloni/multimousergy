@@ -35,7 +35,8 @@ public:
     void UpdateSessionMetadata(const std::string& name, unsigned int groupId);
 
     void EnableBenchmarking(bool enable) { m_benchmarking = enable; }
-    SyncModule* GetSyncModule() { return &m_sync; }
+    SyncModule& GetSyncModule() { return m_sync; }
+    InputEngine& GetInputEngine() { return m_input; }
 
 private:
     void ProcessOutgoingPackets();

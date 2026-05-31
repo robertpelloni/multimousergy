@@ -14,7 +14,7 @@ bool ConfigManager::Load(AppSettings& settings) {
     file >> settings.inputConfig.boundaryX;
     file >> settings.inputConfig.boundaryY;
     file >> settings.inputConfig.isLeft;
-    int dt; file >> dt; settings.driverType = (DriverType)dt;
+    int dt; file >> dt; settings.driverType = (NetMuxDriverType)dt;
     file >> settings.groupId;
     file >> settings.groupName;
     file >> settings.sessionName;

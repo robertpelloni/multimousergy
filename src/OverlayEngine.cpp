@@ -3,6 +3,7 @@
 #include <iostream>
 
 #ifdef _WIN32
+#define NOMINMAX
 #include <windows.h>
 
 LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
