@@ -26,7 +26,7 @@ public:
 
     bool IsCaptured() const { return m_isCaptured; }
 
-private:
+public:
     bool m_active;
     bool m_isCaptured;
     bool m_isSelecting;

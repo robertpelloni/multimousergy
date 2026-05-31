@@ -192,7 +192,7 @@ void InputEngine::Update() {
                         // Button events
                         USHORT flags = raw->data.mouse.usButtonFlags;
                         if (flags & RI_MOUSE_LEFT_BUTTON_DOWN) {
-                            m_pendingPackets.push({0, 0, 0.0, PacketType::Click, 0, 0, 0, true});
+                            m_pendingPackets.push((Packet){0});
                             if (m_isCaptured) {
                                 m_isSelecting = true;
                                 m_selStartX = m_virtualX;
@@ -200,17 +200,17 @@ void InputEngine::Update() {
                             }
                         }
                         if (flags & RI_MOUSE_LEFT_BUTTON_UP) {
-                            m_pendingPackets.push({0, 0, 0.0, PacketType::Click, 0, 0, 0, false});
+                            m_pendingPackets.push((Packet){0});
                             if (m_isCaptured && m_isSelecting) {
                                 m_isSelecting = false;
                                 Packet selPkt = { 0, 0, 0.0, PacketType::SelectionUpdate, 0, 0, 0, false, false, 0, 0, "", 0 };
                                 m_pendingPackets.push(selPkt);
                             }
                         }
-                        if (flags & RI_MOUSE_RIGHT_BUTTON_DOWN)  m_pendingPackets.push({0, 0, 0.0, PacketType::Click, 0, 0, 1, true});
-                        if (flags & RI_MOUSE_RIGHT_BUTTON_UP)    m_pendingPackets.push({0, 0, PacketType::Click, 0, 0, 1, false});
-                        if (flags & RI_MOUSE_MIDDLE_BUTTON_DOWN) m_pendingPackets.push({0, 0, PacketType::Click, 0, 0, 2, true});
-                        if (flags & RI_MOUSE_MIDDLE_BUTTON_UP)   m_pendingPackets.push({0, 0, PacketType::Click, 0, 0, 2, false});
+                        if (flags & RI_MOUSE_RIGHT_BUTTON_DOWN)  m_pendingPackets.push((Packet){0});
+                        if (flags & RI_MOUSE_RIGHT_BUTTON_UP)    m_pendingPackets.push((Packet){0});
+                        if (flags & RI_MOUSE_MIDDLE_BUTTON_DOWN) m_pendingPackets.push((Packet){0});
+                        if (flags & RI_MOUSE_MIDDLE_BUTTON_UP)   m_pendingPackets.push((Packet){0});
                     }
                 }
             }
