@@ -120,7 +120,7 @@ bool D3D11Overlay::Initialize(HWND hwnd) {
     m_device->CreateTexture2D(&td, &tsd, &m_texture);
     m_device->CreateShaderResourceView(m_texture, NULL, &m_textureView);
 
-    D3D11_SAMPLER_DESC sad = {0};
+    D3D11_SAMPLER_DESC sad = {}; memset(&sad, 0, sizeof(sad));
     sad.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
     sad.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
     sad.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
