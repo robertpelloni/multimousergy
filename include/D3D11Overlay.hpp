@@ -24,6 +24,7 @@ public:
     void SetSelectionColor(unsigned char r, unsigned char g, unsigned char b) {
         m_selR = r; m_selG = g; m_selB = b;
     }
+    void UpdateCursorTexture(void* hBitmap);
     void Shutdown();
 
 private:

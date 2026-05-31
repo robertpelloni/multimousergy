@@ -14,3 +14,4 @@ NetMux provides true cursor isolation by presenting remote inputs as independent
 6. **Hardware-Accelerated Rendering**: Direct3D 11 backend for ultra-low latency cursor overlays, ensuring visual feedback matches the 1000Hz+ polling rates of modern gaming mice.
 7. **Unified Clock Synchronization**: Distributed clock coordination to resolve race conditions and interaction order across multiple networked machines.
 8. **Multi-Platform Foundation**: A unified distributed input framework capable of bridging Windows, Linux, and macOS environments.
+9. **High-Capacity Collaboration**: Unlimited data sharing (clipboard, files) via intelligent protocol chunking and reassembly.

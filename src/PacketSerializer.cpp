@@ -36,6 +36,8 @@ std::vector<uint8_t> PacketSerializer::Serialize(const Packet& pkt, bool headerO
     WriteBuffer(buf, offset, pkt.selectionStartY);
     WriteBuffer(buf, offset, pkt.wheelDelta);
     WriteBuffer(buf, offset, (uint8_t)pkt.isHorizontalWheel);
+    WriteBuffer(buf, offset, pkt.chunkIndex);
+    WriteBuffer(buf, offset, pkt.totalChunks);
 
     if (!headerOnly) {
         WriteBuffer(buf, offset, pkt.payloadSize);
@@ -71,6 +73,8 @@ size_t PacketSerializer::Deserialize(const uint8_t* buffer, size_t size, Packet&
     ReadBuffer(buffer, offset, size, outPkt.selectionStartY);
     ReadBuffer(buffer, offset, size, outPkt.wheelDelta);
     uint8_t isHWheel; ReadBuffer(buffer, offset, size, isHWheel); outPkt.isHorizontalWheel = (isHWheel != 0);
+    ReadBuffer(buffer, offset, size, outPkt.chunkIndex);
+    ReadBuffer(buffer, offset, size, outPkt.totalChunks);
 
     // Default payload state
     outPkt.payloadSize = 0;

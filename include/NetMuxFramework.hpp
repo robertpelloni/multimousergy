@@ -87,4 +87,5 @@ private:
     AuthService m_authService;
     std::map<unsigned long long, unsigned int> m_lastSequence;
     double m_lastClipboardTimestamp = 0;
+    std::map<unsigned long long, std::vector<char>> m_clipboardReassembly;
 };

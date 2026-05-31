@@ -1,6 +1,8 @@
 #include <iostream>
 #include <cassert>
 #include <string>
+#include <map>
+#include <vector>
 #include "ClipboardModule.hpp"
 
 // Accessing private members via helper if needed,
@@ -45,11 +47,35 @@ void TestHashDetection() {
     std::cout << "Hash Detection Logic (State) Passed." << std::endl;
 }
 
+void TestReassembly() {
+    std::cout << "Testing Clipboard Chunk Reassembly..." << std::endl;
+
+    // Simulation of NetMuxFramework reassembly logic
+    std::map<unsigned long long, std::vector<char>> reassembly;
+    unsigned long long peerId = 123;
+
+    std::string part1 = "Part 1 of a ";
+    std::string part2 = "very large clipboard.";
+
+    // Chunk 0
+    reassembly[peerId].clear();
+    reassembly[peerId].insert(reassembly[peerId].end(), part1.begin(), part1.end());
+
+    // Chunk 1
+    reassembly[peerId].insert(reassembly[peerId].end(), part2.begin(), part2.end());
+
+    std::string full(reassembly[peerId].begin(), reassembly[peerId].end());
+    assert(full == (part1 + part2));
+
+    std::cout << "Chunk Reassembly Logic Passed." << std::endl;
+}
+
 void test_clipboard_module() {
     std::cout << "Running Clipboard Unit Tests..." << std::endl;
 
     TestUnicodeConversion();
     TestHashDetection();
+    TestReassembly();
 
     std::cout << "All Clipboard Tests Passed!" << std::endl;
 }

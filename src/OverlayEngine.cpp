@@ -256,6 +256,10 @@ void OverlayEngine::LoadCursorTheme(const std::string& path) {
         m_cursorWidth = bm.bmWidth;
         m_cursorHeight = bm.bmHeight;
         std::cout << "[Overlay] Loaded custom cursor theme: " << path << " (" << m_cursorWidth << "x" << m_cursorHeight << ")" << std::endl;
+
+        if (m_backend == OverlayBackend::D3D11 && m_d3dOverlay) {
+            static_cast<D3D11Overlay*>(m_d3dOverlay)->UpdateCursorTexture(m_hCursorBitmap);
+        }
     } else {
         std::cerr << "[Overlay] Failed to load cursor theme: " << path << std::endl;
     }

@@ -3,7 +3,7 @@
 ## Future Enhancements
 - **Multi-Platform Support (Priority)**: Refactor core modules into a platform-agnostic library. Implement `uinput` for Linux and `CGEvent` for macOS to provide native hardware injection.
 - **Wayland Integration**: Research Portal-based input capture for high-security Linux environments.
-- **Clipboard Expansion**: Support for multi-part large file transfers or image buffers in the clipboard synchronization module.
+- **File Transfer Engine**: Leverage the established chunking protocol to implement transparent drag-and-drop file transfers between machines.
 - **File Drag-and-Drop**: Transparently move files between PCs via the network cursor.
 - **Custom Cursor Themes**: Allow users to skin the secondary cursors.
 - **Multi-Monitor Awareness**: Intelligent handling of multi-monitor setups on either side of the network.

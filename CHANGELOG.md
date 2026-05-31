@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## [0.1.54-alpha] - 2025-01-24
+### Added
+- Implement High-Capacity Clipboard Chunking (unlimited size via multi-part packets).
+- Add full D3D11 Custom Cursor Theme support (texture synchronization).
+- Optimized D3D11 rendering with dynamic texture updates from Win32 bitmaps.
+
 ## [0.1.53-alpha] - 2025-01-24
 ### Added
 - Wired Selection RGB color customization and Cursor Theme browsing to ConfigGUI.

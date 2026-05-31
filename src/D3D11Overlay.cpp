@@ -130,6 +130,55 @@ bool D3D11Overlay::Initialize(HWND hwnd) {
     return true;
 }
 
+void D3D11Overlay::UpdateCursorTexture(void* hBitmap) {
+    if (!m_device || !hBitmap) return;
+
+#ifdef _WIN32
+    BITMAP bm;
+    GetObject((HBITMAP)hBitmap, sizeof(bm), &bm);
+
+    int width = bm.bmWidth;
+    int height = bm.bmHeight;
+
+    std::vector<unsigned int> pixels(width * height);
+
+    HDC hdc = GetDC(NULL);
+    BITMAPINFO bmi = {0};
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = width;
+    bmi.bmiHeader.biHeight = -height;
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+
+    GetDIBits(hdc, (HBITMAP)hBitmap, 0, height, pixels.data(), &bmi, DIB_RGB_COLORS);
+    ReleaseDC(NULL, hdc);
+
+    // Recreate texture
+    if (m_texture) m_texture->Release();
+    if (m_textureView) m_textureView->Release();
+
+    D3D11_TEXTURE2D_DESC td = {0};
+    td.Width = width;
+    td.Height = height;
+    td.MipLevels = 1;
+    td.ArraySize = 1;
+    td.Format = DXGI_FORMAT_B8G8R8A8_UNORM; // Windows bitmaps are typically BGRA
+    td.SampleDesc.Count = 1;
+    td.Usage = D3D11_USAGE_DEFAULT;
+    td.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    D3D11_SUBRESOURCE_DATA tsd = {0};
+    tsd.pSysMem = pixels.data();
+    tsd.SysMemPitch = width * 4;
+
+    m_device->CreateTexture2D(&td, &tsd, &m_texture);
+    m_device->CreateShaderResourceView(m_texture, NULL, &m_textureView);
+
+    std::cout << "[D3D11] Updated cursor texture (" << width << "x" << height << ")" << std::endl;
+#endif
+}
+
 void D3D11Overlay::Render(const std::map<unsigned long long, RemoteCursorState>& peers) {
     if (!m_context || peers.empty()) return;
 
@@ -161,8 +210,19 @@ void D3D11Overlay::Render(const std::map<unsigned long long, RemoteCursorState>&
 
         float nx = (2.0f * peer.x / screenW) - 1.0f;
         float ny = 1.0f - (2.0f * peer.y / screenH);
-        float sw = 16.0f / screenW;
-        float sh = 16.0f / screenH;
+
+        // Get actual texture dimensions for scaling if possible
+        float tw = 16.0f;
+        float th = 16.0f;
+        if (m_texture) {
+            D3D11_TEXTURE2D_DESC td;
+            m_texture->GetDesc(&td);
+            tw = (float)td.Width;
+            th = (float)td.Height;
+        }
+
+        float sw = tw / screenW;
+        float sh = th / screenH;
         float r = peer.r / 255.0f;
         float g = peer.g / 255.0f;
         float b = peer.b / 255.0f;

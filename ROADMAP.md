@@ -32,4 +32,6 @@
 - [x] Formal Protocol Serialization.
 - [x] Unicode Clipboard & High-Capacity Payloads.
 - [x] Real-time UI Personalization (RGB/Themes).
+- [x] Unlimited Clipboard Capacity (Multi-part Chunking).
+- [x] Full D3D11 Custom Cursor Support.
 - [ ] Native Vendor SDK linking for Drivers.

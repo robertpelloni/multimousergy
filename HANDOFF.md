@@ -1,23 +1,23 @@
-# Session Handoff - v0.1.53-alpha
+# Session Handoff - v0.1.54-alpha
 
 ## Summary of Changes
-- **Portable Unicode Conversion**: Refactored `ClipboardModule.cpp` to use `std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>>`, replacing Win32-specific `WideCharToMultiByte`.
-- **Linux Clipboard Support**: Added a foundation for Linux clipboard synchronization using `xclip` via `popen`.
-- **UI Personalization Wiring**: Integrated selection rectangle RGB controls and a native "Browse" button for cursor themes into the `ConfigGUI` (`SettingsWndProc`).
-- **Clipboard Unit Tests**: Created `tests/test_clipboard.cpp` to verify Unicode round-trips and hash-based change detection. Integrated these into the `NetMuxTests` target and `test_main.cpp`.
-- **Repository Health**: Performed a full repository synchronization and branch reconciliation according to the "Executive Protocol".
+- **High-Capacity Clipboard Chunking**: Implemented unlimited size clipboard synchronization. Data is now split into multi-part chunks using new `chunkIndex` and `totalChunks` fields in the `Packet` struct and reassembled per-peer in `NetMuxFramework`.
+- **D3D11 Custom Cursor Themes**: Added full texture synchronization to the hardware backend. `D3D11Overlay::UpdateCursorTexture` extracts pixels from Win32 bitmaps to update the GPU shader resource view dynamically.
+- **Protocol Expansion**: Updated `PacketSerializer` and `HEADER_SIZE` (now 63 bytes) to accommodate the new chunking fields.
+- **GUI Robustness**: Fixed missing `ControlIDs` in `src/ConfigGUI.cpp` for IP, Port, and Boundary fields to ensure reliable message processing.
+- **Documentation**: Incremented version to `v0.1.54-alpha` and updated all governance files.
 
 ## Technical Observations
-- The use of `std::wstring_convert` is portable but deprecated in C++17. It serves as a robust bridge for now until a more modern library is introduced.
-- `xclip` is required on Linux for clipboard features to function.
-- `GetOpenFileNameA` provides a native experience for Windows users selecting cursor theme bitmaps.
+- The clipboard chunking utilizes a `std::map<unsigned long long, std::vector<char>>` for reassembly, keyed by `senderId`.
+- `PacketSerializer::HEADER_SIZE` is now documented with a detailed breakdown of field sizes to prevent future drift.
+- Aggregate initializers in tests were updated to include placeholders for the new fields.
 
 ## Next Steps
-- Finalize native Vendor SDK linking for ViGEmBus and Interception (currently using stubs).
-- Extend Linux support with `libx11` or `wayland` native clipboard integration to remove `xclip` dependency.
-- Research formal serialization (Protobuf) to replace manual byte offsets in `PacketSerializer`.
+- Implement native Vendor SDK linking for ViGEmBus and Interception (currently using stubs).
+- Extend the chunking protocol to support a generic `FileTransferEngine`.
+- Research formal serialization (Protobuf) for better extensibility.
 
 ## Repository State
-- Version: `v0.1.53-alpha`
+- Version: `v0.1.54-alpha`
 - Build status: Passing (Linux/Win32 logic verified)
 - Git: Pushed to origin.

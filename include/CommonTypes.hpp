@@ -51,6 +51,8 @@ struct Packet {
     int selectionStartY;
     int wheelDelta;
     bool isHorizontalWheel;
+    int chunkIndex;
+    int totalChunks;
     char payload[4096]; // Dynamic data payload (e.g. clipboard text)
     int payloadSize;
 };

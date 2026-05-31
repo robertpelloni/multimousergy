@@ -14,5 +14,8 @@ public:
     static size_t Deserialize(const uint8_t* buffer, size_t size, Packet& outPkt);
 
     // Constant for the header size (fixed portion of the packet)
-    static constexpr size_t HEADER_SIZE = 8 + 4 + 4 + 8 + 4 + 4 + 4 + 4 + 1 + 1 + 4 + 4 + 4 + 1; // Manual sum of fields
+    // 8(senderId) + 4(groupId) + 4(sequenceNumber) + 8(localTimestamp) + 4(type)
+    // + 4(x) + 4(y) + 4(button) + 1(down) + 1(isSelecting) + 4(selStartX) + 4(selStartY)
+    // + 4(wheelDelta) + 1(isHWheel) + 4(chunkIndex) + 4(totalChunks)
+    static constexpr size_t HEADER_SIZE = 8 + 4 + 4 + 8 + 4 + 4 + 4 + 4 + 1 + 1 + 4 + 4 + 4 + 1 + 4 + 4;
 };

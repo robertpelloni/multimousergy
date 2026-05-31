@@ -31,7 +31,7 @@ void test_network_stress() {
     std::cout << "Starting NetworkManager stress test (Simulated)..." << std::endl;
     // Simulated stress check for packet structure stability
     for (int i = 0; i < 10000; ++i) {
-        Packet p = { (unsigned long long)i, 0, 0, 0.0, NetMuxPacketType::AbsoluteMovement, i, i, 0, false, false, 0, 0, 0, false, "stress_payload", 14 };
+        Packet p = { (unsigned long long)i, 0, 0, 0.0, NetMuxPacketType::AbsoluteMovement, i, i, 0, false, false, 0, 0, 0, false, 0, 0, "stress_payload", 14 };
         assert(p.senderId == (unsigned long long)i);
     }
 }

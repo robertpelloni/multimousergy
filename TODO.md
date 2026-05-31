@@ -13,4 +13,6 @@
 - [x] Implement Multi-Monitor DPI Awareness (SetProcessDPIAware).
 - [x] Enhance Clipboard with Unicode support and conflict resolution.
 - [x] Wire RGB color and Cursor Theme browsing to ConfigGUI.
+- [x] Implement multi-part chunking for clipboard synchronization.
+- [x] Enable D3D11 texture synchronization for custom cursor themes.
 - [ ] Refactor Network Protocol to use formal serialization (Protobuf/Flatbuffers).
