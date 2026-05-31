@@ -1,5 +1,6 @@
 #pragma once
 #include <map>
+#include <string>
 
 enum class OverlayBackend {
     GDI,
@@ -36,12 +37,17 @@ public:
     void SetScale(float scale) { m_scale = scale; }
     void SetBackend(OverlayBackend backend) { m_backend = backend; }
     void SetActivePeer(unsigned long long id);
+    void LoadCursorTheme(const std::string& path);
+    void SetSelectionColor(unsigned char r, unsigned char g, unsigned char b);
 
 private:
     bool m_active;
     unsigned char m_colorR = 255;
     unsigned char m_colorG = 0;
     unsigned char m_colorB = 0;
+    unsigned char m_selR = 0;
+    unsigned char m_selG = 120;
+    unsigned char m_selB = 215;
     float m_scale = 1.0f;
     OverlayBackend m_backend = OverlayBackend::GDI;
     unsigned long long m_activePeerId = 0;

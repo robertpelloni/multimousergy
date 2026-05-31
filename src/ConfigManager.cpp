@@ -39,6 +39,10 @@ bool ConfigManager::Load(AppSettings& settings) {
         else if (key == "group_name") settings.groupName = val;
         else if (key == "session_name") settings.sessionName = val;
         else if (key == "security_key") settings.securityKey = val;
+        else if (key == "cursor_theme_path") settings.cursorThemePath = val;
+        else if (key == "sel_color_r") settings.selectionColorR = (unsigned char)std::stoi(val);
+        else if (key == "sel_color_g") settings.selectionColorG = (unsigned char)std::stoi(val);
+        else if (key == "sel_color_b") settings.selectionColorB = (unsigned char)std::stoi(val);
     }
 
     return true;
@@ -60,6 +64,10 @@ bool ConfigManager::Save(const AppSettings& settings) {
     file << "group_name=" << settings.groupName << "\n";
     file << "session_name=" << settings.sessionName << "\n";
     file << "security_key=" << settings.securityKey << "\n";
+    file << "cursor_theme_path=" << settings.cursorThemePath << "\n";
+    file << "sel_color_r=" << (int)settings.selectionColorR << "\n";
+    file << "sel_color_g=" << (int)settings.selectionColorG << "\n";
+    file << "sel_color_b=" << (int)settings.selectionColorB << "\n";
 
     return true;
 }

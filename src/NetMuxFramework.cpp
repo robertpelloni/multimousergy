@@ -53,6 +53,10 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
         return false;
     }
 
+    if (!m_settings.cursorThemePath.empty()) {
+        m_overlay.LoadCursorTheme(m_settings.cursorThemePath);
+    }
+
     if (!m_driver.Initialize(m_settings.driverType)) {
         std::cout << "[Warning] Virtual HID Driver not available. Using software fallback." << std::endl;
     }
@@ -69,6 +73,7 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
 
     // Default color
     m_overlay.SetColor(255, 0, 0);
+    m_overlay.SetSelectionColor(m_settings.selectionColorR, m_settings.selectionColorG, m_settings.selectionColorB);
 
     m_running = true;
     return true;
@@ -284,11 +289,17 @@ void NetMuxFramework::ProcessIncomingPackets() {
             continue;
         }
 
-        // Replay Protection
-        if (m_lastSequence.count(peerId) && inPkt.sequenceNumber <= m_lastSequence[peerId]) {
-            if (inPkt.type != NetMuxPacketType::Handshake) continue; // Allow handshake to reset
+        // Replay Protection: Monotonic sequence only for movement/updates.
+        // Clicks and other sensitive actions via TCP are already ordered and guaranteed.
+        bool isUdpPacket = (inPkt.type == NetMuxPacketType::Movement || inPkt.type == NetMuxPacketType::AbsoluteMovement ||
+                            inPkt.type == NetMuxPacketType::Heartbeat || inPkt.type == NetMuxPacketType::SyncCheck);
+
+        if (isUdpPacket) {
+            if (m_lastSequence.count(peerId) && inPkt.sequenceNumber <= m_lastSequence[peerId]) {
+                continue;
+            }
+            m_lastSequence[peerId] = inPkt.sequenceNumber;
         }
-        m_lastSequence[peerId] = inPkt.sequenceNumber;
 
         if (inPkt.type == NetMuxPacketType::Movement) {
             if (IsPeerTrusted(peerId, inPkt.type)) {
@@ -470,7 +481,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
             char msg[256];
             snprintf(msg, sizeof(msg), "Peer %llu disconnected explicitly.", peerId);
             ConfigGUI::LogSecurityEvent(msg);
-            m_sync.PruneInactivePeers(0.0); // Force immediate pruning
+            m_sync.RemovePeer(peerId);
             m_authService.ClearPeer(peerId);
         }
     }

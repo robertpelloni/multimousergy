@@ -70,4 +70,8 @@ struct AppSettings {
     std::string groupName = "DefaultGroup";
     std::string sessionName = "DefaultSession";
     std::string securityKey = "";
+    std::string cursorThemePath = "";
+    unsigned char selectionColorR = 0;
+    unsigned char selectionColorG = 120;
+    unsigned char selectionColorB = 215;
 };

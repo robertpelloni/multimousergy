@@ -21,10 +21,14 @@ public:
 #endif
     void Render(const std::map<unsigned long long, RemoteCursorState>& peers);
     void SetActivePeer(unsigned long long id) { m_activePeerId = id; }
+    void SetSelectionColor(unsigned char r, unsigned char g, unsigned char b) {
+        m_selR = r; m_selG = g; m_selB = b;
+    }
     void Shutdown();
 
 private:
     unsigned long long m_activePeerId = 0;
+    unsigned char m_selR = 0, m_selG = 120, m_selB = 215;
 
 #ifdef _WIN32
     void DrawSprite(int x, int y, unsigned char r, unsigned char g, unsigned char b);

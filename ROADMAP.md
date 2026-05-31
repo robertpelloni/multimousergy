@@ -9,7 +9,8 @@
 ## Milestone 2: Advanced Rendering (COMPLETED)
 - [x] Direct3D 11 hardware-accelerated overlay.
 - [x] Dynamic cursor scaling and textured sprite rendering.
-- [x] Custom Cursor Themes support.
+- [x] Custom Cursor Themes support (.bmp loading).
+- [x] Selection Color customization.
 
 ## Milestone 3: Real-Time Synchronization (COMPLETED)
 - [x] Distributed Clock Synchronization (Unified Timeline).

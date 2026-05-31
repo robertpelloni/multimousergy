@@ -190,11 +190,16 @@ void D3D11Overlay::Render(const std::map<unsigned long long, RemoteCursorState>&
             float snx = (2.0f * peer.selStartX / screenW) - 1.0f;
             float sny = 1.0f - (2.0f * peer.selStartY / screenH);
 
+            float sr = r, sg = g, sb = b;
+            if (id == m_activePeerId) {
+                sr = m_selR / 255.0f; sg = m_selG / 255.0f; sb = m_selB / 255.0f;
+            }
+
             // Draw a box from (snx, sny) to (nx, ny)
-            v[count*4+0] = {snx, sny, 0.0f, 0.0f, 0.0f, r, g, b, 0.3f}; // Translucent
-            v[count*4+1] = {nx,  sny, 0.0f, 1.0f, 0.0f, r, g, b, 0.3f};
-            v[count*4+2] = {snx, ny,  0.0f, 0.0f, 1.0f, r, g, b, 0.3f};
-            v[count*4+3] = {nx,  ny,  0.0f, 1.0f, 1.0f, r, g, b, 0.3f};
+            v[count*4+0] = {snx, sny, 0.0f, 0.0f, 0.0f, sr, sg, sb, 0.3f}; // Translucent
+            v[count*4+1] = {nx,  sny, 0.0f, 1.0f, 0.0f, sr, sg, sb, 0.3f};
+            v[count*4+2] = {snx, ny,  0.0f, 0.0f, 1.0f, sr, sg, sb, 0.3f};
+            v[count*4+3] = {nx,  ny,  0.0f, 1.0f, 1.0f, sr, sg, sb, 0.3f};
             count++;
         }
     }

@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## [0.1.50-alpha] - 2025-01-24
+### Added
+- Implemented Dynamic Cursor Theme loading (.bmp support).
+- Added Selection Rectangle color customization.
+- Expanded ConfigGUI and ConfigManager to support new personalization features.
+
 ## [0.1.49-alpha] - 2025-01-24
 ### Added
 - Refactored `ConfigManager` to use robust `key=value` persistent storage.

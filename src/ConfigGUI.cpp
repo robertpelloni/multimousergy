@@ -31,6 +31,7 @@ static HWND s_hwndGroupId = nullptr;
 static HWND s_hwndGroupName = nullptr;
 static HWND s_hwndSessionName = nullptr;
 static HWND s_hwndSecurityKey = nullptr;
+static HWND s_hwndCursorThemePath = nullptr;
 static HWND s_hwndCursorMonitor = nullptr;
 static HWND s_hwndSecurityLog = nullptr;
 static HWND s_hwndDiscoveryList = nullptr;
@@ -44,6 +45,7 @@ enum ControlIDs {
     ID_SESSION_NAME = 6,
     ID_GROUP_NAME = 7,
     ID_SECURITY_KEY = 8,
+    ID_CURSOR_THEME_PATH = 14,
     ID_CURSOR_MONITOR = 9,
     ID_DRIVER_TYPE = 10,
     ID_SECURITY_LOG = 11,
@@ -103,15 +105,18 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             CreateWindow("STATIC", "Security Key:", WS_VISIBLE | WS_CHILD, 10, 510, 100, 20, hwnd, NULL, NULL, NULL);
             s_hwndSecurityKey = CreateWindow("EDIT", s_currentSettings->securityKey.c_str(), WS_VISIBLE | WS_CHILD | ES_PASSWORD | ES_AUTOHSCROLL | WS_BORDER, 110, 510, 150, 20, hwnd, (HMENU)ID_SECURITY_KEY, NULL, NULL);
 
-            s_hwndSecurityStatus = CreateWindow("STATIC", "", WS_VISIBLE | WS_CHILD, 10, 535, 280, 20, hwnd, NULL, NULL, NULL);
+            CreateWindow("STATIC", "Cursor Theme:", WS_VISIBLE | WS_CHILD, 10, 540, 100, 20, hwnd, NULL, NULL, NULL);
+            s_hwndCursorThemePath = CreateWindow("EDIT", s_currentSettings->cursorThemePath.c_str(), WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | WS_BORDER, 110, 540, 150, 20, hwnd, (HMENU)ID_CURSOR_THEME_PATH, NULL, NULL);
+
+            s_hwndSecurityStatus = CreateWindow("STATIC", "", WS_VISIBLE | WS_CHILD, 10, 565, 280, 20, hwnd, NULL, NULL, NULL);
             if (s_currentSettings->securityKey.empty()) SetWindowText(s_hwndSecurityStatus, "System Status: UNSECURED");
             else SetWindowText(s_hwndSecurityStatus, "System Status: ENCRYPTED (Mutual Auth)");
 
-            CreateWindow("STATIC", "Real-Time Monitor:", WS_VISIBLE | WS_CHILD, 10, 555, 150, 20, hwnd, NULL, NULL, NULL);
-            s_hwndCursorMonitor = CreateWindow("STATIC", "", WS_VISIBLE | WS_CHILD | SS_OWNERDRAW | WS_BORDER, 10, 575, 280, 100, hwnd, (HMENU)ID_CURSOR_MONITOR, NULL, NULL);
+            CreateWindow("STATIC", "Real-Time Monitor:", WS_VISIBLE | WS_CHILD, 10, 585, 150, 20, hwnd, NULL, NULL, NULL);
+            s_hwndCursorMonitor = CreateWindow("STATIC", "", WS_VISIBLE | WS_CHILD | SS_OWNERDRAW | WS_BORDER, 10, 605, 280, 100, hwnd, (HMENU)ID_CURSOR_MONITOR, NULL, NULL);
 
-            CreateWindow("STATIC", "Security Log:", WS_VISIBLE | WS_CHILD, 10, 685, 150, 20, hwnd, NULL, NULL, NULL);
-            s_hwndSecurityLog = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 10, 705, 280, 100, hwnd, (HMENU)ID_SECURITY_LOG, NULL, NULL);
+            CreateWindow("STATIC", "Security Log:", WS_VISIBLE | WS_CHILD, 10, 715, 150, 20, hwnd, NULL, NULL, NULL);
+            s_hwndSecurityLog = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 10, 735, 280, 100, hwnd, (HMENU)ID_SECURITY_LOG, NULL, NULL);
             break;
 
         case WM_DRAWITEM:
@@ -176,6 +181,9 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                     GetWindowText(s_hwndIp, buffer, 256);
                     s_currentSettings->remoteIp = buffer;
 
+                    GetWindowText(s_hwndCursorThemePath, buffer, 256);
+                    s_currentSettings->cursorThemePath = buffer;
+
                     // Signal main thread to re-initialize
                     s_restartRequested = true;
                     PostMessage(hwnd, WM_USER + 1, 0, 0);
@@ -212,7 +220,7 @@ void ConfigGUI::Initialize(AppSettings& settings, SyncModule* sync, NetworkManag
     wc.lpszClassName = "NetMuxIntegratedGUI";
     RegisterClass(&wc);
 
-    s_hwndMain = CreateWindow("NetMuxIntegratedGUI", "NetMux Monitor", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 320, 780, NULL, NULL, GetModuleHandle(NULL), NULL);
+    s_hwndMain = CreateWindow("NetMuxIntegratedGUI", "NetMux Monitor", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 320, 880, NULL, NULL, GetModuleHandle(NULL), NULL);
     s_isRunning = (s_hwndMain != NULL);
 #else
     s_isRunning = true;
@@ -284,8 +292,11 @@ void ConfigGUI::Shutdown() {
 void ConfigGUI::LogSecurityEvent(const std::string& event) {
 #ifdef _WIN32
     if (s_hwndSecurityLog) {
-        SendMessage(s_hwndSecurityLog, LB_ADDSTRING, 0, (LPARAM)event.c_str());
         int count = (int)SendMessage(s_hwndSecurityLog, LB_GETCOUNT, 0, 0);
+        if (count > 100) SendMessage(s_hwndSecurityLog, LB_DELETESTRING, 0, 0);
+
+        SendMessage(s_hwndSecurityLog, LB_ADDSTRING, 0, (LPARAM)event.c_str());
+        count = (int)SendMessage(s_hwndSecurityLog, LB_GETCOUNT, 0, 0);
         SendMessage(s_hwndSecurityLog, LB_SETCURSEL, count - 1, 0);
     }
 #endif

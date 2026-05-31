@@ -205,7 +205,11 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
             selRect.bottom = std::max(peer.selStartY, peer.y);
 
             // Semi-transparent selection fill (simulated via HatchBrush in GDI)
-            HBRUSH hHatch = CreateHatchBrush(HS_BDIAGONAL, RGB(peer.r, peer.g, peer.b));
+            // Use custom selection color if it's the local peer, otherwise use the peer's color
+            COLORREF color = RGB(peer.r, peer.g, peer.b);
+            if (id == m_activePeerId) color = RGB(m_selR, m_selG, m_selB);
+
+            HBRUSH hHatch = CreateHatchBrush(HS_BDIAGONAL, color);
             FrameRect(hdcMem, &selRect, hHatch);
             DeleteObject(hHatch);
         }
@@ -227,6 +231,33 @@ void OverlayEngine::SetActivePeer(unsigned long long id) {
 #ifdef _WIN32
     if (m_backend == OverlayBackend::D3D11 && m_d3dOverlay) {
         static_cast<D3D11Overlay*>(m_d3dOverlay)->SetActivePeer(id);
+    }
+#endif
+}
+
+void OverlayEngine::SetSelectionColor(unsigned char r, unsigned char g, unsigned char b) {
+    m_selR = r; m_selG = g; m_selB = b;
+#ifdef _WIN32
+    if (m_backend == OverlayBackend::D3D11 && m_d3dOverlay) {
+        static_cast<D3D11Overlay*>(m_d3dOverlay)->SetSelectionColor(r, g, b);
+    }
+#endif
+}
+
+void OverlayEngine::LoadCursorTheme(const std::string& path) {
+#ifdef _WIN32
+    if (path.empty()) return;
+    HBITMAP hNew = (HBITMAP)LoadImage(NULL, path.c_str(), IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE | LR_CREATEDIBSECTION);
+    if (hNew) {
+        if (m_hCursorBitmap) DeleteObject((HBITMAP)m_hCursorBitmap);
+        m_hCursorBitmap = hNew;
+        BITMAP bm;
+        GetObject(hNew, sizeof(bm), &bm);
+        m_cursorWidth = bm.bmWidth;
+        m_cursorHeight = bm.bmHeight;
+        std::cout << "[Overlay] Loaded custom cursor theme: " << path << " (" << m_cursorWidth << "x" << m_cursorHeight << ")" << std::endl;
+    } else {
+        std::cerr << "[Overlay] Failed to load cursor theme: " << path << std::endl;
     }
 #endif
 }

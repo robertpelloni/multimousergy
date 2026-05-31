@@ -198,6 +198,12 @@ std::vector<unsigned long long> SyncModule::PruneInactivePeers(double timeoutMs)
     return pruned;
 }
 
+void SyncModule::RemovePeer(unsigned long long id) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_peers.erase(id);
+    if (m_activePeerId == id) m_activePeerId = 0;
+}
+
 void SyncModule::UpdateLocalState(unsigned long long localId, unsigned int groupId, int normX, int normY, bool isSelecting, int startX, int startY) {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_localId = localId;

@@ -62,6 +62,7 @@ public:
     // Identifies and removes peers that haven't sent updates within the timeout.
     // Returns a list of pruned peer IDs.
     std::vector<unsigned long long> PruneInactivePeers(double timeoutMs);
+    void RemovePeer(unsigned long long id);
 
     void UpdateLocalState(unsigned long long localId, unsigned int groupId, int normX, int normY, bool isSelecting, int selStartX, int selStartY);
 
