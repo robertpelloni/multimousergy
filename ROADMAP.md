@@ -36,4 +36,5 @@
 - [x] Real-time UI Personalization (RGB/Themes).
 - [x] Unlimited Clipboard Capacity (Multi-part Chunking).
 - [x] Full D3D11 Custom Cursor Support.
+- [x] Native Linux X11 Integration (Clipboard & Cursor Position).
 - [ ] Native Vendor SDK linking for Drivers.

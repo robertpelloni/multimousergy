@@ -20,6 +20,7 @@ private:
     long m_lastX = 0;
     long m_lastY = 0;
     int m_buttonState = 0; // bitmask
+    bool m_useNativeDrivers = false;
 
 #ifdef _WIN32
     void* m_context; // Interception context

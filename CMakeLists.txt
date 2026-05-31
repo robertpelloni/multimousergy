@@ -8,6 +8,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(ENABLE_INTERCEPTION "Enable Interception driver support" OFF)
 option(ENABLE_VIGEM "Enable ViGEmBus driver support" OFF)
 
+# Native Driver Support
+option(NETMUX_USE_NATIVE_DRIVERS "Link against native Interception/ViGEm SDKs" OFF)
+if(NETMUX_USE_NATIVE_DRIVERS)
+    add_definitions(-DNETMUX_USE_NATIVE_DRIVERS)
+endif()
+
 # Library files
 set(LIB_SOURCES
     src/DriverInterface.cpp
@@ -60,7 +66,9 @@ endif()
 # Linux specific libraries
 if(UNIX AND NOT APPLE)
     find_package(OpenSSL REQUIRED)
-    target_link_libraries(NetMuxLib OpenSSL::Crypto)
+    find_package(X11 REQUIRED)
+    target_link_libraries(NetMuxLib OpenSSL::Crypto ${X11_LIBRARIES})
+    target_include_directories(NetMuxLib PRIVATE ${X11_INCLUDE_DIR})
 endif()
 
 # Tests

@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## [0.1.56-alpha] - 2025-01-24
+### Added
+- Implement native X11 clipboard reading on Linux (optimized over `xclip`).
+- Enhance Linux input capture with real X11 cursor synchronization (`XQueryPointer`).
+- Refactor `DriverInterface` to support optional native SDK linking (Interception/ViGEmBus).
+
 ## [0.1.55-alpha] - 2025-01-24
 ### Added
 - Implement Linux Input Capture in `InputEngine` via `evdev`.

@@ -13,6 +13,10 @@
 #include <stdio.h>
 #include <memory>
 #include <array>
+#include <thread>
+#include <chrono>
+#include <X11/Xlib.h>
+#include <X11/Xatom.h>
 #endif
 
 ClipboardModule::ClipboardModule() : m_lastHash(0) {}
@@ -36,16 +40,51 @@ bool ClipboardModule::HasChanged() {
 
     currentText = Utf16ToUtf8(wCurrentText);
 #elif defined(__linux__)
-    // Basic Linux stub using xclip
-    std::array<char, 128> buffer;
-    std::string result;
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen("xclip -o -selection clipboard 2>/dev/null", "r"), pclose);
-    if (pipe) {
-        while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
-            result += buffer.data();
+    Display* display = XOpenDisplay(NULL);
+    if (display) {
+        Window window = XCreateSimpleWindow(display, DefaultRootWindow(display), 0, 0, 1, 1, 0, 0, 0);
+        Atom clipboard = XInternAtom(display, "CLIPBOARD", False);
+        Atom target = XInternAtom(display, "UTF8_STRING", False);
+        Atom property = XInternAtom(display, "XSEL_DATA", False);
+
+        XConvertSelection(display, clipboard, target, property, window, CurrentTime);
+        XFlush(display);
+
+        XEvent event;
+        bool ready = false;
+        for (int i = 0; i < 100; ++i) { // Simple timeout loop
+            if (XCheckTypedEvent(display, SelectionNotify, &event)) {
+                ready = true;
+                break;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+
+        if (ready) {
+            Atom actualType;
+            int actualFormat;
+            unsigned long nitems, bytesAfter;
+            unsigned char* data = nullptr;
+            if (XGetWindowProperty(display, window, property, 0, 1024 * 1024, False, AnyPropertyType,
+                                   &actualType, &actualFormat, &nitems, &bytesAfter, &data) == Success && data) {
+                currentText = (char*)data;
+                XFree(data);
+            }
+        }
+        XDestroyWindow(display, window);
+        XCloseDisplay(display);
+    }
+
+    if (currentText.empty()) {
+        // Fallback to xclip if X11 failed or returned empty
+        std::array<char, 128> buffer;
+        std::unique_ptr<FILE, decltype(&pclose)> pipe(popen("xclip -o -selection clipboard 2>/dev/null", "r"), pclose);
+        if (pipe) {
+            while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+                currentText += buffer.data();
+            }
         }
     }
-    currentText = result;
 #endif
 
     if (currentText.empty() && m_lastText.empty()) return false;
@@ -82,6 +121,7 @@ void ClipboardModule::SetText(const std::string& text) {
     }
     CloseClipboard();
 #elif defined(__linux__)
+    // For simplicity on Linux writing, we stick to xclip for now as X11 ownership is complex
     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen("xclip -selection clipboard", "w"), pclose);
     if (pipe) {
         fwrite(text.c_str(), 1, text.size(), pipe.get());

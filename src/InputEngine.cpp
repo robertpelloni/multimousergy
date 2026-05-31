@@ -13,6 +13,7 @@ static InputEngine* s_instance = nullptr;
 #include <unistd.h>
 #include <linux/input.h>
 #include <cstring>
+#include <X11/Xlib.h>
 #endif
 
 InputEngine::InputEngine() : m_active(false), m_isCaptured(false), m_isSelecting(false), m_accumulatedX(0), m_virtualX(0), m_virtualY(0), m_lastLocalActivity(0) {
@@ -171,6 +172,22 @@ void InputEngine::Update() {
     if (!m_active) return;
 
 #ifdef __linux__
+    // Try to sync virtual position with real X11 cursor if possible
+    Display* display = XOpenDisplay(NULL);
+    if (display) {
+        Window root = DefaultRootWindow(display);
+        Window root_return, child_return;
+        int root_x, root_y, win_x, win_y;
+        unsigned int mask_return;
+        if (XQueryPointer(display, root, &root_return, &child_return, &root_x, &root_y, &win_x, &win_y, &mask_return)) {
+            if (!m_isCaptured) {
+                m_virtualX = root_x;
+                m_virtualY = root_y;
+            }
+        }
+        XCloseDisplay(display);
+    }
+
     for (int fd : m_fds) {
         struct input_event ev;
         while (read(fd, &ev, sizeof(ev)) > 0) {
@@ -181,9 +198,6 @@ void InputEngine::Update() {
                 m_lastLocalActivity = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count();
 
                 if (!m_isCaptured) {
-                    // Approximate current position for boundary check
-                    // On Linux we don't have a reliable way to get global cursor pos without X11/Wayland libs
-                    // For now, we assume a virtual position
                     m_virtualX += dx;
                     m_virtualY += dy;
 
