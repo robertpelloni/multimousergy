@@ -13,5 +13,6 @@ public:
     static void Initialize(AppSettings& settings, SyncModule* sync);
     static void Tick();
     static bool IsRunning();
+    static bool RestartRequested();
     static void Shutdown();
 };

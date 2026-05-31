@@ -23,5 +23,6 @@
 ## Milestone 5: Optimization & Polish (IN PROGRESS)
 - [x] Multi-Monitor DPI Awareness.
 - [x] Bandwidth Optimization (Header-only movement packets).
+- [x] Focus Halo visual feedback.
 - [ ] Native Vendor SDK linking for Drivers.
 - [ ] Formal Protocol Serialization.

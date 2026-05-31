@@ -12,6 +12,7 @@
 static AppSettings* s_currentSettings = nullptr;
 static SyncModule* s_currentSync = nullptr;
 static bool s_isRunning = false;
+static bool s_restartRequested = false;
 
 #ifdef _WIN32
 static HWND s_hwndMain = nullptr;
@@ -134,6 +135,7 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                     s_currentSettings->remoteIp = buffer;
 
                     // Signal main thread to re-initialize
+                    s_restartRequested = true;
                     PostMessage(hwnd, WM_USER + 1, 0, 0);
                 } catch (...) {}
             }
@@ -157,6 +159,7 @@ static std::mutex s_monitorMutex;
 void ConfigGUI::Initialize(AppSettings& settings, SyncModule* sync) {
     s_currentSettings = &settings;
     s_currentSync = sync;
+    s_restartRequested = false;
 
 #ifdef _WIN32
     WNDCLASS wc = {0};
@@ -194,8 +197,8 @@ void ConfigGUI::Tick() {
             if (peer.buttonState & 2) btnStr[1] = 'R';
             if (peer.buttonState & 4) btnStr[2] = 'M';
 
-            snprintf(info, sizeof(info), "%s | %dms | %.1fpx | %s | %s %s",
-                peer.sessionName, (int)peer.latency, peer.drift,
+            snprintf(info, sizeof(info), "%s | RTT:%dms | E2E:%dms | Drift:%.1fpx | %s | %s %s",
+                peer.sessionName, (int)peer.latency, (int)peer.e2eLatency, peer.drift,
                 peer.isAuthenticated ? "Auth" : "Locked",
                 btnStr, peer.isSelecting ? "[Sel]" : "");
             SendMessage(s_hwndPeerList, LB_ADDSTRING, 0, (LPARAM)info);
@@ -206,6 +209,10 @@ void ConfigGUI::Tick() {
 
 bool ConfigGUI::IsRunning() {
     return s_isRunning;
+}
+
+bool ConfigGUI::RestartRequested() {
+    return s_restartRequested;
 }
 
 void ConfigGUI::Shutdown() {

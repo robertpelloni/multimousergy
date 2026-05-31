@@ -64,8 +64,9 @@ int main(int argc, char* argv[]) {
         while (true) {
             if (ConfigGUI::IsRunning()) {
                 ConfigGUI::Tick();
+                // Check if user clicked "Save & Start" which sends WM_USER+1
+                // and triggers re-init in main loop
             } else if (!autoConnect) {
-                // Exit if GUI is closed and we aren't in auto-connect mode
                 break;
             }
 
@@ -73,11 +74,25 @@ int main(int argc, char* argv[]) {
             
             if (!framework.IsRunning()) break;
 
+            // Simple way to handle restart without complex message passing:
+            // The dialog ShowDialog blocks and returns when "Save & Start" is clicked.
+            // But we are using Initialize/Tick.
+            // Let's modify ConfigGUI to have a restart flag.
+            if (ConfigGUI::RestartRequested()) {
+                restartRequested = true;
+                break;
+            }
+
             std::this_thread::sleep_for(std::chrono::milliseconds(16));
         }
 
         framework.Shutdown();
         if (frameworkThread.joinable()) frameworkThread.join();
+
+        if (restartRequested) {
+            firstRun = true;
+            continue;
+        }
 
         // If the GUI was closed by user, exit app.
         // If we want a "Restart" button, we'd set restartRequested = true.

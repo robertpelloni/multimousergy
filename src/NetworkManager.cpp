@@ -48,7 +48,11 @@ bool NetworkManager::StartServer(int port) {
     serverAddr.sin_port = htons(port);
 
     if (bind(m_udpSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
+#ifdef _WIN32
         std::cerr << "[Network] UDP Bind failed on port " << port << " Error: " << WSAGetLastError() << std::endl;
+#else
+        std::cerr << "[Network] UDP Bind failed on port " << port << " Error: " << errno << std::endl;
+#endif
         return false;
     }
 
@@ -59,7 +63,11 @@ bool NetworkManager::StartServer(int port) {
     setsockopt(m_tcpSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse));
 
     if (bind(m_tcpSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
+#ifdef _WIN32
         std::cerr << "[Network] TCP Bind failed on port " << port << " Error: " << WSAGetLastError() << std::endl;
+#else
+        std::cerr << "[Network] TCP Bind failed on port " << port << " Error: " << errno << std::endl;
+#endif
         return false;
     }
 
@@ -119,9 +127,14 @@ static int SafeSend(Socket s, const char* data, int len) {
 void NetworkManager::SendPacketToGroup(const Packet& packet, unsigned int groupId) {
     if (!m_running || m_udpSocket == INVALID_SOCKET_HANDLE || !m_isServer) return;
 
+    size_t sendSize = sizeof(packet);
+    if (packet.type == NetMuxPacketType::Movement || packet.type == NetMuxPacketType::AbsoluteMovement) {
+        sendSize = offsetof(Packet, payload);
+    }
+
     for (auto const& [id, peer] : m_udpPeerMap) {
         if (peer.groupId == groupId) {
-            sendto(m_udpSocket, (const char*)&packet, sizeof(packet), 0, (struct sockaddr*)&peer.addr, sizeof(sockaddr_in));
+            sendto(m_udpSocket, (const char*)&packet, (int)sendSize, 0, (struct sockaddr*)&peer.addr, sizeof(sockaddr_in));
         }
     }
 }
@@ -130,12 +143,17 @@ void NetworkManager::SendPacket(const Packet& packet) {
     if (!m_running || m_udpSocket == INVALID_SOCKET_HANDLE) return;
 
     if (packet.type == NetMuxPacketType::Movement || packet.type == NetMuxPacketType::AbsoluteMovement) {
+        // OPTIMIZATION: Send only the header + coordinates, excluding the large payload buffer
+        // Packet layout: [senderId][groupId][localTimestamp][type][x][y][button][down][isSelecting][selectionStartX][selectionStartY][payload][payloadSize]
+        // We can safely truncate at 'payload' offset.
+        size_t optimizedSize = offsetof(Packet, payload);
+
         if (m_isServer) {
             for (auto const& [id, peer] : m_udpPeerMap) {
-                sendto(m_udpSocket, (const char*)&packet, sizeof(packet), 0, (struct sockaddr*)&peer.addr, sizeof(sockaddr_in));
+                sendto(m_udpSocket, (const char*)&packet, (int)optimizedSize, 0, (struct sockaddr*)&peer.addr, sizeof(sockaddr_in));
             }
         } else if (m_hasRemoteAddr) {
-            sendto(m_udpSocket, (const char*)&packet, sizeof(packet), 0, (struct sockaddr*)&m_remoteAddr, sizeof(sockaddr_in));
+            sendto(m_udpSocket, (const char*)&packet, (int)optimizedSize, 0, (struct sockaddr*)&m_remoteAddr, sizeof(sockaddr_in));
         }
     } else {
         if (m_isServer) {

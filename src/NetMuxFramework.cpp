@@ -172,7 +172,6 @@ void NetMuxFramework::Run() {
                 // Active cursor visual indicator (White for owner, original for others)
                 if (id == activeId) {
                     overlayPeers[id].r = 255; overlayPeers[id].g = 255; overlayPeers[id].b = 255;
-                    // TODO: Draw Focus Halo in OverlayEngine based on activeId
                 } else if (peer.drift > 327) {
                     // Visual indicator for "Out of Sync" or "Conflict" potential
                     overlayPeers[id].r = 255; overlayPeers[id].g = 165; overlayPeers[id].b = 0; // Orange

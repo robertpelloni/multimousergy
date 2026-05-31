@@ -1,7 +1,7 @@
 # TODO.md
 
 - [x] Create basic project structure (CMake, src, include).
-- [ ] Implement `DriverInterface` with actual ViGEmBus/Interception SDK linking.
+- [ ] Implement `DriverInterface` with actual ViGEmBus/Interception SDK linking (Requires .lib/.h).
 - [x] Implement `InputEngine` with `WM_INPUT` and `WH_MOUSE_LL` hooks.
 - [x] Implement `NetworkManager` with automated peer discovery.
 - [x] Implement `OverlayEngine` with Direct3D 11 hardware acceleration.

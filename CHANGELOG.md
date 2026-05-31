@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.43-alpha] - 2025-01-24
+### Added
+- Implemented Network Bandwidth Optimization (header-only movement packets).
+- Expanded ConfigGUI with real-time Drift and E2E Latency telemetry.
+- Implemented "Focus Halo" visual feedback for active interaction owner in both D3D11 and GDI.
+- Added framework re-initialization signaling from ConfigGUI.
+
 ## [0.1.42-alpha] - 2025-01-24
 ### Added
 - Implemented "Gesture Integrity" in conflict resolution.

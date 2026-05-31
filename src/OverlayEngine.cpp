@@ -178,7 +178,7 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
             HPEN hHaloPen = CreatePen(PS_DOT, 1, RGB(255, 255, 255));
             SelectObject(hdcMem, GetStockObject(NULL_BRUSH));
             HPEN hOldP = (HPEN)SelectObject(hdcMem, hHaloPen);
-            Ellipse(hdcMem, peer.x - 10, peer.y - 10, peer.x + 10, peer.y + 10);
+            Ellipse(hdcMem, peer.x - 15, peer.y - 15, peer.x + 15, peer.y + 15);
             SelectObject(hdcMem, hOldP);
             DeleteObject(hHaloPen);
         }
