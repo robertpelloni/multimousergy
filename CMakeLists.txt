@@ -21,6 +21,7 @@ set(LIB_SOURCES
     src/SyncModule.cpp
     src/ClipboardModule.cpp
     src/D3D11Overlay.cpp
+    src/AuthModule.cpp
 )
 
 # Library
@@ -56,13 +57,15 @@ endif()
 
 # Linux specific libraries
 if(UNIX AND NOT APPLE)
-    target_link_libraries(NetMuxLib crypto)
+    find_package(OpenSSL REQUIRED)
+    target_link_libraries(NetMuxLib OpenSSL::Crypto)
 endif()
 
 # Tests
 enable_testing()
 add_executable(NetMuxTests
     tests/test_main.cpp
+    tests/test_auth.cpp
     tests/test_multi_client.cpp
     tests/test_stress.cpp
     tests/test_network.cpp

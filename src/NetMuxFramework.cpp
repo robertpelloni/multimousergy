@@ -1,5 +1,6 @@
 #include "NetMuxFramework.hpp"
 #include "ConfigGUI.hpp"
+#include "AuthModule.hpp"
 #include <iostream>
 #include <cmath>
 #include <algorithm>
@@ -11,24 +12,9 @@
 #ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>
-#include <bcrypt.h>
 #else
 #include <unistd.h>
-#include <openssl/sha.h>
 #endif
-
-// Helper to compute simple SHA256-like hash for auth
-static void ComputeHash(int nonce, const std::string& key, unsigned char* outHash) {
-    std::string data = std::to_string(nonce) + key;
-#ifdef _WIN32
-    BCRYPT_ALG_HANDLE hAlg = NULL;
-    BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_SHA256_ALGORITHM, NULL, 0);
-    // BCryptHash stubbed
-    BCryptCloseAlgorithmProvider(hAlg, 0);
-#else
-    SHA256((const unsigned char*)data.c_str(), data.length(), outHash);
-#endif
-}
 
 NetMuxFramework::NetMuxFramework()
     : m_running(false), m_lastSyncTime(0), m_lastPerfLog(0), m_overlayDirty(false) {
@@ -359,7 +345,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
         } else if (inPkt.type == NetMuxPacketType::AuthChallenge) {
             int nonce = inPkt.x;
             unsigned char hash[32];
-            ComputeHash(nonce, m_settings.securityKey, hash);
+            AuthModule::GenerateResponse(nonce, m_settings.securityKey, hash);
 
             Packet authPkt = { m_localId, m_settings.groupId, 0.0, NetMuxPacketType::AuthResponse, 0, 0, 0, false, false, 0, 0, "", 0 };
             memcpy(authPkt.payload, hash, 32);
@@ -376,10 +362,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
                     authenticated = true;
                 } else if (m_pendingNonces.count(peerId)) {
                     int nonce = m_pendingNonces[peerId];
-                    unsigned char expectedHash[32];
-                    ComputeHash(nonce, m_settings.securityKey, expectedHash);
-
-                    if (inPkt.payloadSize == 32 && memcmp(inPkt.payload, expectedHash, 32) == 0) {
+                    if (inPkt.payloadSize == 32 && AuthModule::VerifyResponse(nonce, m_settings.securityKey, (const unsigned char*)inPkt.payload)) {
                         authenticated = true;
                     } else {
                         std::cerr << "[Security] Auth FAILED for peer " << peerId << " (Hash mismatch)" << std::endl;

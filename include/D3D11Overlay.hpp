@@ -20,9 +20,12 @@ public:
     bool Initialize(void* hwnd);
 #endif
     void Render(const std::map<unsigned long long, RemoteCursorState>& peers);
+    void SetActivePeer(unsigned long long id) { m_activePeerId = id; }
     void Shutdown();
 
 private:
+    unsigned long long m_activePeerId = 0;
+
 #ifdef _WIN32
     void DrawSprite(int x, int y, unsigned char r, unsigned char g, unsigned char b);
 
