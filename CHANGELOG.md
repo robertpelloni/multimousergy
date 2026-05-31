@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## [0.1.55-alpha] - 2025-01-24
+### Added
+- Implement Linux Input Capture in `InputEngine` via `evdev`.
+- Implement constant-time comparison in `AuthModule` to mitigate timing attacks.
+- Refactor `PacketSerializer` to use a robust `GetHeaderSize` constexpr helper.
+
 ## [0.1.54-alpha] - 2025-01-24
 ### Added
 - Implement High-Capacity Clipboard Chunking (unlimited size via multi-part packets).

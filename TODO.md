@@ -11,6 +11,8 @@
 - [x] Integrated Persistent Monitoring UI (ConfigGUI).
 - [x] Implement "Custom Cursor Themes" (BMP Loading).
 - [x] Implement Multi-Monitor DPI Awareness (SetProcessDPIAware).
+- [x] Implement Linux input capture via `evdev`.
+- [x] Implement constant-time comparison for authentication hashes.
 - [x] Enhance Clipboard with Unicode support and conflict resolution.
 - [x] Wire RGB color and Cursor Theme browsing to ConfigGUI.
 - [x] Implement multi-part chunking for clipboard synchronization.

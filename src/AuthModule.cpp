@@ -84,5 +84,11 @@ void AuthModule::GenerateResponse(int nonce, const std::string& key, unsigned ch
 bool AuthModule::VerifyResponse(int nonce, const std::string& key, const unsigned char* receivedHash) {
     unsigned char expectedHash[32];
     GenerateResponse(nonce, key, expectedHash);
-    return memcmp(expectedHash, receivedHash, 32) == 0;
+
+    // Constant-time comparison to mitigate timing attacks
+    unsigned char result = 0;
+    for (int i = 0; i < 32; ++i) {
+        result |= (expectedHash[i] ^ receivedHash[i]);
+    }
+    return result == 0;
 }

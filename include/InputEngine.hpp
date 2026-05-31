@@ -38,6 +38,9 @@ public:
     void* m_keyboardHook;
     void* m_hwnd;
 #endif
+#ifdef __linux__
+    std::vector<int> m_fds;
+#endif
 
 private:
 };

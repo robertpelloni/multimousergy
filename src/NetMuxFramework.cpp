@@ -583,6 +583,10 @@ void NetMuxFramework::PerformPeerCleanup() {
 }
 
 void NetMuxFramework::PerformClipboardSync() {
+    static double lastCheck = 0;
+    if (m_loopTimer.ElapsedMilliseconds() - lastCheck < 500.0) return;
+    lastCheck = m_loopTimer.ElapsedMilliseconds();
+
     if (m_clipboard.HasChanged()) {
         std::string text = m_clipboard.GetText();
         double now = m_loopTimer.ElapsedMilliseconds();

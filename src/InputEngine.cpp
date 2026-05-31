@@ -8,7 +8,14 @@
 static InputEngine* s_instance = nullptr;
 #endif
 
-InputEngine::InputEngine() : m_active(false), m_isCaptured(false), m_accumulatedX(0), m_virtualX(0), m_virtualY(0), m_lastLocalActivity(0) {
+#ifdef __linux__
+#include <fcntl.h>
+#include <unistd.h>
+#include <linux/input.h>
+#include <cstring>
+#endif
+
+InputEngine::InputEngine() : m_active(false), m_isCaptured(false), m_isSelecting(false), m_accumulatedX(0), m_virtualX(0), m_virtualY(0), m_lastLocalActivity(0) {
 #ifdef _WIN32
     m_mouseHook = nullptr;
     m_keyboardHook = nullptr;
@@ -102,7 +109,28 @@ LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
 
 bool InputEngine::Initialize(const Config& config) {
     m_config = config;
-    std::cout << "[Input] Initializing Raw Input and Hooks..." << std::endl;
+    std::cout << "[Input] Initializing Input Capture..." << std::endl;
+
+#ifdef __linux__
+    for (int i = 0; i < 32; ++i) {
+        char path[64];
+        snprintf(path, sizeof(path), "/dev/input/event%d", i);
+        int fd = open(path, O_RDONLY | O_NONBLOCK);
+        if (fd >= 0) {
+            unsigned long rel_bits[1];
+            if (ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), rel_bits) >= 0) {
+                if ((rel_bits[0] & (1 << REL_X)) && (rel_bits[0] & (1 << REL_Y))) {
+                    m_fds.push_back(fd);
+                    std::cout << "[Input] Monitoring Linux evdev device: " << path << std::endl;
+                } else {
+                    close(fd);
+                }
+            } else {
+                close(fd);
+            }
+        }
+    }
+#endif
 
 #ifdef _WIN32
     s_instance = this;
@@ -141,6 +169,68 @@ bool InputEngine::Initialize(const Config& config) {
 
 void InputEngine::Update() {
     if (!m_active) return;
+
+#ifdef __linux__
+    for (int fd : m_fds) {
+        struct input_event ev;
+        while (read(fd, &ev, sizeof(ev)) > 0) {
+            if (ev.type == EV_REL) {
+                int dx = (ev.code == REL_X) ? ev.value : 0;
+                int dy = (ev.code == REL_Y) ? ev.value : 0;
+
+                m_lastLocalActivity = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count();
+
+                if (!m_isCaptured) {
+                    // Approximate current position for boundary check
+                    // On Linux we don't have a reliable way to get global cursor pos without X11/Wayland libs
+                    // For now, we assume a virtual position
+                    m_virtualX += dx;
+                    m_virtualY += dy;
+
+                    if (IsAtBoundary(m_virtualX, m_virtualY) && m_peerConnected) {
+                        m_isCaptured = true;
+                        m_accumulatedX = 0;
+                        std::cout << "[Input] Boundary hit (Linux). Capturing." << std::endl;
+                    }
+                }
+
+                if (m_isCaptured) {
+                    m_accumulatedX += dx;
+                    m_virtualX += dx;
+                    m_virtualY += dy;
+
+                    Packet pkt = { 0, 0, 0, 0.0, NetMuxPacketType::AbsoluteMovement, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+                    // Normalized coordinates (assuming 1920x1080 for simulation)
+                    pkt.x = (std::max(0, std::min(1919, m_virtualX)) * 65535) / 1919;
+                    pkt.y = (std::max(0, std::min(1079, m_virtualY)) * 65535) / 1079;
+                    m_pendingPackets.push(pkt);
+
+                    // Handle release
+                    bool movingBack = false;
+                    if (m_config.isLeft) { if (m_accumulatedX > 100) movingBack = true; }
+                    else { if (m_accumulatedX < -100) movingBack = true; }
+
+                    if (movingBack) {
+                        m_isCaptured = false;
+                        m_accumulatedX = 0;
+                        std::cout << "[Input] Release threshold met (Linux)." << std::endl;
+                    }
+                }
+            } else if (ev.type == EV_KEY) {
+                NetMuxPacketType type = NetMuxPacketType::Click;
+                int button = -1;
+                if (ev.code == BTN_LEFT) button = 0;
+                else if (ev.code == BTN_RIGHT) button = 1;
+                else if (ev.code == BTN_MIDDLE) button = 2;
+
+                if (button != -1) {
+                    Packet pkt = { 0, 0, 0, 0.0, type, 0, 0, button, ev.value != 0, false, 0, 0, 0, false, 0, 0, "", 0 };
+                    m_pendingPackets.push(pkt);
+                }
+            }
+        }
+    }
+#endif
 
 #ifdef _WIN32
     MSG msg;
@@ -253,7 +343,11 @@ void InputEngine::Update() {
 
 void InputEngine::Shutdown() {
     if (m_active) {
-        std::cout << "[Input] Shutting down interception..." << std::endl;
+        std::cout << "[Input] Shutting down input capture..." << std::endl;
+#ifdef __linux__
+        for (int fd : m_fds) close(fd);
+        m_fds.clear();
+#endif
 #ifdef _WIN32
         if (m_mouseHook) {
             UnhookWindowsHookEx((HHOOK)m_mouseHook);

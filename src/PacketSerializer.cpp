@@ -20,8 +20,10 @@ static void ReadBuffer(const uint8_t* buf, size_t& offset, size_t totalSize, T& 
 
 std::vector<uint8_t> PacketSerializer::Serialize(const Packet& pkt, bool headerOnly) {
     std::vector<uint8_t> buf;
+    buf.reserve(headerOnly ? HEADER_SIZE : HEADER_SIZE + pkt.payloadSize + sizeof(int32_t));
     size_t offset = 0;
 
+    // Serializing using explicit sizes to ensure cross-platform compatibility
     WriteBuffer(buf, offset, pkt.senderId);
     WriteBuffer(buf, offset, pkt.groupId);
     WriteBuffer(buf, offset, pkt.sequenceNumber);

@@ -26,6 +26,8 @@
 - [x] Persistent Monitor UI with live telemetry.
 
 ## Milestone 5: Optimization & Polish (IN PROGRESS)
+- [x] Linux Input Capture (evdev).
+- [x] Security Hardening (Constant-time auth verification).
 - [x] Multi-Monitor DPI Awareness.
 - [x] Bandwidth Optimization (Header-only movement packets).
 - [x] Focus Halo visual feedback.
