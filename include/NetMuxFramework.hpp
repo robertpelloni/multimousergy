@@ -49,6 +49,7 @@ private:
     void PerformLatencySync();
     void PerformDiscoveryBroadcast();
     void PerformClipboardSync();
+    void PerformPeerCleanup();
 
     NetworkManager m_network;
     InputEngine m_input;

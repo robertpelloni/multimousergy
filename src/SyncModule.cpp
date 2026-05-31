@@ -173,6 +173,25 @@ void SyncModule::UpdateClockOffset(unsigned long long id, double remoteTime, dou
     }
 }
 
+std::vector<unsigned long long> SyncModule::PruneInactivePeers(double timeoutMs) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    std::vector<unsigned long long> pruned;
+
+    static auto startTime = std::chrono::steady_clock::now();
+    double currentMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - startTime).count();
+
+    for (auto it = m_peers.begin(); it != m_peers.end(); ) {
+        if (it->first != m_localId && (currentMs - it->second.lastSeen) > timeoutMs) {
+            pruned.push_back(it->first);
+            if (m_activePeerId == it->first) m_activePeerId = 0;
+            it = m_peers.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    return pruned;
+}
+
 void SyncModule::UpdateLocalState(unsigned long long localId, unsigned int groupId, int normX, int normY, bool isSelecting, int startX, int startY) {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_localId = localId;

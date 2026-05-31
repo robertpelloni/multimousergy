@@ -2,6 +2,7 @@
 
 ## Milestone 1: Core Connectivity (COMPLETED ARCHITECTURE)
 - [x] Virtual HID Driver abstraction layer.
+- [x] Linux hardware injection support (evdev).
 - [x] Raw Input interception and local cursor suppression.
 - [x] Bidirectional hybrid UDP/TCP networking.
 

@@ -57,6 +57,10 @@ public:
     void UpdateLatency(unsigned long long id, double latency);
     void UpdateClockOffset(unsigned long long id, double remoteTime, double localTime);
 
+    // Identifies and removes peers that haven't sent updates within the timeout.
+    // Returns a list of pruned peer IDs.
+    std::vector<unsigned long long> PruneInactivePeers(double timeoutMs);
+
     void UpdateLocalState(unsigned long long localId, unsigned int groupId, int normX, int normY, bool isSelecting, int selStartX, int selStartY);
 
     bool GetPeerState(unsigned long long id, PeerState& state);

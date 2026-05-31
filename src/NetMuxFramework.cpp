@@ -87,7 +87,8 @@ void NetMuxFramework::Run() {
         PerformDiscoveryBroadcast();
         PerformClipboardSync();
         PerformMasterStateSync();
-    PerformSyncCheck();
+        PerformSyncCheck();
+        PerformPeerCleanup();
         ProcessOutgoingPackets();
         ProcessIncomingPackets();
         ProcessInteractionQueue();
@@ -494,6 +495,18 @@ void NetMuxFramework::PerformDiscoveryBroadcast() {
     if (m_settings.isServer && m_loopTimer.ElapsedMilliseconds() - lastBroadcast > 3000.0) {
         m_network.BroadcastDiscovery(5556);
         lastBroadcast = m_loopTimer.ElapsedMilliseconds();
+    }
+}
+
+void NetMuxFramework::PerformPeerCleanup() {
+    static double lastCleanup = 0;
+    if (m_loopTimer.ElapsedMilliseconds() - lastCleanup > 5000.0) {
+        std::vector<unsigned long long> pruned = m_sync.PruneInactivePeers(10000.0); // 10s timeout
+        for (auto id : pruned) {
+            std::cout << "[Framework] Peer " << id << " timed out and was pruned." << std::endl;
+            m_authService.ClearPeer(id);
+        }
+        lastCleanup = m_loopTimer.ElapsedMilliseconds();
     }
 }
 

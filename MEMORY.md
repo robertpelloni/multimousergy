@@ -18,3 +18,5 @@
 - **Performance Gap**: Benchmarking reveals that the D3D11 backend reduces CPU frame preparation time by approximately 30% compared to GDI `UpdateLayeredWindow`, especially under high peer counts.
 - **Sync Reliability**: The "Timestamp-First" model combined with Clock Synchronization has proven robust against jitter-induced out-of-order interactions.
 - **Authentication Lifecycle**: The system utilizes a stateful `AuthService` with mutual authentication. Handshakes trigger bidirectional challenges, ensuring both sides are trusted. Sensitive packet processing (Move, Click, Clipboard) is strictly gated by authentication status.
+- **Peer Management**: `SyncModule` handles active peer pruning based on a 10-second inactivity timeout. This ensures the monitor UI and internal state remain clean of stale connections.
+- **Linux Driver**: Hardware injection on Linux is supported via direct `evdev` writes to `/dev/input/event0`, bypassing high-level UI framework constraints.

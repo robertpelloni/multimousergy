@@ -1,6 +1,13 @@
 #include "DriverInterface.hpp"
 #include <iostream>
 
+#ifdef __linux__
+#include <fcntl.h>
+#include <unistd.h>
+#include <linux/input.h>
+#include <cstring>
+#endif
+
 #ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>
@@ -47,6 +54,9 @@ DriverInterface::DriverInterface() : m_initialized(false), m_type(NetMuxDriverTy
     m_vigemClient = nullptr;
     m_vigemPad = nullptr;
 #endif
+#ifdef __linux__
+    m_device = -1;
+#endif
 }
 
 DriverInterface::~DriverInterface() {
@@ -56,6 +66,18 @@ DriverInterface::~DriverInterface() {
 bool DriverInterface::Initialize(NetMuxDriverType type) {
     m_type = type;
     std::cout << "[Driver] Initializing hardware abstraction layer..." << std::endl;
+
+#ifdef __linux__
+    std::cout << "[Driver] Attempting Linux evdev injection (/dev/input/event0)..." << std::endl;
+    m_device = open("/dev/input/event0", O_WRONLY | O_NONBLOCK);
+    if (m_device >= 0) {
+        m_initialized = true;
+        std::cout << "[Driver] Linux evdev injection enabled." << std::endl;
+        return true;
+    } else {
+         std::cerr << "[Driver] Failed to open /dev/input/event0 (Permissions?)" << std::endl;
+    }
+#endif
 
 #ifdef _WIN32
     if (m_type == NetMuxDriverType::Auto || m_type == NetMuxDriverType::Interception) {
@@ -99,12 +121,28 @@ void DriverInterface::Shutdown() {
         m_context = nullptr;
         m_vigemClient = nullptr;
 #endif
+#ifdef __linux__
+        if (m_device >= 0) close(m_device);
+        m_device = -1;
+#endif
         m_initialized = false;
     }
 }
 
 bool DriverInterface::SendMouseMovement(long dx, long dy) {
     if (!m_initialized) return false;
+
+#ifdef __linux__
+    struct input_event ev[3];
+    memset(ev, 0, sizeof(ev));
+
+    ev[0].type = EV_REL; ev[0].code = REL_X; ev[0].value = (int)dx;
+    ev[1].type = EV_REL; ev[1].code = REL_Y; ev[1].value = (int)dy;
+    ev[2].type = EV_SYN; ev[2].code = SYN_REPORT; ev[2].value = 0;
+
+    write(m_device, ev, sizeof(ev));
+    return true;
+#endif
 
 #ifdef _WIN32
     if (m_type == NetMuxDriverType::Interception) {
@@ -123,6 +161,21 @@ bool DriverInterface::SendMouseMovement(long dx, long dy) {
 
 bool DriverInterface::SendMouseButton(int button, bool down) {
     if (!m_initialized) return false;
+
+#ifdef __linux__
+    struct input_event ev[2];
+    memset(ev, 0, sizeof(ev));
+
+    int code = BTN_LEFT;
+    if (button == 1) code = BTN_RIGHT;
+    else if (button == 2) code = BTN_MIDDLE;
+
+    ev[0].type = EV_KEY; ev[0].code = code; ev[0].value = down ? 1 : 0;
+    ev[1].type = EV_SYN; ev[1].code = SYN_REPORT; ev[1].value = 0;
+
+    write(m_device, ev, sizeof(ev));
+    return true;
+#endif
 
 #ifdef _WIN32
     if (m_type == NetMuxDriverType::Interception) {

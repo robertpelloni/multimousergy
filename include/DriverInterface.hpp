@@ -26,4 +26,7 @@ private:
     void* m_vigemClient; // ViGEm client handle
     void* m_vigemPad;    // ViGEm target handle
 #endif
+#ifdef __linux__
+    int m_device;
+#endif
 };

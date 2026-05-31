@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## [0.1.45-alpha] - 2025-01-24
+### Added
+- Implemented Peer Lifecycle Management: Inactive peers are now pruned after a timeout.
+- Added Linux hardware injection support via `evdev` (`/dev/input/event0`).
+- Integrated `AuthService` state cleanup during peer pruning.
+
 ## [0.1.44-alpha] - 2025-01-24
 ### Added
 - Implemented stateful `AuthService` for secure challenge-response management.
