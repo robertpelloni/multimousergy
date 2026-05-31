@@ -34,6 +34,8 @@ std::vector<uint8_t> PacketSerializer::Serialize(const Packet& pkt, bool headerO
     WriteBuffer(buf, offset, (uint8_t)pkt.isSelecting);
     WriteBuffer(buf, offset, pkt.selectionStartX);
     WriteBuffer(buf, offset, pkt.selectionStartY);
+    WriteBuffer(buf, offset, pkt.wheelDelta);
+    WriteBuffer(buf, offset, (uint8_t)pkt.isHorizontalWheel);
 
     if (!headerOnly) {
         WriteBuffer(buf, offset, pkt.payloadSize);
@@ -67,6 +69,8 @@ size_t PacketSerializer::Deserialize(const uint8_t* buffer, size_t size, Packet&
     ReadBuffer(buffer, offset, size, isSelectingByte); outPkt.isSelecting = (isSelectingByte != 0);
     ReadBuffer(buffer, offset, size, outPkt.selectionStartX);
     ReadBuffer(buffer, offset, size, outPkt.selectionStartY);
+    ReadBuffer(buffer, offset, size, outPkt.wheelDelta);
+    uint8_t isHWheel; ReadBuffer(buffer, offset, size, isHWheel); outPkt.isHorizontalWheel = (isHWheel != 0);
 
     // Default payload state
     outPkt.payloadSize = 0;

@@ -233,6 +233,15 @@ void InputEngine::Update() {
                         if (flags & RI_MOUSE_RIGHT_BUTTON_UP)    m_pendingPackets.push({0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 1, false});
                         if (flags & RI_MOUSE_MIDDLE_BUTTON_DOWN) m_pendingPackets.push({0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 2, true});
                         if (flags & RI_MOUSE_MIDDLE_BUTTON_UP)   m_pendingPackets.push({0, 0, 0.0, NetMuxPacketType::Click, 0, 0, 2, false});
+
+                        if (flags & RI_MOUSE_WHEEL) {
+                            short delta = (short)raw->data.mouse.usButtonData;
+                            m_pendingPackets.push({0, 0, 0, 0.0, NetMuxPacketType::Wheel, 0, 0, 0, false, false, 0, 0, (int)delta, false});
+                        }
+                        if (flags & RI_MOUSE_HWHEEL) {
+                            short delta = (short)raw->data.mouse.usButtonData;
+                            m_pendingPackets.push({0, 0, 0, 0.0, NetMuxPacketType::Wheel, 0, 0, 0, false, false, 0, 0, (int)delta, true});
+                        }
                     }
                 }
             }

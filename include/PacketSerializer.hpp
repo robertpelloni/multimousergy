@@ -14,5 +14,5 @@ public:
     static size_t Deserialize(const uint8_t* buffer, size_t size, Packet& outPkt);
 
     // Constant for the header size (fixed portion of the packet)
-    static constexpr size_t HEADER_SIZE = 8 + 4 + 4 + 8 + 4 + 4 + 4 + 4 + 1 + 1 + 4 + 4; // Manual sum of fields
+    static constexpr size_t HEADER_SIZE = 8 + 4 + 4 + 8 + 4 + 4 + 4 + 4 + 1 + 1 + 4 + 4 + 4 + 1; // Manual sum of fields
 };

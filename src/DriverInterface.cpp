@@ -68,15 +68,25 @@ bool DriverInterface::Initialize(NetMuxDriverType type) {
     std::cout << "[Driver] Initializing hardware abstraction layer..." << std::endl;
 
 #ifdef __linux__
-    std::cout << "[Driver] Attempting Linux evdev injection (/dev/input/event0)..." << std::endl;
-    m_device = open("/dev/input/event0", O_WRONLY | O_NONBLOCK);
-    if (m_device >= 0) {
-        m_initialized = true;
-        std::cout << "[Driver] Linux evdev injection enabled." << std::endl;
-        return true;
-    } else {
-         std::cerr << "[Driver] Failed to open /dev/input/event0 (Permissions?)" << std::endl;
+    std::cout << "[Driver] Scanning Linux evdev devices..." << std::endl;
+    for (int i = 0; i < 32; ++i) {
+        char path[64];
+        snprintf(path, sizeof(path), "/dev/input/event%d", i);
+        int fd = open(path, O_WRONLY | O_NONBLOCK);
+        if (fd >= 0) {
+            unsigned long rel_bits[1];
+            if (ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), rel_bits) >= 0) {
+                if ((rel_bits[0] & (1 << REL_X)) && (rel_bits[0] & (1 << REL_Y))) {
+                    m_device = fd;
+                    m_initialized = true;
+                    std::cout << "[Driver] Linux evdev injection enabled on: " << path << std::endl;
+                    return true;
+                }
+            }
+            close(fd);
+        }
     }
+    std::cerr << "[Driver] Failed to find a suitable evdev device (Permissions?)" << std::endl;
 #endif
 
 #ifdef _WIN32
@@ -153,6 +163,32 @@ bool DriverInterface::SendMouseMovement(long dx, long dy) {
 
         // if (m_context != (void*)1) interception_send((InterceptionContext)m_context, m_device, (void*)&stroke, 1);
     }
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool DriverInterface::SendMouseWheel(int delta, bool horizontal) {
+    if (!m_initialized) return false;
+
+#ifdef __linux__
+    struct input_event ev[2];
+    memset(ev, 0, sizeof(ev));
+    ev[0].type = EV_REL;
+    ev[0].code = horizontal ? REL_HWHEEL : REL_WHEEL;
+    ev[0].value = delta / 120; // evdev expects discrete units usually, but value varies
+    ev[1].type = EV_SYN; ev[1].code = SYN_REPORT; ev[1].value = 0;
+    write(m_device, ev, sizeof(ev));
+    return true;
+#endif
+
+#ifdef _WIN32
+    INPUT input = {0};
+    input.type = INPUT_MOUSE;
+    input.mi.dwFlags = horizontal ? MOUSEEVENTF_HWHEEL : MOUSEEVENTF_WHEEL;
+    input.mi.mouseData = (DWORD)delta;
+    SendInput(1, &input, sizeof(INPUT));
     return true;
 #else
     return false;

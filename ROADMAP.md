@@ -11,6 +11,7 @@
 - [x] Dynamic cursor scaling and textured sprite rendering.
 - [x] Custom Cursor Themes support (.bmp loading).
 - [x] Selection Color customization.
+- [x] Mouse Wheel Support (Vertical & Horizontal).
 
 ## Milestone 3: Real-Time Synchronization (COMPLETED)
 - [x] Distributed Clock Synchronization (Unified Timeline).

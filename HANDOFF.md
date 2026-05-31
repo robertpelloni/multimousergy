@@ -1,4 +1,4 @@
-# HANDOFF.md - Session Summary (v0.1.48-alpha)
+# HANDOFF.md - Session Summary (v0.1.51-alpha)
 
 ## Overview
 This session focused on implementing a robust, stateful authentication service with mutual challenge-response, hardening security enforcement, and providing auxiliary performance and UI enhancements.
@@ -19,5 +19,5 @@ This session focused on implementing a robust, stateful authentication service w
 - **Serialization**: `PacketSerializer::Deserialize` returns consumed bytes to handle TCP fragmentation correctly.
 
 ## Final State
-**v0.1.48-alpha**
-Mutual authentication, replay protection, and formal serialization complete. Linux support and session management enabled. All tests passed.
+**v0.1.51-alpha**
+Mouse wheel support implemented. Linux driver discovery enhanced. Robust configuration and personalization complete. All tests passed.

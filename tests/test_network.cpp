@@ -56,7 +56,7 @@ void test_concurrent_packet_handling() {
         client.SetIsServer(false);
         if (client.Connect("127.0.0.1", 9991)) {
             for (int i = 0; i < packetsPerClient; ++i) {
-                Packet p = { (unsigned long long)id, 0, 0, 0.0, NetMuxPacketType::AbsoluteMovement, i, i, 0, false, false, 0, 0, "", 0 };
+                Packet p = { (unsigned long long)id, 0, 0, 0.0, NetMuxPacketType::AbsoluteMovement, i, i, 0, false, false, 0, 0, 0, false, "", 0 };
                 client.SendPacket(p);
                 totalSent++;
             }

@@ -32,7 +32,8 @@ enum class NetMuxPacketType {
     AuthResponse,
     SyncCheck,
     SelectionUpdate,
-    Disconnect
+    Disconnect,
+    Wheel
 };
 
 struct Packet {
@@ -48,6 +49,8 @@ struct Packet {
     bool isSelecting;
     int selectionStartX;
     int selectionStartY;
+    int wheelDelta;
+    bool isHorizontalWheel;
     char payload[1024]; // Dynamic data payload (e.g. clipboard text)
     int payloadSize;
 };

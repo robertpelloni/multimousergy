@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## [0.1.51-alpha] - 2025-01-24
+### Added
+- Implemented full Mouse Wheel support (Vertical & Horizontal).
+- Enhanced Linux driver with Automated Input Device Discovery (ioctl axis detection).
+- Integrated selection rect color customization into all render backends.
+
 ## [0.1.50-alpha] - 2025-01-24
 ### Added
 - Implemented Dynamic Cursor Theme loading (.bmp support).
