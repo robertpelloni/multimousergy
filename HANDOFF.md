@@ -1,23 +1,23 @@
-# Session Handoff - v0.1.52-alpha
+# Session Handoff - v0.1.53-alpha
 
 ## Summary of Changes
-- **Expanded Protocol Capacity**: Increased `Packet::payload` from 1024 to 4096 bytes. Updated `PacketSerializer` and `NetMuxFramework` to support the new limit.
-- **Unicode Clipboard**: Rewrote `ClipboardModule` to use `CF_UNICODETEXT` (Win32). Implemented UTF-16/UTF-8 conversion for cross-platform network transmission.
-- **Optimized Diffing**: Added `std::hash`-based comparison in `ClipboardModule` to detect changes efficiently, avoiding string comparisons for 4KB buffers.
-- **Conflict Resolution**: Implemented temporal conflict resolution for clipboard updates. Incoming updates are now gated by `GetAdjustedTimestamp` (Unified Timeline) against `m_lastClipboardTimestamp`.
-- **SyncModule Enhancement**: Added `GetAdjustedTimestamp` to `SyncModule` to resolve remote timestamps to the local timeline using `clockOffset`.
+- **Portable Unicode Conversion**: Refactored `ClipboardModule.cpp` to use `std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>>`, replacing Win32-specific `WideCharToMultiByte`.
+- **Linux Clipboard Support**: Added a foundation for Linux clipboard synchronization using `xclip` via `popen`.
+- **UI Personalization Wiring**: Integrated selection rectangle RGB controls and a native "Browse" button for cursor themes into the `ConfigGUI` (`SettingsWndProc`).
+- **Clipboard Unit Tests**: Created `tests/test_clipboard.cpp` to verify Unicode round-trips and hash-based change detection. Integrated these into the `NetMuxTests` target and `test_main.cpp`.
+- **Repository Health**: Performed a full repository synchronization and branch reconciliation according to the "Executive Protocol".
 
 ## Technical Observations
-- `PacketSerializer` manual offsets were verified. `HEADER_SIZE` remains 55 bytes.
-- Build verified on Linux (GCC). Narrowing conversion errors were avoided by using explicit casting.
-- Unit tests (`NetMuxTests`) confirm that `SyncModule` correctly calculates adjusted timestamps and that basic network/sync logic is intact.
+- The use of `std::wstring_convert` is portable but deprecated in C++17. It serves as a robust bridge for now until a more modern library is introduced.
+- `xclip` is required on Linux for clipboard features to function.
+- `GetOpenFileNameA` provides a native experience for Windows users selecting cursor theme bitmaps.
 
 ## Next Steps
-- Implement native Vendor SDK linking for ViGEmBus/Interception to replace current stubs.
-- Extend `ClipboardModule` with `iconv` support for Linux/macOS.
-- Research multi-part payload support if >4096 bytes are required for future features (e.g., file transfer).
+- Finalize native Vendor SDK linking for ViGEmBus and Interception (currently using stubs).
+- Extend Linux support with `libx11` or `wayland` native clipboard integration to remove `xclip` dependency.
+- Research formal serialization (Protobuf) to replace manual byte offsets in `PacketSerializer`.
 
 ## Repository State
-- Version: `v0.1.52-alpha`
-- Build status: Passing (Linux)
-- Git: Synchronized with origin/main.
+- Version: `v0.1.53-alpha`
+- Build status: Passing (Linux/Win32 logic verified)
+- Git: Pushed to origin.

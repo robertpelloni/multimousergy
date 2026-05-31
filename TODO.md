@@ -12,4 +12,5 @@
 - [x] Implement "Custom Cursor Themes" (BMP Loading).
 - [x] Implement Multi-Monitor DPI Awareness (SetProcessDPIAware).
 - [x] Enhance Clipboard with Unicode support and conflict resolution.
+- [x] Wire RGB color and Cursor Theme browsing to ConfigGUI.
 - [ ] Refactor Network Protocol to use formal serialization (Protobuf/Flatbuffers).

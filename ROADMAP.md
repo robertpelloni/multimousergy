@@ -31,4 +31,5 @@
 - [x] Focus Halo visual feedback.
 - [x] Formal Protocol Serialization.
 - [x] Unicode Clipboard & High-Capacity Payloads.
+- [x] Real-time UI Personalization (RGB/Themes).
 - [ ] Native Vendor SDK linking for Drivers.

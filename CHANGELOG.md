@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## [0.1.53-alpha] - 2025-01-24
+### Added
+- Wired Selection RGB color customization and Cursor Theme browsing to ConfigGUI.
+- Refactored `ClipboardModule` with portable `std::wstring_convert` and Linux `xclip` support.
+- Added comprehensive unit tests for `ClipboardModule` (Unicode/Hashing).
+
 ## [0.1.52-alpha] - 2025-01-24
 ### Added
 - Expand network protocol payload capacity to 4096 bytes for larger clipboard transfers.

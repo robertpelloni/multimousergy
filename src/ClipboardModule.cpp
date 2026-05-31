@@ -1,20 +1,28 @@
 #include "ClipboardModule.hpp"
 #include <iostream>
 #include <vector>
+#include <codecvt>
+#include <locale>
 
 #ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>
 #endif
 
+#ifdef __linux__
+#include <stdio.h>
+#include <memory>
+#include <array>
+#endif
+
 ClipboardModule::ClipboardModule() : m_lastHash(0) {}
 ClipboardModule::~ClipboardModule() {}
 
 bool ClipboardModule::HasChanged() {
+    std::string currentText;
 #ifdef _WIN32
     if (!OpenClipboard(NULL)) return false;
 
-    // Use CF_UNICODETEXT for universal support
     HANDLE hData = GetClipboardData(CF_UNICODETEXT);
     if (hData == NULL) {
         CloseClipboard();
@@ -26,15 +34,28 @@ bool ClipboardModule::HasChanged() {
     GlobalUnlock(hData);
     CloseClipboard();
 
-    std::string currentText = Utf16ToUtf8(wCurrentText);
-    size_t currentHash = std::hash<std::string>{}(currentText);
+    currentText = Utf16ToUtf8(wCurrentText);
+#elif defined(__linux__)
+    // Basic Linux stub using xclip
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen("xclip -o -selection clipboard 2>/dev/null", "r"), pclose);
+    if (pipe) {
+        while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+            result += buffer.data();
+        }
+    }
+    currentText = result;
+#endif
 
+    if (currentText.empty() && m_lastText.empty()) return false;
+
+    size_t currentHash = std::hash<std::string>{}(currentText);
     if (currentHash != m_lastHash) {
         m_lastHash = currentHash;
         m_lastText = currentText;
         return true;
     }
-#endif
     return false;
 }
 
@@ -60,32 +81,34 @@ void ClipboardModule::SetText(const std::string& text) {
         SetClipboardData(CF_UNICODETEXT, hGlob);
     }
     CloseClipboard();
+#elif defined(__linux__)
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen("xclip -selection clipboard", "w"), pclose);
+    if (pipe) {
+        fwrite(text.c_str(), 1, text.size(), pipe.get());
+    }
+#endif
+
     m_lastText = text;
     m_lastHash = currentHash;
-    std::cout << "[Clipboard] Applied remote update (Unicode)." << std::endl;
-#endif
+    std::cout << "[Clipboard] Applied remote update." << std::endl;
 }
 
 std::string ClipboardModule::Utf16ToUtf8(const std::wstring& wstr) {
     if (wstr.empty()) return "";
-#ifdef _WIN32
-    int sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.size(), NULL, 0, NULL, NULL);
-    std::string strTo(sizeNeeded, 0);
-    WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), (int)wstr.size(), &strTo[0], sizeNeeded, NULL, NULL);
-    return strTo;
-#else
-    return ""; // TODO: Linux/macOS iconv
-#endif
+    try {
+        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+        return converter.to_bytes(wstr);
+    } catch (...) {
+        return "";
+    }
 }
 
 std::wstring ClipboardModule::Utf8ToUtf16(const std::string& str) {
     if (str.empty()) return L"";
-#ifdef _WIN32
-    int sizeNeeded = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), NULL, 0);
-    std::wstring wstrTo(sizeNeeded, 0);
-    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), &wstrTo[0], sizeNeeded);
-    return wstrTo;
-#else
-    return L""; // TODO: Linux/macOS iconv
-#endif
+    try {
+        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+        return converter.from_bytes(str);
+    } catch (...) {
+        return L"";
+    }
 }

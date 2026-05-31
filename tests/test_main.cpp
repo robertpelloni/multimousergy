@@ -22,6 +22,7 @@ void test_simultaneous_edit_resolution();
 void test_boundary_logic();
 void test_auth_module();
 void test_auth_service();
+void test_clipboard_module();
 
 void test_sync_module_interpolation() {
     std::cout << "Testing SyncModule interpolation..." << std::endl;
@@ -60,6 +61,7 @@ int main() {
     test_simultaneous_edit_resolution();
     test_coordinate_normalization_fidelity();
     test_clock_offset_calculation();
+    test_clipboard_module();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }
