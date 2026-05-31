@@ -3,6 +3,7 @@
 
 #include <map>
 #include "SyncModule.hpp"
+#include "NetworkManager.hpp"
 
 class ConfigGUI {
 public:
@@ -10,7 +11,7 @@ public:
     static void UpdateCursorMonitor(const std::map<unsigned long long, PeerState>& peers);
 
     // Lifecycle management for integrated execution
-    static void Initialize(AppSettings& settings, SyncModule* sync);
+    static void Initialize(AppSettings& settings, SyncModule* sync, NetworkManager* network = nullptr);
     static void Tick();
     static bool IsRunning();
     static bool RestartRequested();

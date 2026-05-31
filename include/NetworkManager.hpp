@@ -22,6 +22,7 @@ typedef int Socket;
 
 struct DiscoveryPacket {
     char hostname[64];
+    char ip[64];
     int port;
 };
 

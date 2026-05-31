@@ -11,6 +11,7 @@
 
 static AppSettings* s_currentSettings = nullptr;
 static SyncModule* s_currentSync = nullptr;
+static NetworkManager* s_currentNetwork = nullptr;
 static bool s_isRunning = false;
 static bool s_restartRequested = false;
 
@@ -32,6 +33,7 @@ static HWND s_hwndSessionName = nullptr;
 static HWND s_hwndSecurityKey = nullptr;
 static HWND s_hwndCursorMonitor = nullptr;
 static HWND s_hwndSecurityLog = nullptr;
+static HWND s_hwndDiscoveryList = nullptr;
 
 enum ControlIDs {
     ID_SAVE_BUTTON = 1,
@@ -44,7 +46,9 @@ enum ControlIDs {
     ID_SECURITY_KEY = 8,
     ID_CURSOR_MONITOR = 9,
     ID_DRIVER_TYPE = 10,
-    ID_SECURITY_LOG = 11
+    ID_SECURITY_LOG = 11,
+    ID_SCAN_BUTTON = 12,
+    ID_DISCOVERY_LIST = 13
 };
 
 static HWND s_hwndSecurityStatus = nullptr;
@@ -65,45 +69,49 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             CreateWindow("STATIC", "Boundary X:", WS_VISIBLE | WS_CHILD, 10, 100, 100, 20, hwnd, NULL, NULL, NULL);
             s_hwndBoundary = CreateWindowEx(WS_EX_CLIENTEDGE, "EDIT", std::to_string(s_currentSettings->inputConfig.boundaryX).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER, 110, 100, 150, 20, hwnd, NULL, NULL, NULL);
 
-            CreateWindow("BUTTON", "Save & Start", WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 80, 140, 120, 30, hwnd, (HMENU)ID_SAVE_BUTTON, NULL, NULL);
+            CreateWindow("BUTTON", "Save & Start", WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 10, 140, 120, 30, hwnd, (HMENU)ID_SAVE_BUTTON, NULL, NULL);
+            CreateWindow("BUTTON", "Scan Servers", WS_VISIBLE | WS_CHILD, 140, 140, 120, 30, hwnd, (HMENU)ID_SCAN_BUTTON, NULL, NULL);
 
-            CreateWindow("STATIC", "Network Metrics:", WS_VISIBLE | WS_CHILD, 10, 180, 120, 20, hwnd, NULL, NULL, NULL);
-            s_hwndPeerList = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 10, 200, 250, 60, hwnd, (HMENU)ID_PEER_LIST, NULL, NULL);
+            CreateWindow("STATIC", "Discovered Servers:", WS_VISIBLE | WS_CHILD, 10, 180, 150, 20, hwnd, NULL, NULL, NULL);
+            s_hwndDiscoveryList = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER | LBS_NOTIFY, 10, 200, 250, 60, hwnd, (HMENU)ID_DISCOVERY_LIST, NULL, NULL);
 
-            CreateWindow("STATIC", "Cursor Scale:", WS_VISIBLE | WS_CHILD, 10, 270, 100, 20, hwnd, NULL, NULL, NULL);
-            s_hwndCursorScale = CreateWindow("EDIT", "100", WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 110, 270, 50, 20, hwnd, (HMENU)ID_CURSOR_SCALE, NULL, NULL);
+            CreateWindow("STATIC", "Network Metrics:", WS_VISIBLE | WS_CHILD, 10, 270, 120, 20, hwnd, NULL, NULL, NULL);
+            s_hwndPeerList = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 10, 290, 250, 60, hwnd, (HMENU)ID_PEER_LIST, NULL, NULL);
 
-            s_hwndUseD3D11 = CreateWindow("BUTTON", "Hardware Acceleration (D3D11)", WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX, 10, 300, 250, 20, hwnd, (HMENU)ID_USE_D3D11, NULL, NULL);
+            CreateWindow("STATIC", "Cursor Scale:", WS_VISIBLE | WS_CHILD, 10, 360, 100, 20, hwnd, NULL, NULL, NULL);
+            s_hwndCursorScale = CreateWindow("EDIT", "100", WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 110, 360, 50, 20, hwnd, (HMENU)ID_CURSOR_SCALE, NULL, NULL);
+
+            s_hwndUseD3D11 = CreateWindow("BUTTON", "Hardware Acceleration (D3D11)", WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX, 10, 390, 250, 20, hwnd, (HMENU)ID_USE_D3D11, NULL, NULL);
             if (s_currentSettings->useD3D11) SendMessage(s_hwndUseD3D11, BM_SETCHECK, BST_CHECKED, 0);
 
-            CreateWindow("STATIC", "Driver:", WS_VISIBLE | WS_CHILD, 10, 330, 60, 20, hwnd, NULL, NULL, NULL);
-            s_hwndNetMuxDriverType = CreateWindow("COMBOBOX", "", WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST, 70, 330, 100, 100, hwnd, (HMENU)ID_DRIVER_TYPE, NULL, NULL);
+            CreateWindow("STATIC", "Driver:", WS_VISIBLE | WS_CHILD, 10, 420, 60, 20, hwnd, NULL, NULL, NULL);
+            s_hwndNetMuxDriverType = CreateWindow("COMBOBOX", "", WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST, 70, 420, 100, 100, hwnd, (HMENU)ID_DRIVER_TYPE, NULL, NULL);
             SendMessage(s_hwndNetMuxDriverType, CB_ADDSTRING, 0, (LPARAM)"Auto");
             SendMessage(s_hwndNetMuxDriverType, CB_ADDSTRING, 0, (LPARAM)"Interception");
             SendMessage(s_hwndNetMuxDriverType, CB_ADDSTRING, 0, (LPARAM)"ViGEmBus");
             SendMessage(s_hwndNetMuxDriverType, CB_SETCURSEL, (WPARAM)s_currentSettings->driverType, 0);
 
-            CreateWindow("STATIC", "Group ID:", WS_VISIBLE | WS_CHILD, 180, 330, 60, 20, hwnd, NULL, NULL, NULL);
-            s_hwndGroupId = CreateWindow("EDIT", std::to_string(s_currentSettings->groupId).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 245, 330, 50, 20, hwnd, (HMENU)ID_GROUP_ID, NULL, NULL);
+            CreateWindow("STATIC", "Group ID:", WS_VISIBLE | WS_CHILD, 180, 420, 60, 20, hwnd, NULL, NULL, NULL);
+            s_hwndGroupId = CreateWindow("EDIT", std::to_string(s_currentSettings->groupId).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 245, 420, 50, 20, hwnd, (HMENU)ID_GROUP_ID, NULL, NULL);
 
-            CreateWindow("STATIC", "Group Name:", WS_VISIBLE | WS_CHILD, 10, 360, 100, 20, hwnd, NULL, NULL, NULL);
-            s_hwndGroupName = CreateWindow("EDIT", s_currentSettings->groupName.c_str(), WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | WS_BORDER, 110, 360, 150, 20, hwnd, (HMENU)ID_GROUP_NAME, NULL, NULL);
+            CreateWindow("STATIC", "Group Name:", WS_VISIBLE | WS_CHILD, 10, 450, 100, 20, hwnd, NULL, NULL, NULL);
+            s_hwndGroupName = CreateWindow("EDIT", s_currentSettings->groupName.c_str(), WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | WS_BORDER, 110, 450, 150, 20, hwnd, (HMENU)ID_GROUP_NAME, NULL, NULL);
 
-            CreateWindow("STATIC", "Session:", WS_VISIBLE | WS_CHILD, 10, 390, 100, 20, hwnd, NULL, NULL, NULL);
-            s_hwndSessionName = CreateWindow("EDIT", s_currentSettings->sessionName.c_str(), WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | WS_BORDER, 110, 390, 150, 20, hwnd, (HMENU)ID_SESSION_NAME, NULL, NULL);
+            CreateWindow("STATIC", "Session:", WS_VISIBLE | WS_CHILD, 10, 480, 100, 20, hwnd, NULL, NULL, NULL);
+            s_hwndSessionName = CreateWindow("EDIT", s_currentSettings->sessionName.c_str(), WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | WS_BORDER, 110, 480, 150, 20, hwnd, (HMENU)ID_SESSION_NAME, NULL, NULL);
 
-            CreateWindow("STATIC", "Security Key:", WS_VISIBLE | WS_CHILD, 10, 420, 100, 20, hwnd, NULL, NULL, NULL);
-            s_hwndSecurityKey = CreateWindow("EDIT", s_currentSettings->securityKey.c_str(), WS_VISIBLE | WS_CHILD | ES_PASSWORD | ES_AUTOHSCROLL | WS_BORDER, 110, 420, 150, 20, hwnd, (HMENU)ID_SECURITY_KEY, NULL, NULL);
+            CreateWindow("STATIC", "Security Key:", WS_VISIBLE | WS_CHILD, 10, 510, 100, 20, hwnd, NULL, NULL, NULL);
+            s_hwndSecurityKey = CreateWindow("EDIT", s_currentSettings->securityKey.c_str(), WS_VISIBLE | WS_CHILD | ES_PASSWORD | ES_AUTOHSCROLL | WS_BORDER, 110, 510, 150, 20, hwnd, (HMENU)ID_SECURITY_KEY, NULL, NULL);
 
-            s_hwndSecurityStatus = CreateWindow("STATIC", "", WS_VISIBLE | WS_CHILD, 10, 445, 280, 20, hwnd, NULL, NULL, NULL);
+            s_hwndSecurityStatus = CreateWindow("STATIC", "", WS_VISIBLE | WS_CHILD, 10, 535, 280, 20, hwnd, NULL, NULL, NULL);
             if (s_currentSettings->securityKey.empty()) SetWindowText(s_hwndSecurityStatus, "System Status: UNSECURED");
             else SetWindowText(s_hwndSecurityStatus, "System Status: ENCRYPTED (Mutual Auth)");
 
-            CreateWindow("STATIC", "Real-Time Monitor:", WS_VISIBLE | WS_CHILD, 10, 465, 150, 20, hwnd, NULL, NULL, NULL);
-            s_hwndCursorMonitor = CreateWindow("STATIC", "", WS_VISIBLE | WS_CHILD | SS_OWNERDRAW | WS_BORDER, 10, 485, 280, 100, hwnd, (HMENU)ID_CURSOR_MONITOR, NULL, NULL);
+            CreateWindow("STATIC", "Real-Time Monitor:", WS_VISIBLE | WS_CHILD, 10, 555, 150, 20, hwnd, NULL, NULL, NULL);
+            s_hwndCursorMonitor = CreateWindow("STATIC", "", WS_VISIBLE | WS_CHILD | SS_OWNERDRAW | WS_BORDER, 10, 575, 280, 100, hwnd, (HMENU)ID_CURSOR_MONITOR, NULL, NULL);
 
-            CreateWindow("STATIC", "Security Log:", WS_VISIBLE | WS_CHILD, 10, 595, 150, 20, hwnd, NULL, NULL, NULL);
-            s_hwndSecurityLog = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 10, 615, 280, 100, hwnd, (HMENU)ID_SECURITY_LOG, NULL, NULL);
+            CreateWindow("STATIC", "Security Log:", WS_VISIBLE | WS_CHILD, 10, 685, 150, 20, hwnd, NULL, NULL, NULL);
+            s_hwndSecurityLog = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 10, 705, 280, 100, hwnd, (HMENU)ID_SECURITY_LOG, NULL, NULL);
             break;
 
         case WM_DRAWITEM:
@@ -114,6 +122,29 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             break;
 
         case WM_COMMAND:
+            if (LOWORD(wParam) == ID_SCAN_BUTTON) {
+                if (s_currentNetwork) {
+                    SendMessage(s_hwndDiscoveryList, LB_RESETCONTENT, 0, 0);
+                    ConfigGUI::LogSecurityEvent("Scanning for peers on network...");
+                    // No need to block, Tick() will poll
+                }
+            }
+
+            if (HIWORD(wParam) == LBN_DBLCLK && LOWORD(wParam) == ID_DISCOVERY_LIST) {
+                int index = (int)SendMessage(s_hwndDiscoveryList, LB_GETCURSEL, 0, 0);
+                if (index != LB_ERR) {
+                    char buffer[256];
+                    SendMessage(s_hwndDiscoveryList, LB_GETTEXT, index, (LPARAM)buffer);
+                    std::string s(buffer);
+                    size_t sep = s.find(" | ");
+                    if (sep != std::string::npos) {
+                        std::string ip = s.substr(sep + 3);
+                        SetWindowText(s_hwndIp, ip.c_str());
+                        ConfigGUI::LogSecurityEvent("Auto-filled IP: " + ip);
+                    }
+                }
+            }
+
             if (LOWORD(wParam) == ID_SAVE_BUTTON) {
                 char buffer[256];
                 try {
@@ -167,9 +198,10 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
 static std::mutex s_monitorMutex;
 
-void ConfigGUI::Initialize(AppSettings& settings, SyncModule* sync) {
+void ConfigGUI::Initialize(AppSettings& settings, SyncModule* sync, NetworkManager* network) {
     s_currentSettings = &settings;
     s_currentSync = sync;
+    s_currentNetwork = network;
     s_restartRequested = false;
 
 #ifdef _WIN32
@@ -194,6 +226,18 @@ void ConfigGUI::Tick() {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
         if (msg.message == WM_QUIT) s_isRunning = false;
+    }
+
+    if (s_isRunning && s_currentNetwork) {
+        DiscoveryPacket dp;
+        if (s_currentNetwork->PollDiscovery(dp)) {
+            char info[256];
+            snprintf(info, sizeof(info), "%s | %s", dp.hostname, dp.ip);
+            // Simple check to prevent duplicates
+            if (SendMessage(s_hwndDiscoveryList, LB_FINDSTRINGEXACT, -1, (LPARAM)info) == LB_ERR) {
+                SendMessage(s_hwndDiscoveryList, LB_ADDSTRING, 0, (LPARAM)info);
+            }
+        }
     }
 
     if (s_isRunning && s_currentSync) {

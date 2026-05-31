@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
             framework.Run();
         });
 
-        ConfigGUI::Initialize(settings, &framework.GetSyncModule());
+        ConfigGUI::Initialize(settings, &framework.GetSyncModule(), &framework.GetNetworkManager());
 
         bool restartRequested = false;
         while (true) {

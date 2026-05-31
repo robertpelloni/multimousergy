@@ -20,6 +20,7 @@
 - [x] Collaborative Selection and Drag Sync.
 - [x] Secure SHA-256 Mutual Authentication & Auto-Challenge.
 - [x] Replay Protection & Security Event Logging.
+- [x] Automated Peer Discovery & UI Selection.
 - [x] Persistent Monitor UI with live telemetry.
 
 ## Milestone 5: Optimization & Polish (IN PROGRESS)

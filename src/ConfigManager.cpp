@@ -1,24 +1,45 @@
 #include "ConfigManager.hpp"
 #include <fstream>
 #include <iostream>
+#include <sstream>
+#include <algorithm>
 
 ConfigManager::ConfigManager(const std::string& filename) : m_filename(filename) {}
+
+static std::string trim(const std::string& s) {
+    auto start = s.find_first_not_of(" \t\r\n");
+    if (start == std::string::npos) return "";
+    auto end = s.find_last_not_of(" \t\r\n");
+    return s.substr(start, end - start + 1);
+}
 
 bool ConfigManager::Load(AppSettings& settings) {
     std::ifstream file(m_filename);
     if (!file.is_open()) return false;
 
-    file >> settings.isServer;
-    file >> settings.remoteIp;
-    file >> settings.port;
-    file >> settings.inputConfig.boundaryX;
-    file >> settings.inputConfig.boundaryY;
-    file >> settings.inputConfig.isLeft;
-    int dt; file >> dt; settings.driverType = (NetMuxDriverType)dt;
-    file >> settings.groupId;
-    file >> settings.groupName;
-    file >> settings.sessionName;
-    file >> settings.securityKey;
+    std::string line;
+    while (std::getline(file, line)) {
+        line = trim(line);
+        if (line.empty() || line[0] == '#') continue;
+
+        size_t sep = line.find('=');
+        if (sep == std::string::npos) continue;
+
+        std::string key = trim(line.substr(0, sep));
+        std::string val = trim(line.substr(sep + 1));
+
+        if (key == "server_mode") settings.isServer = (val == "1" || val == "true");
+        else if (key == "remote_ip") settings.remoteIp = val;
+        else if (key == "port") settings.port = std::stoi(val);
+        else if (key == "boundary_x") settings.inputConfig.boundaryX = std::stoi(val);
+        else if (key == "boundary_y") settings.inputConfig.boundaryY = std::stoi(val);
+        else if (key == "is_left") settings.inputConfig.isLeft = (val == "1" || val == "true");
+        else if (key == "driver_type") settings.driverType = (NetMuxDriverType)std::stoi(val);
+        else if (key == "group_id") settings.groupId = (unsigned int)std::stoul(val);
+        else if (key == "group_name") settings.groupName = val;
+        else if (key == "session_name") settings.sessionName = val;
+        else if (key == "security_key") settings.securityKey = val;
+    }
 
     return true;
 }
@@ -27,17 +48,18 @@ bool ConfigManager::Save(const AppSettings& settings) {
     std::ofstream file(m_filename);
     if (!file.is_open()) return false;
 
-    file << settings.isServer << "\n";
-    file << settings.remoteIp << "\n";
-    file << settings.port << "\n";
-    file << settings.inputConfig.boundaryX << "\n";
-    file << settings.inputConfig.boundaryY << "\n";
-    file << settings.inputConfig.isLeft << "\n";
-    file << (int)settings.driverType << "\n";
-    file << settings.groupId << "\n";
-    file << settings.groupName << "\n";
-    file << settings.sessionName << "\n";
-    file << settings.securityKey << "\n";
+    file << "# NetMux Configuration\n";
+    file << "server_mode=" << (settings.isServer ? "true" : "false") << "\n";
+    file << "remote_ip=" << settings.remoteIp << "\n";
+    file << "port=" << settings.port << "\n";
+    file << "boundary_x=" << settings.inputConfig.boundaryX << "\n";
+    file << "boundary_y=" << settings.inputConfig.boundaryY << "\n";
+    file << "is_left=" << (settings.inputConfig.isLeft ? "true" : "false") << "\n";
+    file << "driver_type=" << (int)settings.driverType << "\n";
+    file << "group_id=" << settings.groupId << "\n";
+    file << "group_name=" << settings.groupName << "\n";
+    file << "session_name=" << settings.sessionName << "\n";
+    file << "security_key=" << settings.securityKey << "\n";
 
     return true;
 }

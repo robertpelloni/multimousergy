@@ -212,6 +212,7 @@ bool NetworkManager::PollDiscovery(DiscoveryPacket& pkt) {
 
     if (result >= (int)sizeof(pkt)) {
         pkt.hostname[sizeof(pkt.hostname) - 1] = '\0';
+        strncpy(pkt.ip, inet_ntoa(fromAddr.sin_addr), sizeof(pkt.ip) - 1);
         return true;
     }
     return false;

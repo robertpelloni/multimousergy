@@ -22,3 +22,5 @@
 - **Peer Management**: `SyncModule` handles active peer pruning based on a 10-second inactivity timeout. This ensures the monitor UI and internal state remain clean of stale connections.
 - **Linux Driver**: Hardware injection on Linux is supported via direct `evdev` writes to `/dev/input/event0`, bypassing high-level UI framework constraints.
 - **Protocol Serialization**: The system uses `PacketSerializer` for manual byte-level protocol management. This replaces fragile C-struct casting and ensures binary compatibility across different compiler architectures and operating systems while maintaining header-only optimizations for movement.
+- **Persistent Storage**: `ConfigManager` uses a `key=value` line-based format for configuration files, improving upgrade stability and manual editability compared to positional values.
+- **Service Discovery**: Automated peer discovery is fully integrated into the Win32 monitor UI. The `NetworkManager` polls for UDP broadcast advertisements, which are used to populate a selection list for rapid client-side connection.

@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## [0.1.49-alpha] - 2025-01-24
+### Added
+- Refactored `ConfigManager` to use robust `key=value` persistent storage.
+- Integrated Automated Peer Discovery into ConfigGUI with auto-fill support.
+- Improved UI layout for enhanced telemetry and discovery visibility.
+
 ## [0.1.48-alpha] - 2025-01-24
 ### Added
 - Implemented Replay Attack Protection via sequence numbers.
