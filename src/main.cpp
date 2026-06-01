@@ -25,6 +25,10 @@ int main(int argc, char* argv[]) {
         if (arg == "--server") settings.isServer = true;
         else if (arg == "--client" && i + 1 < argc) { settings.remoteIp = argv[++i]; settings.isServer = false; }
         else if (arg == "--port" && i + 1 < argc) settings.port = std::stoi(argv[++i]);
+        else if (arg == "--boundary-x" && i + 1 < argc) settings.inputConfig.boundaryX = std::stoi(argv[++i]);
+        else if (arg == "--boundary-y" && i + 1 < argc) settings.inputConfig.boundaryY = std::stoi(argv[++i]);
+        else if (arg == "--left") settings.inputConfig.isLeft = true;
+        else if (arg == "--right") settings.inputConfig.isLeft = false;
         else if (arg == "--gui") firstRun = true;
         else if (arg == "--bench") benchMode = true;
         else if (arg == "--auto-connect") autoConnect = true;

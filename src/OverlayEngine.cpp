@@ -228,9 +228,8 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
     POINT ptSrc = { 0, 0 };
     POINT ptDest = { m_screenX, m_screenY };
     SIZE size = { m_screenWidth, m_screenHeight };
-    BLENDFUNCTION blend = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
 
-    UpdateLayeredWindow(hwnd, hdcScreen, &ptDest, &size, hdcMem, &ptSrc, 0, &blend, ULW_ALPHA);
+    UpdateLayeredWindow(hwnd, hdcScreen, &ptDest, &size, hdcMem, &ptSrc, RGB(0,0,0), NULL, ULW_COLORKEY);
 
     ReleaseDC(NULL, hdcScreen);
 #endif
