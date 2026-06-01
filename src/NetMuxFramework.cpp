@@ -180,19 +180,24 @@ void NetMuxFramework::Run() {
             unsigned long long activeId = m_sync.GetActivePeer();
 
             for (auto const& [id, peer] : peers) {
+                // Only render the peer if it is NOT us, OR if it's us and we are captured 
+                // (though usually we only want to see OTHER people's cursors on our screen).
+                // If we are the server, we want to see the client's cursor.
+                // If we are the client, we want to see the server's cursor.
+                if (id == m_localId) continue; 
+
                 overlayPeers[id] = { (int)peer.x, (int)peer.y, peer.colorR, peer.colorG, peer.colorB, peer.groupId, peer.isSelecting, peer.isConflictBlocked, (int)peer.selStartX, (int)peer.selStartY };
 
                 // Active cursor visual indicator (White for owner, original for others)
                 if (id == activeId) {
                     overlayPeers[id].r = 255; overlayPeers[id].g = 255; overlayPeers[id].b = 255;
-                } else if (peer.drift > 327) {
-                    // Visual indicator for "Out of Sync" or "Conflict" potential
-                    overlayPeers[id].r = 255; overlayPeers[id].g = 165; overlayPeers[id].b = 0; // Orange
                 }
             }
             m_overlay.SetActivePeer(activeId);
             m_overlay.RenderPeers(overlayPeers);
-            ConfigGUI::UpdateCursorMonitor(peers);
+            
+            // Minimap logic: Only show peers that are "active" on our screen
+            ConfigGUI::UpdateCursorMonitor(peers); 
             m_renderTimer.Reset();
         }
 
@@ -332,14 +337,16 @@ void NetMuxFramework::ProcessIncomingPackets() {
             PeerState oldPeer;
             m_sync.GetPeerState(peerId, oldPeer);
 
-            int localScreenWidth = 1920;
-            int localScreenHeight = 1080;
+            int localScreenWidth = 1920, localScreenHeight = 1080;
+            int screenLeft = 0, screenTop = 0;
 #ifdef _WIN32
+            screenLeft = GetSystemMetrics(SM_XVIRTUALSCREEN);
+            screenTop = GetSystemMetrics(SM_YVIRTUALSCREEN);
             localScreenWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
             localScreenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 #endif
-            float newX = (float)SyncModule::Denormalize(inPkt.x, localScreenWidth);
-            float newY = (float)SyncModule::Denormalize(inPkt.y, localScreenHeight);
+            float newX = (float)(screenLeft + SyncModule::Denormalize(inPkt.x, localScreenWidth));
+            float newY = (float)(screenTop + SyncModule::Denormalize(inPkt.y, localScreenHeight));
 
             long dx = (long)(newX - oldPeer.x);
             long dy = (long)(newY - oldPeer.y);

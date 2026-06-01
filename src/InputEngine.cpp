@@ -397,13 +397,25 @@ void InputEngine::Shutdown() {
 }
 
 bool InputEngine::IsAtBoundary(int x, int y) {
+#ifdef _WIN32
+    int screenLeft = GetSystemMetrics(SM_XVIRTUALSCREEN);
+    int screenWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+    int screenRight = screenLeft + screenWidth - 1;
+
     if (m_config.isLeft) {
-        // I am the left computer, my boundary to the right computer is at my right edge.
+        // I am the left computer, my boundary to the right computer is at my right-most edge.
+        return x >= screenRight;
+    } else {
+        // I am the right computer, my boundary to the left computer is at my left-most edge.
+        return x <= screenLeft;
+    }
+#else
+    if (m_config.isLeft) {
         return x >= m_config.boundaryX;
     } else {
-        // I am the right computer, my boundary to the left computer is at my left edge.
         return x <= m_config.boundaryX;
     }
+#endif
 }
 
 bool InputEngine::GetPendingPacket(Packet& pkt) {
