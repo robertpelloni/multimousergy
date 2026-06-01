@@ -76,37 +76,44 @@ LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
             s_instance->m_isCaptured = true;
             s_instance->m_accumulatedX = 0;
             
-            // Map to the other computer's starting edge
+            // Map to the other computer's starting edge in normalized 0-65535 space
             if (s_instance->m_config.isLeft) {
-                s_instance->m_virtualX = 0; // Start at left of right computer
+                // We are the left PC, moving RIGHT into the right PC. Start at the right PC's left edge.
+                s_instance->m_virtualX = 0; 
             } else {
-                s_instance->m_virtualX = 1919; // Start at right of left computer
+                // We are the right PC, moving LEFT into the left PC. Start at the left PC's right edge.
+                s_instance->m_virtualX = 65535;
             }
-            s_instance->m_virtualY = mouseInfo->pt.y;
+            
+            // Normalize Y based on local screen
+            int screenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+            int screenTop = GetSystemMetrics(SM_YVIRTUALSCREEN);
+            s_instance->m_virtualY = ((mouseInfo->pt.y - screenTop) * 65535) / (screenHeight > 1 ? screenHeight - 1 : 1);
 
-            std::cout << "[Input] Boundary hit. Capturing cursor. Virtual Pos: (" << s_instance->m_virtualX << "," << s_instance->m_virtualY << ")" << std::endl;
+            std::cout << "[Input] Boundary hit. Capturing. Normalized Pos: (" << s_instance->m_virtualX << "," << s_instance->m_virtualY << ")" << std::endl;
             return 1;
         }
 
         if (s_instance->m_isCaptured) {
             bool movingBack = false;
+            // threshold of ~2% of screen width
             if (s_instance->m_config.isLeft) {
-                // We are the left computer, we moved to the right. 
-                // To move back, we must move LEFT (negative accumulation).
-                if (s_instance->m_accumulatedX < -100) movingBack = true;
+                // Moving back LEFT from the right computer
+                if (s_instance->m_accumulatedX < -1500) movingBack = true;
             } else {
-                // We are the right computer, we moved to the left.
-                // To move back, we must move RIGHT (positive accumulation).
-                if (s_instance->m_accumulatedX > 100) movingBack = true;
+                // Moving back RIGHT from the left computer
+                if (s_instance->m_accumulatedX > 1500) movingBack = true;
             }
 
             if (movingBack) {
                 std::cout << "[Input] Release threshold met. Returning to local control." << std::endl;
                 s_instance->m_isCaptured = false;
                 s_instance->m_accumulatedX = 0;
-                // Move the real cursor slightly away from the boundary to prevent immediate re-capture
-                if (s_instance->m_config.isLeft) SetCursorPos(mouseInfo->pt.x - 5, mouseInfo->pt.y);
-                else SetCursorPos(mouseInfo->pt.x + 5, mouseInfo->pt.y);
+                
+                // Offset the real cursor to prevent immediate re-capture
+                if (s_instance->m_config.isLeft) SetCursorPos(mouseInfo->pt.x - 20, mouseInfo->pt.y);
+                else SetCursorPos(mouseInfo->pt.x + 20, mouseInfo->pt.y);
+                
                 return CallNextHookEx(NULL, nCode, wParam, lParam);
             }
 
@@ -279,29 +286,25 @@ void InputEngine::Update() {
 
                         if (isRelative) {
                             if (m_isCaptured) {
-                                m_accumulatedX += raw->data.mouse.lLastX;
-                                m_virtualX += raw->data.mouse.lLastX;
-                                m_virtualY += raw->data.mouse.lLastY;
+                                // Sensitivity: map local pixel movement to normalized space
+                                // Assuming a standard 1920 base for movement feel
+                                m_accumulatedX += (raw->data.mouse.lLastX * 65535) / 1920;
+                                m_virtualX += (raw->data.mouse.lLastX * 65535) / 1920;
+                                m_virtualY += (raw->data.mouse.lLastY * 65535) / 1080;
 
-                                // Send absolute position update instead of relative
+                                // Clamp virtual coords to normalized space
+                                if (m_virtualX < 0) m_virtualX = 0;
+                                if (m_virtualX > 65535) m_virtualX = 65535;
+                                if (m_virtualY < 0) m_virtualY = 0;
+                                if (m_virtualY > 65535) m_virtualY = 65535;
+
+                                // Send absolute position update
                                 Packet pkt{};
                                 pkt.senderId = 0;
                                 pkt.localTimestamp = 0.0; // Will be set in NetMuxFramework
                                 pkt.type = NetMuxPacketType::AbsoluteMovement;
-
-                                // Normalized coordinates 0-65535 (Target Peer Screen)
-                                // For now we assume a standard 1920x1080 target resolution.
-                                int targetWidth = 1920;
-                                int targetHeight = 1080;
-
-                                // Clamp virtual coords to target screen
-                                if (m_virtualX < 0) m_virtualX = 0;
-                                if (m_virtualX >= targetWidth) m_virtualX = targetWidth - 1;
-                                if (m_virtualY < 0) m_virtualY = 0;
-                                if (m_virtualY >= targetHeight) m_virtualY = targetHeight - 1;
-
-                                pkt.x = (m_virtualX * 65535) / (targetWidth - 1);
-                                pkt.y = (m_virtualY * 65535) / (targetHeight - 1);
+                                pkt.x = m_virtualX;
+                                pkt.y = m_virtualY;
                                 pkt.button = 0;
                                 pkt.down = false;
                                 m_pendingPackets.push(pkt);
@@ -310,8 +313,8 @@ void InputEngine::Update() {
                                     Packet selPkt = pkt;
                                     selPkt.type = NetMuxPacketType::SelectionUpdate;
                                     selPkt.isSelecting = true;
-                                    selPkt.selectionStartX = (m_selStartX * 65535) / (targetWidth - 1);
-                                    selPkt.selectionStartY = (m_selStartY * 65535) / (targetHeight - 1);
+                                    selPkt.selectionStartX = m_selStartX;
+                                    selPkt.selectionStartY = m_selStartY;
                                     m_pendingPackets.push(selPkt);
                                 }
                             } else {
