@@ -60,6 +60,8 @@ private:
     void* m_hOldBitmap;
     void* m_hPen;
     void* m_hBrush;
+    int m_screenX;
+    int m_screenY;
     int m_screenWidth;
     int m_screenHeight;
 

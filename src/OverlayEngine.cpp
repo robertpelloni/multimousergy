@@ -30,6 +30,8 @@ OverlayEngine::OverlayEngine() : m_active(false) {
     m_hOldBitmap = nullptr;
     m_hPen = nullptr;
     m_hBrush = nullptr;
+    m_screenX = 0;
+    m_screenY = 0;
     m_screenWidth = 0;
     m_screenHeight = 0;
     m_hCursorBitmap = nullptr;
@@ -53,11 +55,16 @@ bool OverlayEngine::Initialize() {
     wc.lpszClassName = "NetMuxOverlay";
     RegisterClassEx(&wc);
 
+    m_screenX = GetSystemMetrics(SM_XVIRTUALSCREEN);
+    m_screenY = GetSystemMetrics(SM_YVIRTUALSCREEN);
+    m_screenWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+    m_screenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+
     m_hwnd = CreateWindowEx(
-        WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TRANSPARENT,
+        WS_EX_TOPMOST | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW,
         "NetMuxOverlay", "NetMux Overlay",
         WS_POPUP,
-        0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN),
+        m_screenX, m_screenY, m_screenWidth, m_screenHeight,
         NULL, NULL, GetModuleHandle(NULL), NULL
     );
 
@@ -76,8 +83,6 @@ bool OverlayEngine::Initialize() {
     ShowWindow((HWND)m_hwnd, SW_SHOW);
 
     // Pre-allocate resources for flicker-free rendering
-    m_screenWidth = GetSystemMetrics(SM_CXSCREEN);
-    m_screenHeight = GetSystemMetrics(SM_CYSCREEN);
     HDC hdcScreen = GetDC(NULL);
     m_hdcMem = CreateCompatibleDC(hdcScreen);
     m_hBitmap = CreateCompatibleBitmap(hdcScreen, m_screenWidth, m_screenHeight);
@@ -136,19 +141,24 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
     HDC hdcScreen = GetDC(NULL);
 
     // Clear with transparent color (black + color key)
+    // The memory DC bitmap starts at (0,0) relative to the virtual screen top-left
     RECT rect = { 0, 0, m_screenWidth, m_screenHeight };
     FillRect(hdcMem, &rect, (HBRUSH)m_hBrush);
 
     for (auto const& [id, peer] : peers) {
+        // Map absolute virtual coordinates to relative bitmap coordinates
+        int rx = peer.x - m_screenX;
+        int ry = peer.y - m_screenY;
+
         // Render the cursor bitmap
         HDC hdcCursor = CreateCompatibleDC(hdcScreen);
         SelectObject(hdcCursor, (HBITMAP)m_hCursorBitmap);
 
         // Alpha blending or simple BitBlt with color keying
         if (m_scale == 1.0f) {
-            BitBlt(hdcMem, peer.x, peer.y, m_cursorWidth, m_cursorHeight, hdcCursor, 0, 0, SRCPAINT);
+            BitBlt(hdcMem, rx, ry, m_cursorWidth, m_cursorHeight, hdcCursor, 0, 0, SRCPAINT);
         } else {
-            StretchBlt(hdcMem, peer.x, peer.y, (int)(m_cursorWidth * m_scale), (int)(m_cursorHeight * m_scale), hdcCursor, 0, 0, m_cursorWidth, m_cursorHeight, SRCPAINT);
+            StretchBlt(hdcMem, rx, ry, (int)(m_cursorWidth * m_scale), (int)(m_cursorHeight * m_scale), hdcCursor, 0, 0, m_cursorWidth, m_cursorHeight, SRCPAINT);
         }
 
         DeleteDC(hdcCursor);
@@ -157,17 +167,15 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
         HBRUSH hBrushColor = CreateSolidBrush(RGB(peer.r, peer.g, peer.b));
 
         // Group-based visual differentiation:
-        // Group 0 (default) is square, others are circles or offset
         if (peer.groupId == 0) {
-            RECT indicatorRect = { (int)peer.x, (int)peer.y, (int)peer.x + 4, (int)peer.y + 4 };
+            RECT indicatorRect = { rx, ry, rx + 4, ry + 4 };
             FillRect(hdcMem, &indicatorRect, hBrushColor);
         } else {
-            // Draw a diamond for non-zero groups
             POINT pts[4] = {
-                {(int)peer.x + 4, (int)peer.y},
-                {(int)peer.x + 8, (int)peer.y + 4},
-                {(int)peer.x + 4, (int)peer.y + 8},
-                {(int)peer.x, (int)peer.y + 4}
+                {rx + 4, ry},
+                {rx + 8, ry + 4},
+                {rx + 4, ry + 8},
+                {rx, ry + 4}
             };
             SelectObject(hdcMem, hBrushColor);
             Polygon(hdcMem, pts, 4);
@@ -179,7 +187,7 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
             HPEN hHaloPen = CreatePen(PS_DOT, 1, RGB(255, 255, 255));
             SelectObject(hdcMem, GetStockObject(NULL_BRUSH));
             HPEN hOldP = (HPEN)SelectObject(hdcMem, hHaloPen);
-            Ellipse(hdcMem, peer.x - 15, peer.y - 15, peer.x + 15, peer.y + 15);
+            Ellipse(hdcMem, rx - 15, ry - 15, rx + 15, ry + 15);
             SelectObject(hdcMem, hOldP);
             DeleteObject(hHaloPen);
         }
@@ -188,21 +196,23 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
         if (peer.isConflictBlocked) {
             HPEN hRedPen = CreatePen(PS_SOLID, 2, RGB(255, 0, 0));
             HPEN hOldP = (HPEN)SelectObject(hdcMem, hRedPen);
-            MoveToEx(hdcMem, peer.x - 5, peer.y - 5, NULL);
-            LineTo(hdcMem, peer.x + 5, peer.y + 5);
-            MoveToEx(hdcMem, peer.x + 5, peer.y - 5, NULL);
-            LineTo(hdcMem, peer.x - 5, peer.y + 5);
+            MoveToEx(hdcMem, rx - 5, ry - 5, NULL);
+            LineTo(hdcMem, rx + 5, ry + 5);
+            MoveToEx(hdcMem, rx + 5, ry - 5, NULL);
+            LineTo(hdcMem, rx - 5, ry + 5);
             SelectObject(hdcMem, hOldP);
             DeleteObject(hRedPen);
         }
 
         // Draw Selection Rectangle if active
         if (peer.isSelecting) {
+            int rsx = peer.selStartX - m_screenX;
+            int rsy = peer.selStartY - m_screenY;
             RECT selRect;
-            selRect.left = std::min(peer.selStartX, peer.x);
-            selRect.top = std::min(peer.selStartY, peer.y);
-            selRect.right = std::max(peer.selStartX, peer.x);
-            selRect.bottom = std::max(peer.selStartY, peer.y);
+            selRect.left = std::min(rsx, rx);
+            selRect.top = std::min(rsy, ry);
+            selRect.right = std::max(rsx, rx);
+            selRect.bottom = std::max(rsy, ry);
 
             // Semi-transparent selection fill (simulated via HatchBrush in GDI)
             // Use custom selection color if it's the local peer, otherwise use the peer's color
@@ -216,11 +226,10 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
     }
 
     POINT ptSrc = { 0, 0 };
-    POINT ptDest = { 0, 0 };
+    POINT ptDest = { m_screenX, m_screenY };
     SIZE size = { m_screenWidth, m_screenHeight };
-    BLENDFUNCTION blend = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
 
-    UpdateLayeredWindow(hwnd, hdcScreen, &ptDest, &size, hdcMem, &ptSrc, RGB(0,0,0), &blend, ULW_COLORKEY);
+    UpdateLayeredWindow(hwnd, hdcScreen, &ptDest, &size, hdcMem, &ptSrc, RGB(0,0,0), NULL, ULW_COLORKEY);
 
     ReleaseDC(NULL, hdcScreen);
 #endif

@@ -17,13 +17,19 @@ struct Vertex {
 D3D11Overlay::D3D11Overlay() : m_device(nullptr), m_context(nullptr), m_swapChain(nullptr),
                                m_renderTargetView(nullptr), m_blendState(nullptr), m_hwnd(nullptr),
                                m_vertexBuffer(nullptr), m_vertexShader(nullptr), m_pixelShader(nullptr),
-                               m_inputLayout(nullptr), m_texture(nullptr), m_textureView(nullptr), m_sampler(nullptr) {}
+                               m_inputLayout(nullptr), m_texture(nullptr), m_textureView(nullptr), m_sampler(nullptr),
+                               m_screenX(0), m_screenY(0), m_screenWidth(0), m_screenHeight(0) {}
 
 D3D11Overlay::~D3D11Overlay() { Shutdown(); }
 
 bool D3D11Overlay::Initialize(HWND hwnd) {
     m_hwnd = hwnd;
     std::cout << "[D3D11] Initializing Hardware Overlay..." << std::endl;
+
+    m_screenX = GetSystemMetrics(SM_XVIRTUALSCREEN);
+    m_screenY = GetSystemMetrics(SM_YVIRTUALSCREEN);
+    m_screenWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+    m_screenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 
     DXGI_SWAP_CHAIN_DESC scd = {0};
     scd.BufferCount = 1;
@@ -46,8 +52,8 @@ bool D3D11Overlay::Initialize(HWND hwnd) {
     D3D11_VIEWPORT viewport = {0};
     viewport.TopLeftX = 0;
     viewport.TopLeftY = 0;
-    viewport.Width = (float)GetSystemMetrics(SM_CXSCREEN);
-    viewport.Height = (float)GetSystemMetrics(SM_CYSCREEN);
+    viewport.Width = (float)m_screenWidth;
+    viewport.Height = (float)m_screenHeight;
     m_context->RSSetViewports(1, &viewport);
 
     // Alpha Blending
@@ -196,8 +202,8 @@ void D3D11Overlay::Render(const std::map<unsigned long long, RemoteCursorState>&
     m_context->IASetVertexBuffers(0, 1, &m_vertexBuffer, &stride, &offset);
     m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-    float screenW = (float)GetSystemMetrics(SM_CXSCREEN);
-    float screenH = (float)GetSystemMetrics(SM_CYSCREEN);
+    float screenW = (float)m_screenWidth;
+    float screenH = (float)m_screenHeight;
 
     // Batch all cursors into the dynamic buffer
     D3D11_MAPPED_SUBRESOURCE ms;
@@ -208,8 +214,12 @@ void D3D11Overlay::Render(const std::map<unsigned long long, RemoteCursorState>&
     for (auto const& [id, peer] : peers) {
         if (count >= 64) break;
 
-        float nx = (2.0f * peer.x / screenW) - 1.0f;
-        float ny = 1.0f - (2.0f * peer.y / screenH);
+        // Normalize relative to virtual screen top-left
+        float rx = (float)(peer.x - m_screenX);
+        float ry = (float)(peer.y - m_screenY);
+
+        float nx = (2.0f * rx / screenW) - 1.0f;
+        float ny = 1.0f - (2.0f * ry / screenH);
 
         // Get actual texture dimensions for scaling if possible
         float tw = 16.0f;
@@ -247,8 +257,10 @@ void D3D11Overlay::Render(const std::map<unsigned long long, RemoteCursorState>&
 
         // Render selection box if active
         if (peer.isSelecting) {
-            float snx = (2.0f * peer.selStartX / screenW) - 1.0f;
-            float sny = 1.0f - (2.0f * peer.selStartY / screenH);
+            float srx = (float)(peer.selStartX - m_screenX);
+            float sry = (float)(peer.selStartY - m_screenY);
+            float snx = (2.0f * srx / screenW) - 1.0f;
+            float sny = 1.0f - (2.0f * sry / screenH);
 
             float sr = r, sg = g, sb = b;
             if (id == m_activePeerId) {

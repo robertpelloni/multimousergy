@@ -48,5 +48,9 @@ private:
     ID3D11Texture2D* m_texture;
     ID3D11ShaderResourceView* m_textureView;
     ID3D11SamplerState* m_sampler;
+    int m_screenX;
+    int m_screenY;
+    int m_screenWidth;
+    int m_screenHeight;
 #endif
 };
