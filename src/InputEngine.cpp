@@ -75,29 +75,38 @@ LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
             // Trigger capture
             s_instance->m_isCaptured = true;
             s_instance->m_accumulatedX = 0;
-            s_instance->m_virtualX = mouseInfo->pt.x;
+            
+            // Map to the other computer's starting edge
+            if (s_instance->m_config.isLeft) {
+                s_instance->m_virtualX = 0; // Start at left of right computer
+            } else {
+                s_instance->m_virtualX = 1919; // Start at right of left computer
+            }
             s_instance->m_virtualY = mouseInfo->pt.y;
-            std::cout << "[Input] Boundary hit. Capturing cursor at (" << s_instance->m_virtualX << "," << s_instance->m_virtualY << ")" << std::endl;
+
+            std::cout << "[Input] Boundary hit. Capturing cursor. Virtual Pos: (" << s_instance->m_virtualX << "," << s_instance->m_virtualY << ")" << std::endl;
             return 1;
         }
 
         if (s_instance->m_isCaptured) {
-            // Logic to release capture:
-            // Since we are suppressing movement, the system cursor is stuck.
-            // We must use RAW INPUT deltas (accumulated in m_accumulatedX)
-            // to detect when the user has pulled back significantly.
-
             bool movingBack = false;
             if (s_instance->m_config.isLeft) {
-                if (s_instance->m_accumulatedX > 100) movingBack = true;
-            } else {
+                // We are the left computer, we moved to the right. 
+                // To move back, we must move LEFT (negative accumulation).
                 if (s_instance->m_accumulatedX < -100) movingBack = true;
+            } else {
+                // We are the right computer, we moved to the left.
+                // To move back, we must move RIGHT (positive accumulation).
+                if (s_instance->m_accumulatedX > 100) movingBack = true;
             }
 
             if (movingBack) {
                 std::cout << "[Input] Release threshold met. Returning to local control." << std::endl;
                 s_instance->m_isCaptured = false;
                 s_instance->m_accumulatedX = 0;
+                // Move the real cursor slightly away from the boundary to prevent immediate re-capture
+                if (s_instance->m_config.isLeft) SetCursorPos(mouseInfo->pt.x - 5, mouseInfo->pt.y);
+                else SetCursorPos(mouseInfo->pt.x + 5, mouseInfo->pt.y);
                 return CallNextHookEx(NULL, nCode, wParam, lParam);
             }
 
@@ -280,20 +289,19 @@ void InputEngine::Update() {
                                 pkt.localTimestamp = 0.0; // Will be set in NetMuxFramework
                                 pkt.type = NetMuxPacketType::AbsoluteMovement;
 
-                                // Normalized coordinates 0-65535 (Virtual Screen)
-                                int screenLeft = GetSystemMetrics(SM_XVIRTUALSCREEN);
-                                int screenTop = GetSystemMetrics(SM_YVIRTUALSCREEN);
-                                int screenWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-                                int screenHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+                                // Normalized coordinates 0-65535 (Target Peer Screen)
+                                // For now we assume a standard 1920x1080 target resolution.
+                                int targetWidth = 1920;
+                                int targetHeight = 1080;
 
-                                // Clamp virtual coords to virtual screen
-                                if (m_virtualX < screenLeft) m_virtualX = screenLeft;
-                                if (m_virtualX >= screenLeft + screenWidth) m_virtualX = screenLeft + screenWidth - 1;
-                                if (m_virtualY < screenTop) m_virtualY = screenTop;
-                                if (m_virtualY >= screenTop + screenHeight) m_virtualY = screenTop + screenHeight - 1;
+                                // Clamp virtual coords to target screen
+                                if (m_virtualX < 0) m_virtualX = 0;
+                                if (m_virtualX >= targetWidth) m_virtualX = targetWidth - 1;
+                                if (m_virtualY < 0) m_virtualY = 0;
+                                if (m_virtualY >= targetHeight) m_virtualY = targetHeight - 1;
 
-                                pkt.x = ((m_virtualX - screenLeft) * 65535) / (screenWidth - 1);
-                                pkt.y = ((m_virtualY - screenTop) * 65535) / (screenHeight - 1);
+                                pkt.x = (m_virtualX * 65535) / (targetWidth - 1);
+                                pkt.y = (m_virtualY * 65535) / (targetHeight - 1);
                                 pkt.button = 0;
                                 pkt.down = false;
                                 m_pendingPackets.push(pkt);
@@ -302,8 +310,8 @@ void InputEngine::Update() {
                                     Packet selPkt = pkt;
                                     selPkt.type = NetMuxPacketType::SelectionUpdate;
                                     selPkt.isSelecting = true;
-                                    selPkt.selectionStartX = ((m_selStartX - screenLeft) * 65535) / (screenWidth - 1);
-                                    selPkt.selectionStartY = ((m_selStartY - screenTop) * 65535) / (screenHeight - 1);
+                                    selPkt.selectionStartX = (m_selStartX * 65535) / (targetWidth - 1);
+                                    selPkt.selectionStartY = (m_selStartY * 65535) / (targetHeight - 1);
                                     m_pendingPackets.push(selPkt);
                                 }
                             } else {
@@ -387,9 +395,11 @@ void InputEngine::Shutdown() {
 
 bool InputEngine::IsAtBoundary(int x, int y) {
     if (m_config.isLeft) {
-        return x <= m_config.boundaryX;
-    } else {
+        // I am the left computer, my boundary to the right computer is at my right edge.
         return x >= m_config.boundaryX;
+    } else {
+        // I am the right computer, my boundary to the left computer is at my left edge.
+        return x <= m_config.boundaryX;
     }
 }
 

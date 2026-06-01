@@ -84,8 +84,8 @@ void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int nor
 
     peer.jitterBuffer.push_back({normX, normY, timestamp});
 
-    // LOW LATENCY MODE: Keep buffer very small (3 points)
-    if (peer.jitterBuffer.size() > 3) {
+    // LOW LATENCY MODE: Keep buffer very small (2 points)
+    if (peer.jitterBuffer.size() > 2) {
         peer.jitterBuffer.erase(peer.jitterBuffer.begin());
     }
 
@@ -375,9 +375,9 @@ void SyncModule::Step(double deltaTime) {
 
     // Coordinated smoothing factor based on deltaTime
     // Ensuring frame-rate independent interpolation
-    float lerpFactor = 1.0f - std::pow(0.01f, (float)deltaTime / 1000.0f);
+    float lerpFactor = 1.0f - std::pow(0.0001f, (float)deltaTime / 1000.0f);
     if (lerpFactor > 1.0f) lerpFactor = 1.0f;
-    if (lerpFactor < 0.1f) lerpFactor = 0.1f; // Minimum smoothing
+    if (lerpFactor < 0.2f) lerpFactor = 0.2f; // Minimum smoothing for responsiveness
 
     for (auto& [id, peer] : m_peers) {
         // Stall detection (3 seconds timeout)
