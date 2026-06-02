@@ -140,95 +140,45 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
     HDC hdcMem = (HDC)m_hdcMem;
     HDC hdcScreen = GetDC(NULL);
 
+    // Keep overlay on top
+    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
     // Clear with transparent color (black + color key)
-    // The memory DC bitmap starts at (0,0) relative to the virtual screen top-left
     RECT rect = { 0, 0, m_screenWidth, m_screenHeight };
     FillRect(hdcMem, &rect, (HBRUSH)m_hBrush);
 
     for (auto const& [id, peer] : peers) {
-        // Map absolute virtual coordinates to relative bitmap coordinates
         int rx = peer.x - m_screenX;
         int ry = peer.y - m_screenY;
 
-        // Render the cursor bitmap
         HDC hdcCursor = CreateCompatibleDC(hdcScreen);
         SelectObject(hdcCursor, (HBITMAP)m_hCursorBitmap);
 
-        // Alpha blending or simple BitBlt with color keying
         if (m_scale == 1.0f) {
             BitBlt(hdcMem, rx, ry, m_cursorWidth, m_cursorHeight, hdcCursor, 0, 0, SRCPAINT);
         } else {
             StretchBlt(hdcMem, rx, ry, (int)(m_cursorWidth * m_scale), (int)(m_cursorHeight * m_scale), hdcCursor, 0, 0, m_cursorWidth, m_cursorHeight, SRCPAINT);
         }
-
         DeleteDC(hdcCursor);
 
-        // Also draw a small colorized indicator
         HBRUSH hBrushColor = CreateSolidBrush(RGB(peer.r, peer.g, peer.b));
-
-        // Group-based visual differentiation:
-        if (peer.groupId == 0) {
-            RECT indicatorRect = { rx, ry, rx + 4, ry + 4 };
-            FillRect(hdcMem, &indicatorRect, hBrushColor);
-        } else {
-            POINT pts[4] = {
-                {rx + 4, ry},
-                {rx + 8, ry + 4},
-                {rx + 4, ry + 8},
-                {rx, ry + 4}
-            };
-            SelectObject(hdcMem, hBrushColor);
-            Polygon(hdcMem, pts, 4);
-        }
+        RECT indicatorRect = { rx, ry, rx + 6, ry + 6 };
+        FillRect(hdcMem, &indicatorRect, hBrushColor);
         DeleteObject(hBrushColor);
 
-        // Focus Halo for the active peer
         if (id == m_activePeerId) {
-            HPEN hHaloPen = CreatePen(PS_DOT, 1, RGB(255, 255, 255));
+            HPEN hHaloPen = CreatePen(PS_SOLID, 2, RGB(255, 255, 255));
             SelectObject(hdcMem, GetStockObject(NULL_BRUSH));
             HPEN hOldP = (HPEN)SelectObject(hdcMem, hHaloPen);
-            Ellipse(hdcMem, rx - 15, ry - 15, rx + 15, ry + 15);
+            Ellipse(hdcMem, rx - 10, ry - 10, rx + 10, ry + 10);
             SelectObject(hdcMem, hOldP);
             DeleteObject(hHaloPen);
-        }
-
-        // Conflict Feedback: Draw an 'X' over blocked cursors
-        if (peer.isConflictBlocked) {
-            HPEN hRedPen = CreatePen(PS_SOLID, 2, RGB(255, 0, 0));
-            HPEN hOldP = (HPEN)SelectObject(hdcMem, hRedPen);
-            MoveToEx(hdcMem, rx - 5, ry - 5, NULL);
-            LineTo(hdcMem, rx + 5, ry + 5);
-            MoveToEx(hdcMem, rx + 5, ry - 5, NULL);
-            LineTo(hdcMem, rx - 5, ry + 5);
-            SelectObject(hdcMem, hOldP);
-            DeleteObject(hRedPen);
-        }
-
-        // Draw Selection Rectangle if active
-        if (peer.isSelecting) {
-            int rsx = peer.selStartX - m_screenX;
-            int rsy = peer.selStartY - m_screenY;
-            RECT selRect;
-            selRect.left = std::min(rsx, rx);
-            selRect.top = std::min(rsy, ry);
-            selRect.right = std::max(rsx, rx);
-            selRect.bottom = std::max(rsy, ry);
-
-            // Semi-transparent selection fill (simulated via HatchBrush in GDI)
-            // Use custom selection color if it's the local peer, otherwise use the peer's color
-            COLORREF color = RGB(peer.r, peer.g, peer.b);
-            if (id == m_activePeerId) color = RGB(m_selR, m_selG, m_selB);
-
-            HBRUSH hHatch = CreateHatchBrush(HS_BDIAGONAL, color);
-            FrameRect(hdcMem, &selRect, hHatch);
-            DeleteObject(hHatch);
         }
     }
 
     POINT ptSrc = { 0, 0 };
     POINT ptDest = { m_screenX, m_screenY };
     SIZE size = { m_screenWidth, m_screenHeight };
-
     UpdateLayeredWindow(hwnd, hdcScreen, &ptDest, &size, hdcMem, &ptSrc, RGB(0,0,0), NULL, ULW_COLORKEY);
 
     ReleaseDC(NULL, hdcScreen);

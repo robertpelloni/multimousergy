@@ -266,6 +266,10 @@ void ConfigGUI::Initialize(AppSettings& settings, SyncModule* sync, NetworkManag
 #endif
 }
 
+void ConfigGUI::SetSyncModule(SyncModule* sync) {
+    s_currentSync = sync;
+}
+
 void ConfigGUI::Tick() {
 #ifdef _WIN32
     MSG msg;
@@ -350,13 +354,8 @@ void ConfigGUI::UpdateCursorMonitor(const std::map<unsigned long long, PeerState
         HDC hdc = GetDC(s_hwndCursorMonitor);
         FillRect(hdc, &rect, (HBRUSH)GetStockObject(BLACK_BRUSH));
 
-        unsigned long long localId = s_currentSync ? s_currentSync->GetLocalId() : 0;
-
         for (auto const& [id, peer] : peers) {
-            // Filter: Don't show ourselves on our own minimap.
-            // When we move to another screen, we will appear on THEIR minimap as a peer.
-            if (id == localId) continue;
-
+            // Show everyone on the minimap for debugging and coordination
             int mx = (int)((peer.normalizedX * (rect.right - 10)) / 65535) + 5;
             int my = (int)((peer.normalizedY * (rect.bottom - 10)) / 65535) + 5;
             HBRUSH hBrush = CreateSolidBrush(RGB(peer.colorR, peer.colorG, peer.colorB));
