@@ -266,19 +266,18 @@ void NetMuxFramework::ProcessInteractionQueue() {
 void NetMuxFramework::ProcessOutgoingPackets() {
     Packet outPkt;
     while (m_input.GetPendingPacket(outPkt)) {
-        if (m_input.IsCaptured()) {
-            outPkt.senderId = m_localId;
-            outPkt.groupId = m_settings.groupId;
-            outPkt.sequenceNumber = m_sequenceCounter++;
-            outPkt.localTimestamp = m_loopTimer.ElapsedMilliseconds();
-            
-            // Sync local state for rendering on our own overlay
-            if (outPkt.type == NetMuxPacketType::AbsoluteMovement || outPkt.type == NetMuxPacketType::SelectionUpdate) {
-                m_sync.UpdateLocalState(m_localId, m_settings.groupId, outPkt.x, outPkt.y, outPkt.isSelecting, outPkt.selectionStartX, outPkt.selectionStartY);
-            }
-
-            m_network.SendPacket(outPkt);
+        outPkt.senderId = m_localId;
+        outPkt.groupId = m_settings.groupId;
+        outPkt.sequenceNumber = m_sequenceCounter++;
+        outPkt.localTimestamp = m_loopTimer.ElapsedMilliseconds();
+        
+        // Always sync local state for rendering on our own overlay/minimap
+        if (outPkt.type == NetMuxPacketType::AbsoluteMovement || outPkt.type == NetMuxPacketType::SelectionUpdate) {
+            m_sync.UpdateLocalState(m_localId, m_settings.groupId, outPkt.x, outPkt.y, outPkt.isSelecting, outPkt.selectionStartX, outPkt.selectionStartY);
         }
+
+        // Always broadcast to peers so they can see us globally
+        m_network.SendPacket(outPkt);
     }
 }
 

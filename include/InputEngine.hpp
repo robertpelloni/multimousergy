@@ -21,9 +21,10 @@ public:
     bool GetPendingPacket(Packet& pkt);
     void PerformWarpClickRestore(int targetX, int targetY, int button, bool down);
     bool IsLocalUserActive() const;
+    double GetLastLocalActivity() const;
 
-    bool IsCaptured() const { return m_isCaptured; }
-    void SetPeerConnected(bool connected) { m_peerConnected = connected; }
+    bool IsCaptured() const;
+    void SetPeerConnected(bool connected);
 
     bool m_active;
     bool m_isCaptured;
