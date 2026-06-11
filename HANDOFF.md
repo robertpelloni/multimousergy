@@ -1,21 +1,24 @@
-# Session Handoff - v0.1.57-alpha
+# Session Handoff - v0.1.58-alpha
 
 ## Summary of Changes
-- **Persistent X11 Connection**: Refactored `NetMuxFramework` to manage a single `Display*` connection on Linux, shared with `InputEngine` and `ClipboardModule`.
-- **Native Clipboard Writing**: Implemented `XSetSelectionOwner` and `SelectionRequest` event handling in `NetMuxFramework`. Linux machines can now serve clipboard data directly to other applications.
-- **Modernized Unicode**: Replaced deprecated `std::wstring_convert` with a manual UTF-8/UTF-16 converter in `ClipboardModule.cpp` for improved future-proofing and compiler cleanliness.
-- **Display Lifecycle**: Fixed potential leaks by ensuring `XCloseDisplay` and `XDestroyWindow` are called correctly in the framework destructor.
+- **Multi-Cursor Visibility**: Fixed issue where remote cursors were not consistently visible. Implemented continuous broadcasting of local cursor coordinates in `InputEngine` even when not "captured".
+- **D3D11 Rendering Fixes**: Corrected cursor scaling and positioning in the Direct3D 11 backend by applying the correct 2.0x multiplier to NDC coordinates.
+- **Topmost Overlay**: Enforced `HWND_TOPMOST` status for the overlay window across both GDI and D3D11 backends, ensuring visibility over other applications.
+- **Authoritative Synchronization**: Fully implemented client-side handling of `NetMuxPacketType::MasterStateSync`. The server now acts as the source of truth, correcting local perception drift every 100ms.
+- **Accuracy Improvements**: Replaced hardcoded 1080p screen metrics with dynamic virtual screen metrics (`SM_CXVIRTUALSCREEN`, `SM_CYVIRTUALSCREEN`) for proper multi-monitor support.
+- **Color Conflict Resolution**: Adjusted default peer color generation to avoid pure black (RGB 0,0,0), which was being incorrectly interpreted as transparency by the GDI backend.
+- **Peer Lifecycle Logging**: Added descriptive logging for peer join/prune/remove events to aid in debugging connectivity.
 
 ## Technical Observations
-- The manual UTF-8 converter supports up to 3-byte sequences (BMP), which covers most common characters including basic emojis and international text.
-- X11 event processing is integrated into the main non-blocking loop via `XPending` and `XNextEvent`.
+- The synchronization model now follows a strict authoritative pattern where client movement is suggested, but server-broadcasted state is the final authority.
+- Continuous broadcasting in `InputEngine` ensures "Mux" feel (everyone sees everyone) but increases network traffic slightly; this was deemed acceptable for real-time cursor tracking.
 
 ## Next Steps
 - Implement full `FileTransferEngine` logic, leveraging the existing 4KB chunking infrastructure.
-- Extend manual Unicode converter to support 4-byte UTF-8 sequences (full emoji/ext-plane support).
-- Research Wayland clipboard serving alternatives (e.g., via `wl-clipboard` or native protocols).
+- Extend manual Unicode converter in `ClipboardModule` to support 4-byte UTF-8 sequences.
+- Research performance optimizations for high-frequency coordinate broadcasting (e.g., delta compression).
 
 ## Repository State
-- Version: `v0.1.57-alpha`
-- Build status: Passing (X11 event loop verified)
-- Git: Pushed to origin.
+- Version: `v0.1.58-alpha`
+- Build status: Passing (All unit and integration tests verified)
+- Git: `main` and `develop` branches synchronized and pushed.
