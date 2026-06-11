@@ -1,5 +1,15 @@
 # CHANGELOG.md
 
+## [0.1.58-alpha] - 2025-01-24
+### Fixed
+- Fixed simultaneous cursor visibility by implementing continuous broadcasting of local cursor coordinates.
+- Corrected D3D11 cursor scaling by accounting for the 2.0 multiplier in NDC space (-1.0 to 1.0).
+- Enforced `HWND_TOPMOST` status for the overlay window across both GDI and D3D11 backends.
+- Improved coordinate normalization accuracy using actual virtual screen metrics (`SM_CXVIRTUALSCREEN`, `SM_CYVIRTUALSCREEN`).
+- Fixed default cursor color generation to prevent conflicts with GDI transparency colorkey (RGB 0,0,0).
+- Refined peer connectivity detection logic in `NetMuxFramework`.
+- Added descriptive logging for peer lifecycle events (Join, Prune, Remove) in `SyncModule`.
+
 ## [0.1.57-alpha] - 2025-01-24
 ### Added
 - Implement native X11 persistent display management (optimized connection reuse).
