@@ -63,7 +63,7 @@ def test_sync_validation():
                                      13, drifted_x, target_y, 1001, False, b"", 0)
     sock.sendto(check_packet_drift, server_addr)
 
-    print("E2E Validation packets sent. Check NetMux logs for 'Corrective MasterSync issued'.")
+    print("E2E Validation packets sent. Server will periodically broadcast MasterStateSync to keep all clients aligned.")
 
 def test_selection_sync():
     print("--- NetMux Selection Sync Validation ---")

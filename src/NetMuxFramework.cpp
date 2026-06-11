@@ -470,6 +470,11 @@ void NetMuxFramework::ProcessIncomingPackets() {
                 m_driver.SendMouseWheel(inPkt.wheelDelta, inPkt.isHorizontalWheel);
                 if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
             }
+        } else if (inPkt.type == NetMuxPacketType::MasterStateSync) {
+            // Server Authority: Update local perception of remote peer
+            if (!m_settings.isServer) {
+                m_sync.UpdatePeer(peerId, inPkt.groupId, inPkt.x, inPkt.y, inPkt.localTimestamp);
+            }
         }
     }
 }
