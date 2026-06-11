@@ -128,12 +128,15 @@ void NetMuxFramework::Run() {
         m_sync.Step(dt);
 
         // Update input capture permission based on connectivity
-        if (m_settings.isServer) {
-            m_input.SetPeerConnected(m_network.GetClientCount() > 0);
-        } else {
-            // Client is "connected" if we have any peers being tracked by sync (the server)
-            m_input.SetPeerConnected(!m_sync.GetAllPeers().empty());
+        auto allPeers = m_sync.GetAllPeers();
+        bool hasExternalPeers = false;
+        for (auto const& [id, p] : allPeers) {
+            if (id != m_localId) {
+                hasExternalPeers = true;
+                break;
+            }
         }
+        m_input.SetPeerConnected(hasExternalPeers);
 
         // UI TICK: Keep the ConfigGUI updated during active sessions
         static double lastUIUpdate = 0;

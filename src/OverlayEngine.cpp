@@ -131,17 +131,17 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
     if (!m_active) return;
 
 #ifdef _WIN32
+    HWND hwnd = (HWND)m_hwnd;
+    // Keep overlay on top for all backends
+    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
     if (m_backend == OverlayBackend::D3D11 && m_d3dOverlay) {
         static_cast<D3D11Overlay*>(m_d3dOverlay)->Render(peers);
         return;
     }
 
-    HWND hwnd = (HWND)m_hwnd;
     HDC hdcMem = (HDC)m_hdcMem;
     HDC hdcScreen = GetDC(NULL);
-
-    // Keep overlay on top
-    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
     // Clear with transparent color (black + color key)
     RECT rect = { 0, 0, m_screenWidth, m_screenHeight };

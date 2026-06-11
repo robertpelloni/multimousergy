@@ -111,6 +111,17 @@ bool InputEngine::Initialize(const Config& config) {
     m_config = config;
     std::cout << "[Input] Initializing Input Capture..." << std::endl;
 
+#ifdef _WIN32
+    POINT pt;
+    GetCursorPos(&pt);
+    int sl = GetSystemMetrics(SM_XVIRTUALSCREEN);
+    int st = GetSystemMetrics(SM_YVIRTUALSCREEN);
+    int sw = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+    int sh = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+    m_virtualX = ((pt.x - sl) * 65535) / (sw > 1 ? sw - 1 : 1);
+    m_virtualY = ((pt.y - st) * 65535) / (sh > 1 ? sh - 1 : 1);
+#endif
+
 #ifdef __linux__
     for (int i = 0; i < 32; ++i) {
         char path[64];
@@ -178,6 +189,20 @@ void InputEngine::Update() {
 #endif
 
 #ifdef _WIN32
+    if (!m_isCaptured) {
+        POINT pt;
+        GetCursorPos(&pt);
+        int sl = GetSystemMetrics(SM_XVIRTUALSCREEN);
+        int st = GetSystemMetrics(SM_YVIRTUALSCREEN);
+        int sw = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+        int sh = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+        m_virtualX = ((pt.x - sl) * 65535) / (sw > 1 ? sw - 1 : 1);
+        m_virtualY = ((pt.y - st) * 65535) / (sh > 1 ? sh - 1 : 1);
+
+        Packet pkt = { 0, 0, 0, 0.0, NetMuxPacketType::AbsoluteMovement, m_virtualX, m_virtualY, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+        m_pendingPackets.push(pkt);
+    }
+
     MSG msg;
     while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
         if (msg.message == WM_INPUT) {
@@ -192,9 +217,14 @@ void InputEngine::Update() {
                 if (raw->header.dwType == RIM_TYPEMOUSE) {
                     bool isRelative = !(raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE);
                     if (isRelative) {
-                        m_accumulatedX += (raw->data.mouse.lLastX * 65535) / 1920;
-                        m_virtualX += (raw->data.mouse.lLastX * 65535) / 1920;
-                        m_virtualY += (raw->data.mouse.lLastY * 65535) / 1080;
+                        int sw = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+                        int sh = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+                        if (sw < 1) sw = 1920;
+                        if (sh < 1) sh = 1080;
+
+                        m_accumulatedX += (raw->data.mouse.lLastX * 65535) / sw;
+                        m_virtualX += (raw->data.mouse.lLastX * 65535) / sw;
+                        m_virtualY += (raw->data.mouse.lLastY * 65535) / sh;
                         if (m_virtualX < 0) m_virtualX = 0; if (m_virtualX > 65535) m_virtualX = 65535;
                         if (m_virtualY < 0) m_virtualY = 0; if (m_virtualY > 65535) m_virtualY = 65535;
 

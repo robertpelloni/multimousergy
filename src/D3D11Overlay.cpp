@@ -231,8 +231,8 @@ void D3D11Overlay::Render(const std::map<unsigned long long, RemoteCursorState>&
             th = (float)td.Height;
         }
 
-        float sw = tw / screenW;
-        float sh = th / screenH;
+        float sw = (2.0f * tw) / screenW;
+        float sh = (2.0f * th) / screenH;
         float r = peer.r / 255.0f;
         float g = peer.g / 255.0f;
         float b = peer.b / 255.0f;
@@ -246,8 +246,8 @@ void D3D11Overlay::Render(const std::map<unsigned long long, RemoteCursorState>&
 
         // Focus Halo (White dotted ring simulated with a slightly larger translucent circle)
         if (id == m_activePeerId) {
-            float hw = 24.0f / screenW;
-            float hh = 24.0f / screenH;
+            float hw = (2.0f * 24.0f) / screenW;
+            float hh = (2.0f * 24.0f) / screenH;
             v[count*4+0] = {nx - hw/4, ny + hh/4, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.4f};
             v[count*4+1] = {nx + sw + hw/4, ny + hh/4, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.4f};
             v[count*4+2] = {nx - hw/4, ny - sh - hh/4, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.4f};
