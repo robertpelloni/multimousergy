@@ -9,6 +9,7 @@
 - Fixed default cursor color generation to prevent conflicts with GDI transparency colorkey (RGB 0,0,0).
 - Refined peer connectivity detection logic in `NetMuxFramework`.
 - Added descriptive logging for peer lifecycle events (Join, Prune, Remove) in `SyncModule`.
+- Implemented authoritative cursor synchronization via server-side `MasterStateSync` enforcement.
 
 ## [0.1.57-alpha] - 2025-01-24
 ### Added
