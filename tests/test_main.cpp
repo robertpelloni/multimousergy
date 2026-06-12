@@ -25,6 +25,7 @@ void test_auth_service();
 void test_clipboard_module();
 void test_authoritative_sync_consistency();
 void test_multithreaded_sync_integrity();
+void test_sync_detailed_suite();
 
 void test_sync_module_interpolation() {
     std::cout << "Testing SyncModule interpolation..." << std::endl;
@@ -66,6 +67,7 @@ int main() {
     test_clipboard_module();
     test_authoritative_sync_consistency();
     test_multithreaded_sync_integrity();
+    test_sync_detailed_suite();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

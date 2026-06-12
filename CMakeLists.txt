@@ -84,6 +84,7 @@ add_executable(NetMuxTests
     tests/test_input.cpp
     tests/test_clipboard.cpp
     tests/test_sync_consistency.cpp
+    tests/test_sync_detailed.cpp
 )
 target_link_libraries(NetMuxTests NetMuxLib)
 add_test(NAME CoreTests COMMAND NetMuxTests)
