@@ -1,8 +1,15 @@
 # CHANGELOG.md
 
-## [0.1.58-alpha] - 2025-01-24
+## [0.1.59-alpha] - 2025-01-24
 ### Fixed
 - Fixed simultaneous cursor visibility by implementing continuous broadcasting of local cursor coordinates.
+- Added `RefreshPeer` to `SyncModule` to prevent keep-alive packets from resetting peer positions to (0,0).
+- Integrated `SyncCheck` handling in `NetMuxFramework` for improved peer lifecycle stability.
+- Verified multi-cursor synchronization with an expanded test suite.
+
+## [0.1.58-alpha] - 2025-01-24
+### Fixed
+- Fixed simultaneous cursor visibility by implementing continuous broadcasting of local cursor coordinates. (Initial attempt)
 - Corrected D3D11 cursor scaling by accounting for the 2.0 multiplier in NDC space (-1.0 to 1.0).
 - Enforced `HWND_TOPMOST` status for the overlay window across both GDI and D3D11 backends.
 - Improved coordinate normalization accuracy using actual virtual screen metrics (`SM_CXVIRTUALSCREEN`, `SM_CYVIRTUALSCREEN`).

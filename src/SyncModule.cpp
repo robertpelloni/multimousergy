@@ -165,6 +165,17 @@ void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int nor
     }
 }
 
+void SyncModule::RefreshPeer(unsigned long long id, unsigned int groupId) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_peers.count(id)) {
+        m_peers[id].lastSeen = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - s_syncStartTime).count();
+        m_peers[id].isStalled = false;
+    } else {
+        // If they don't exist, we can't really "refresh" them with a valid position.
+        // We'll let the next AbsoluteMovement create them.
+    }
+}
+
 void SyncModule::UpdateLatency(unsigned long long id, double latency) {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_peers.count(id)) {

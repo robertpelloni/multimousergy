@@ -79,6 +79,8 @@ bool OverlayEngine::Initialize() {
     }
 
     // Use a color key for transparency (e.g., black is transparent)
+    // Note: SyncModule ensures no peer cursor uses pure black (RGB 0,0,0)
+    // to prevent them from becoming transparent.
     SetLayeredWindowAttributes((HWND)m_hwnd, RGB(0, 0, 0), 0, LWA_COLORKEY);
     ShowWindow((HWND)m_hwnd, SW_SHOW);
 
@@ -146,6 +148,9 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
     // Clear with transparent color (black + color key)
     RECT rect = { 0, 0, m_screenWidth, m_screenHeight };
     FillRect(hdcMem, &rect, (HBRUSH)m_hBrush);
+
+    // Filter peers to only those in our group if we are a client
+    // (NetMuxFramework already does this for us before calling RenderPeers)
 
     for (auto const& [id, peer] : peers) {
         int rx = peer.x - m_screenX;

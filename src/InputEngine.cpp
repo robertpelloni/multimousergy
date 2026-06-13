@@ -189,16 +189,23 @@ void InputEngine::Update() {
 #endif
 
 #ifdef _WIN32
-    if (!m_isCaptured) {
-        POINT pt;
-        GetCursorPos(&pt);
-        int sl = GetSystemMetrics(SM_XVIRTUALSCREEN);
-        int st = GetSystemMetrics(SM_YVIRTUALSCREEN);
-        int sw = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-        int sh = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-        m_virtualX = ((pt.x - sl) * 65535) / (sw > 1 ? sw - 1 : 1);
-        m_virtualY = ((pt.y - st) * 65535) / (sh > 1 ? sh - 1 : 1);
+    // BROADCAST VISIBILITY:
+    // Even if not captured, we broadcast our local absolute position.
+    // This allows other peers to see where we are on our screen (mapped to their screen).
+    // This fulfills the "Mux" (Multiplexing) vision of shared visibility.
+    POINT pt;
+    GetCursorPos(&pt);
+    int sl = GetSystemMetrics(SM_XVIRTUALSCREEN);
+    int st = GetSystemMetrics(SM_YVIRTUALSCREEN);
+    int sw = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+    int sh = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 
+    int newVX = ((pt.x - sl) * 65535) / (sw > 1 ? sw - 1 : 1);
+    int newVY = ((pt.y - st) * 65535) / (sh > 1 ? sh - 1 : 1);
+
+    if (newVX != m_virtualX || newVY != m_virtualY) {
+        m_virtualX = newVX;
+        m_virtualY = newVY;
         Packet pkt = { 0, 0, 0, 0.0, NetMuxPacketType::AbsoluteMovement, m_virtualX, m_virtualY, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
         m_pendingPackets.push(pkt);
     }

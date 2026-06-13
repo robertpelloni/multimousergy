@@ -1,24 +1,17 @@
-# Session Handoff - v0.1.58-alpha
+# Session Handoff - v0.1.59-alpha
 
 ## Summary of Changes
-- **Multi-Cursor Visibility**: Fixed issue where remote cursors were not consistently visible. Implemented continuous broadcasting of local cursor coordinates in `InputEngine` even when not "captured".
-- **D3D11 Rendering Fixes**: Corrected cursor scaling and positioning in the Direct3D 11 backend by applying the correct 2.0x multiplier to NDC coordinates.
-- **Topmost Overlay**: Enforced `HWND_TOPMOST` status for the overlay window across both GDI and D3D11 backends, ensuring visibility over other applications.
-- **Authoritative Synchronization**: Fully implemented client-side handling of `NetMuxPacketType::MasterStateSync`. The server now acts as the source of truth, correcting local perception drift every 100ms.
-- **Accuracy Improvements**: Replaced hardcoded 1080p screen metrics with dynamic virtual screen metrics (`SM_CXVIRTUALSCREEN`, `SM_CYVIRTUALSCREEN`) for proper multi-monitor support.
-- **Color Conflict Resolution**: Adjusted default peer color generation to avoid pure black (RGB 0,0,0), which was being incorrectly interpreted as transparency by the GDI backend.
-- **Peer Lifecycle Logging**: Added descriptive logging for peer join/prune/remove events to aid in debugging connectivity.
+- **Multi-Cursor Consistency**: Resolved a critical bug where keep-alive packets (Heartbeat, Sync, Ping) were resetting peer positions to (0,0) because they lacked coordinate data.
+- **RefreshPeer Implementation**: Introduced `SyncModule::RefreshPeer` to specifically handle keep-alive updates without overwriting stored position data.
+- **Broadcast Visibility**: Verified that `InputEngine` correctly broadcasts local cursor coordinates to all peers, fulfilling the "Multiplexing" vision where all users are visible to each other regardless of capture state.
+- **SyncCheck Integration**: Added handling for `NetMuxPacketType::SyncCheck` in the framework to maintain peer activity status during idle periods.
+- **Test Suite Verification**: Confirmed that all concurrent synchronization and authoritative correction tests pass with the new `RefreshPeer` logic.
 
 ## Technical Observations
-- The synchronization model now follows a strict authoritative pattern where client movement is suggested, but server-broadcasted state is the final authority.
-- Continuous broadcasting in `InputEngine` ensures "Mux" feel (everyone sees everyone) but increases network traffic slightly; this was deemed acceptable for real-time cursor tracking.
-
-## Next Steps
-- Implement full `FileTransferEngine` logic, leveraging the existing 4KB chunking infrastructure.
-- Extend manual Unicode converter in `ClipboardModule` to support 4-byte UTF-8 sequences.
-- Research performance optimizations for high-frequency coordinate broadcasting (e.g., delta compression).
+- `SyncModule::UpdatePeer` should only be used when fresh coordinate data is available. For keep-alives, `RefreshPeer` is the preferred path to avoid state corruption.
+- Authoritative synchronization remains robust; the server-side position enforcement correctly overrides any local drift or reset attempts.
 
 ## Repository State
-- Version: `v0.1.58-alpha`
-- Build status: Passing (All unit and integration tests verified)
-- Git: `main` and `develop` branches synchronized and pushed.
+- Version: `v0.1.59-alpha`
+- Build status: All tests passed.
+- Major Features: Authoritative Sync, Multi-Cursor Visibility, D3D11/GDI Overlay, Secure Mutual Auth.
