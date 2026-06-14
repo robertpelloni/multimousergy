@@ -32,3 +32,11 @@ bin/
 build/
 dist/
 out/
+
+# Agent cache artifacts
+.borg/
+.hypercode/
+.pi-lens/
+.tormentnexus/
+*.bak
+*~
