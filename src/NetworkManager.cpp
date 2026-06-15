@@ -251,7 +251,7 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
                 m_tcpState = ConnectionState::Connected;
                 std::cout << "[Network] TCP Connection established." << std::endl;
             } else {
-                m_tcpState = ConnectionState::Error;
+                m_tcpState = ConnectionState::Disconnected; // Reset to disconnected so we can retry
                 std::cout << "[Network] TCP Connection failed with error: " << error << std::endl;
             }
         }

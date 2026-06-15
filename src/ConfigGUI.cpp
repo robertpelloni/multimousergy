@@ -351,6 +351,14 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             }
             break;
 
+        case WM_SIZE:
+            if (s_hwndStatusBar) SendMessage(s_hwndStatusBar, WM_SIZE, 0, 0);
+            if (s_hwndTabControl) {
+                RECT rc; GetClientRect(hwnd, &rc);
+                SetWindowPos(s_hwndTabControl, NULL, 5, 5, rc.right - 10, rc.bottom - 40, SWP_NOZORDER);
+            }
+            break;
+
         case WM_CREATE:
             s_hwndStatusBar = CreateWindowEx(0, STATUSCLASSNAME, NULL, WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, hwnd, NULL, GetModuleHandle(NULL), NULL);
 
@@ -424,7 +432,8 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                 SetWindowText(s_hwndApplyButton, isServer ? "Start Server" : "Connect");
             }
 
-            if (HIWORD(wParam) == LBN_DBLCLK && LOWORD(wParam) == ID_DISCOVERY_LIST) {
+            if ((HIWORD(wParam) == LBN_DBLCLK && LOWORD(wParam) == ID_DISCOVERY_LIST) ||
+                (LOWORD(wParam) == ID_SAVE_BUTTON && GetFocus() == s_hwndDiscoveryConnect)) {
                 int index = (int)SendMessage(s_hwndDiscoveryList, LB_GETCURSEL, 0, 0);
                 if (index != LB_ERR) {
                     char buffer[256];
@@ -435,6 +444,11 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                         std::string ip = s.substr(sep + 3);
                         SetWindowText(s_hwndIp, ip.c_str());
                         ConfigGUI::LogSecurityEvent("Auto-filled IP: " + ip);
+
+                        // If it was the button click, trigger Apply
+                        if (LOWORD(wParam) == ID_SAVE_BUTTON && GetFocus() == s_hwndDiscoveryConnect) {
+                             PostMessage(hwnd, WM_COMMAND, MAKEWPARAM(ID_SAVE_BUTTON, BN_CLICKED), (LPARAM)s_hwndApplyButton);
+                        }
                     }
                 }
             }
