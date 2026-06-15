@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 
 enum class NetMuxMouseButton {
     Left = 0,
@@ -81,4 +82,5 @@ struct AppSettings {
     unsigned char selectionColorR = 0;
     unsigned char selectionColorG = 120;
     unsigned char selectionColorB = 215;
+    std::vector<std::string> recentServers;
 };

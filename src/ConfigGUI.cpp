@@ -64,10 +64,12 @@ enum ControlIDs {
     ID_SCAN_BUTTON = 12,
     ID_DISCOVERY_LIST = 13,
     ID_SEND_FILE_BUTTON = 23,
-    ID_FILE_TRANSFER_LIST = 24
+    ID_FILE_TRANSFER_LIST = 24,
+    ID_RECENT_SERVERS = 25
 };
 
 static HWND s_hwndFileTransferList = nullptr;
+static HWND s_hwndRecentServers = nullptr;
 
 static HWND s_hwndSecurityStatus = nullptr;
 
@@ -93,8 +95,12 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             CreateWindow("BUTTON", "Apply & Connect", WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 15, 125, 120, 30, hwnd, (HMENU)ID_SAVE_BUTTON, NULL, NULL);
             CreateWindow("BUTTON", "Disconnect", WS_VISIBLE | WS_CHILD, 145, 125, 120, 30, hwnd, (HMENU)ID_DISCONNECT_BUTTON, NULL, NULL);
 
-            CreateWindow("BUTTON", "Scan Servers", WS_VISIBLE | WS_CHILD, 15, 160, 250, 25, hwnd, (HMENU)ID_SCAN_BUTTON, NULL, NULL);
-            s_hwndDiscoveryList = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER | LBS_NOTIFY, 15, 190, 250, 70, hwnd, (HMENU)ID_DISCOVERY_LIST, NULL, NULL);
+            CreateWindow("STATIC", "History:", WS_VISIBLE | WS_CHILD, 15, 160, 60, 20, hwnd, NULL, NULL, NULL);
+            s_hwndRecentServers = CreateWindow("COMBOBOX", "", WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST, 80, 160, 185, 100, hwnd, (HMENU)ID_RECENT_SERVERS, NULL, NULL);
+            for (auto const& s : s_currentSettings->recentServers) SendMessage(s_hwndRecentServers, CB_ADDSTRING, 0, (LPARAM)s.c_str());
+
+            CreateWindow("BUTTON", "Scan Servers", WS_VISIBLE | WS_CHILD, 15, 185, 250, 25, hwnd, (HMENU)ID_SCAN_BUTTON, NULL, NULL);
+            s_hwndDiscoveryList = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER | LBS_NOTIFY, 15, 215, 250, 45, hwnd, (HMENU)ID_DISCOVERY_LIST, NULL, NULL);
 
             // Session Group
             CreateWindow("BUTTON", "Session & Security", WS_VISIBLE | WS_CHILD | BS_GROUPBOX, 5, 275, 290, 145, hwnd, NULL, NULL, NULL);
@@ -112,8 +118,8 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             s_hwndSecurityKey = CreateWindow("EDIT", s_currentSettings->securityKey.c_str(), WS_VISIBLE | WS_CHILD | ES_PASSWORD | ES_AUTOHSCROLL | WS_BORDER, 115, 370, 150, 20, hwnd, (HMENU)ID_SECURITY_KEY, NULL, NULL);
 
             s_hwndSecurityStatus = CreateWindow("STATIC", "", WS_VISIBLE | WS_CHILD, 15, 395, 270, 20, hwnd, NULL, NULL, NULL);
-            if (s_currentSettings->securityKey.empty()) SetWindowText(s_hwndSecurityStatus, "Status: UNSECURED");
-            else SetWindowText(s_hwndSecurityStatus, "Status: ENCRYPTED (Mutual Auth)");
+            if (s_currentSettings->securityKey.empty()) SetWindowText(s_hwndSecurityStatus, "Status: UNSECURED | IDLE");
+            else SetWindowText(s_hwndSecurityStatus, "Status: ENCRYPTED | IDLE");
 
             // Cursor Group
             CreateWindow("BUTTON", "Cursor Settings", WS_VISIBLE | WS_CHILD | BS_GROUPBOX, 5, 425, 290, 140, hwnd, NULL, NULL, NULL);
@@ -177,6 +183,15 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                 ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
                 if (GetOpenFileNameA(&ofn)) {
                     SetWindowText(s_hwndCursorThemePath, ofn.lpstrFile);
+                }
+            }
+
+            if (HIWORD(wParam) == CBN_SELCHANGE && LOWORD(wParam) == ID_RECENT_SERVERS) {
+                int index = (int)SendMessage(s_hwndRecentServers, CB_GETCURSEL, 0, 0);
+                if (index != CB_ERR) {
+                    char buffer[256];
+                    SendMessage(s_hwndRecentServers, CB_GETLBTEXT, index, (LPARAM)buffer);
+                    SetWindowText(s_hwndIp, buffer);
                 }
             }
 
@@ -260,6 +275,14 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
                     GetWindowText(s_hwndIp, buffer, 256);
                     s_currentSettings->remoteIp = buffer;
+                    if (!s_currentSettings->isServer && !s_currentSettings->remoteIp.empty()) {
+                        bool exists = false;
+                        for (auto const& rs : s_currentSettings->recentServers) if (rs == s_currentSettings->remoteIp) { exists = true; break; }
+                        if (!exists) {
+                            s_currentSettings->recentServers.insert(s_currentSettings->recentServers.begin(), s_currentSettings->remoteIp);
+                            if (s_currentSettings->recentServers.size() > 5) s_currentSettings->recentServers.pop_back();
+                        }
+                    }
 
                     GetWindowText(s_hwndCursorThemePath, buffer, 256);
                     s_currentSettings->cursorThemePath = buffer;
@@ -349,40 +372,90 @@ void ConfigGUI::Tick() {
 
     if (s_isRunning && s_currentFileTransfer) {
         static double lastFileUpdate = 0;
+        static std::map<unsigned long long, std::string> lastFileStates;
         double now = GetTickCount64();
         if (now - lastFileUpdate > 500.0) {
             auto transfers = s_currentFileTransfer->GetActiveTransfers();
-            SendMessage(s_hwndFileTransferList, LB_RESETCONTENT, 0, 0);
-            for (auto const& [id, t] : transfers) {
-                char buffer[256];
-                snprintf(buffer, sizeof(buffer), "%s | %.1f%% | %s", t.filename.c_str(), t.progress * 100.0f, t.isOutgoing ? "OUT" : "IN");
-                SendMessage(s_hwndFileTransferList, LB_ADDSTRING, 0, (LPARAM)buffer);
+            bool changed = false;
+            if (transfers.size() != lastFileStates.size()) changed = true;
+            else {
+                for (auto const& [id, t] : transfers) {
+                    char buffer[256];
+                    snprintf(buffer, sizeof(buffer), "%s | %.1f%% | %s", t.filename.c_str(), t.progress * 100.0f, t.isOutgoing ? "OUT" : "IN");
+                    if (lastFileStates[id] != buffer) { changed = true; break; }
+                }
+            }
+
+            if (changed) {
+                SendMessage(s_hwndFileTransferList, LB_RESETCONTENT, 0, 0);
+                lastFileStates.clear();
+                for (auto const& [id, t] : transfers) {
+                    char buffer[256];
+                    snprintf(buffer, sizeof(buffer), "%s | %.1f%% | %s", t.filename.c_str(), t.progress * 100.0f, t.isOutgoing ? "OUT" : "IN");
+                    SendMessage(s_hwndFileTransferList, LB_ADDSTRING, 0, (LPARAM)buffer);
+                    lastFileStates[id] = buffer;
+                }
             }
             lastFileUpdate = now;
         }
     }
 
+    if (s_isRunning && s_currentNetwork) {
+        static ConnectionState lastState = ConnectionState::Disconnected;
+        ConnectionState currentState = s_currentNetwork->GetTcpState();
+        if (currentState != lastState) {
+            const char* stateStr = "IDLE";
+            if (currentState == ConnectionState::Connecting) stateStr = "CONNECTING";
+            else if (currentState == ConnectionState::Connected) stateStr = "CONNECTED";
+            else if (currentState == ConnectionState::Error) stateStr = "ERROR";
+
+            char status[256];
+            if (s_currentSettings->securityKey.empty()) snprintf(status, sizeof(status), "Status: UNSECURED | %s", stateStr);
+            else snprintf(status, sizeof(status), "Status: ENCRYPTED | %s", stateStr);
+            SetWindowText(s_hwndSecurityStatus, status);
+
+            ConfigGUI::LogSecurityEvent("Network state changed to: " + std::string(stateStr));
+            lastState = currentState;
+        }
+    }
+
     if (s_isRunning && s_currentSync) {
-        auto peers = s_currentSync->GetAllPeers();
+        static double lastPeerUpdate = 0;
+        static std::map<unsigned long long, std::string> lastPeerStates;
+        double now = GetTickCount64();
+        if (now - lastPeerUpdate > 200.0) {
+            auto peers = s_currentSync->GetAllPeers();
+            bool changed = false;
+            if (peers.size() != lastPeerStates.size()) changed = true;
+            else {
+                for (auto const& [id, peer] : peers) {
+                    char info[256];
+                    char btnStr[16] = "---";
+                    if (peer.buttonState & 1) btnStr[0] = 'L';
+                    if (peer.buttonState & 2) btnStr[1] = 'R';
+                    if (peer.buttonState & 4) btnStr[2] = 'M';
+                    const char* authStatus = (id == s_currentSync->GetLocalId() || s_currentSettings->securityKey.empty()) ? "OPEN" : (peer.isAuthenticated ? "AUTH" : "LOCKED");
+                    snprintf(info, sizeof(info), "%s | RTT:%dms | Drift:%.1fpx | [%s] | %s", peer.sessionName, (int)peer.latency, peer.drift, authStatus, btnStr);
+                    if (lastPeerStates[id] != info) { changed = true; break; }
+                }
+            }
 
-        // Update ListBox metrics
-        SendMessage(s_hwndPeerList, LB_RESETCONTENT, 0, 0);
-        for (auto const& [id, peer] : peers) {
-            char info[256];
-            char btnStr[16] = "---";
-            if (peer.buttonState & 1) btnStr[0] = 'L';
-            if (peer.buttonState & 2) btnStr[1] = 'R';
-            if (peer.buttonState & 4) btnStr[2] = 'M';
-
-            const char* authStatus = "LOCKED";
-            if (id == s_currentSync->GetLocalId() || s_currentSettings->securityKey.empty()) authStatus = "OPEN";
-            else if (peer.isAuthenticated) authStatus = "AUTH";
-
-            snprintf(info, sizeof(info), "%s | RTT:%dms | E2E:%dms | Drift:%.1fpx | [%s] | %s %s",
-                peer.sessionName, (int)peer.latency, (int)peer.e2eLatency, peer.drift,
-                authStatus,
-                btnStr, peer.isSelecting ? "[Sel]" : "");
-            SendMessage(s_hwndPeerList, LB_ADDSTRING, 0, (LPARAM)info);
+            if (changed) {
+                SendMessage(s_hwndPeerList, LB_RESETCONTENT, 0, 0);
+                lastPeerStates.clear();
+                for (auto const& [id, peer] : peers) {
+                    char info[256];
+                    char btnStr[16] = "---";
+                    if (peer.buttonState & 1) btnStr[0] = 'L';
+                    if (peer.buttonState & 2) btnStr[1] = 'R';
+                    if (peer.buttonState & 4) btnStr[2] = 'M';
+                    const char* authStatus = (id == s_currentSync->GetLocalId() || s_currentSettings->securityKey.empty()) ? "OPEN" : (peer.isAuthenticated ? "AUTH" : "LOCKED");
+                    snprintf(info, sizeof(info), "%s | RTT:%dms | Drift:%.1fpx | [%s] | %s", peer.sessionName, (int)peer.latency, peer.drift, authStatus, btnStr);
+                    SendMessage(s_hwndPeerList, LB_ADDSTRING, 0, (LPARAM)info);
+                    lastPeerStates[id] = info;
+                }
+            }
+            lastPeerUpdate = now;
         }
     }
 #endif

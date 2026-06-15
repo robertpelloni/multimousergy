@@ -1,4 +1,5 @@
 #include "FileTransferEngine.hpp"
+#include "AuthModule.hpp"
 #include <iostream>
 #include <filesystem>
 #include <cstring>
@@ -21,7 +22,7 @@ bool FileTransferEngine::StartTransfer(const std::string& filePath, unsigned lon
     transfer.bytesTransferred = 0;
     transfer.isOutgoing = true;
     transfer.isComplete = false;
-    transfer.hash = "00000000"; // Placeholder
+    transfer.hash = CalculateHash(filePath);
 
     unsigned long long transferId = m_nextTransferId++;
     m_transfers[transferId] = transfer;
@@ -149,12 +150,23 @@ bool FileTransferEngine::HandleFileData(const Packet& pkt) {
 
     if (t.bytesTransferred >= t.fileSize) {
         t.isComplete = true;
-        // Save to disk
-        std::string savePath = "received_" + t.filename;
-        std::ofstream outFile(savePath, std::ios::binary);
-        if (outFile.is_open()) {
-            outFile.write(t.buffer.data(), t.buffer.size());
-            std::cout << "[FileTransfer] File saved: " << savePath << std::endl;
+
+        // Verify Hash
+        std::string data(t.buffer.begin(), t.buffer.end());
+        unsigned char hash[32];
+        AuthModule::ComputeSHA256(data, hash);
+        std::string calculatedHash = AuthModule::HashToHex(hash);
+
+        if (calculatedHash != t.hash) {
+            std::cerr << "[FileTransfer] Hash mismatch! Expected: " << t.hash << " Got: " << calculatedHash << std::endl;
+        } else {
+            // Save to disk
+            std::string savePath = "received_" + t.filename;
+            std::ofstream outFile(savePath, std::ios::binary);
+            if (outFile.is_open()) {
+                outFile.write(t.buffer.data(), t.buffer.size());
+                std::cout << "[FileTransfer] File saved: " << savePath << std::endl;
+            }
         }
         t.buffer.clear();
         t.buffer.shrink_to_fit();
@@ -180,4 +192,18 @@ bool FileTransferEngine::IsHeaderSent(unsigned long long transferId) {
 void FileTransferEngine::SetHeaderSent(unsigned long long transferId, bool sent) {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_headerSent[transferId] = sent;
+}
+
+std::string FileTransferEngine::CalculateHash(const std::string& path) {
+    std::ifstream file(path, std::ios::binary);
+    if (!file.is_open()) return "";
+
+    std::vector<char> buffer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    std::string data(buffer.begin(), buffer.end());
+
+    unsigned char hash[32];
+    if (AuthModule::ComputeSHA256(data, hash)) {
+        return AuthModule::HashToHex(hash);
+    }
+    return "";
 }

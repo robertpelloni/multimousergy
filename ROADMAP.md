@@ -40,4 +40,5 @@
 - [x] Authoritative Synchronization (Server-side position enforcement).
 - [x] UI & Network Stack Refactor (Robust connection handling).
  - [x] File Transfer Engine: Implement drag-and-drop file sharing via multi-part protocol.
+ - [x] File Integrity: SHA-256 verification for shared data.
 - [ ] Native Vendor SDK linking for Drivers.

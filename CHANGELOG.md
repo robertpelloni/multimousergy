@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## [0.1.62-alpha] - 2025-01-24
+### Added
+- Implemented SHA-256 file integrity verification for file transfers.
+- Added "Recent Servers" history dropdown to ConfigGUI.
+- Improved real-time UI feedback for connection states.
+### Fixed
+- Optimized ConfigGUI listboxes to prevent flickering and reduce CPU overhead.
+
 ## [0.1.61-alpha] - 2025-01-24
 ### Added
 - Implemented File Transfer Engine for transparent drag-and-drop file sharing via multi-part protocol.
