@@ -512,6 +512,11 @@ void NetMuxFramework::ProcessIncomingPackets() {
                 m_fileTransfer.HandleFileData(inPkt);
                 if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
             }
+        } else if (inPkt.type == NetMuxPacketType::KeyboardEvent) {
+            if (IsPeerTrusted(peerId, inPkt.type)) {
+                m_driver.SendKeyboardKey(inPkt.button, inPkt.down);
+                if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
+            }
         }
     }
 }
@@ -587,7 +592,14 @@ void NetMuxFramework::PerformPeerCleanup() {
 }
 
 #ifdef __linux__
-void NetMuxFramework::ProcessX11Events() {}
+void NetMuxFramework::ProcessX11Events() {
+    if (!m_xDisplay) return;
+    XEvent ev;
+    while (XPending((Display*)m_xDisplay)) {
+        XNextEvent((Display*)m_xDisplay, &ev);
+        m_clipboard.HandleX11Event(&ev);
+    }
+}
 #endif
 
 void NetMuxFramework::PerformFileTransfer() {

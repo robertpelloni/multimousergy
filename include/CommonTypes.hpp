@@ -36,7 +36,8 @@ enum class NetMuxPacketType {
     Disconnect,
     Wheel,
     FileHeader,
-    FileData
+    FileData,
+    KeyboardEvent
 };
 
 struct Packet {

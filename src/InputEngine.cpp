@@ -77,8 +77,9 @@ LRESULT CALLBACK KeyboardHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode >= 0 && s_instance && s_instance->m_isCaptured) {
         KBDLLHOOKSTRUCT* kbInfo = (KBDLLHOOKSTRUCT*)lParam;
         if (!(kbInfo->flags & LLKHF_INJECTED)) {
-            // Forward keys to network
-            // TODO: Packet pkt = { ... }; s_instance->m_pendingPackets.push(pkt);
+            bool down = (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN);
+            Packet pkt = { 0, 0, 0, 0.0, NetMuxPacketType::KeyboardEvent, 0, 0, (int)kbInfo->vkCode, down, false, 0, 0, 0, false, 0, 0, "", 0 };
+            s_instance->m_pendingPackets.push(pkt);
             return 1;
         }
     }

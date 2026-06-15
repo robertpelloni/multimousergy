@@ -42,4 +42,5 @@
  - [x] File Transfer Engine: Implement drag-and-drop file sharing via multi-part protocol.
  - [x] File Integrity: SHA-256 verification for shared data.
  - [x] Connection Resilience: Auto-Reconnect and State Monitoring.
+ - [x] Keyboard Sync: Full capture and injection support.
 - [ ] Native Vendor SDK linking for Drivers.

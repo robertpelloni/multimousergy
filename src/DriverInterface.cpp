@@ -220,6 +220,34 @@ bool DriverInterface::SendMouseWheel(int delta, bool horizontal) {
 #endif
 }
 
+bool DriverInterface::SendKeyboardKey(int key, bool down) {
+    if (!m_initialized) return false;
+
+#ifdef __linux__
+    struct input_event ev[2];
+    memset(ev, 0, sizeof(ev));
+    ev[0].type = EV_KEY;
+    ev[0].code = (uint16_t)key;
+    ev[0].value = down ? 1 : 0;
+    ev[1].type = EV_SYN;
+    ev[1].code = SYN_REPORT;
+    ev[1].value = 0;
+    write(m_device, ev, sizeof(ev));
+    return true;
+#endif
+
+#ifdef _WIN32
+    INPUT input = {0};
+    input.type = INPUT_KEYBOARD;
+    input.ki.wVk = (WORD)key;
+    input.ki.dwFlags = down ? 0 : KEYEVENTF_KEYUP;
+    SendInput(1, &input, sizeof(INPUT));
+    return true;
+#else
+    return false;
+#endif
+}
+
 bool DriverInterface::SendMouseButton(int button, bool down) {
     if (!m_initialized) return false;
 

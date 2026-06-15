@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.64-alpha] - 2025-01-24
+### Added
+- Implemented full Keyboard Synchronization (capture and injection).
+- Added Machine Info (Hostname/IP) to ConfigGUI Connection Settings.
+- Implemented native Linux X11 event dispatching for improved clipboard stability.
+- Enhanced ConfigGUI layout with improved group box organization.
+
 ## [0.1.63-alpha] - 2025-01-24
 ### Added
 - Implemented Auto-Reconnect logic for resilient connection recovery.

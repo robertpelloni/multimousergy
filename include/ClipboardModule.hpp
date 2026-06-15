@@ -14,6 +14,10 @@ public:
     std::string GetText();
     void SetText(const std::string& text);
 
+#ifdef __linux__
+    void HandleX11Event(void* ev);
+#endif
+
 private:
 #ifdef __linux__
     void* m_xDisplay = nullptr;

@@ -12,6 +12,7 @@ public:
 
     bool SendMouseMovement(long dx, long dy);
     bool SendMouseButton(int button, bool down);
+    bool SendKeyboardKey(int key, bool down);
     bool SendMouseWheel(int delta, bool horizontal);
 
 private:
