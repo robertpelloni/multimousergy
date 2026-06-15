@@ -23,5 +23,6 @@
  - [x] Implement SHA-256 integrity verification for file transfers.
  - [x] Implement Auto-Reconnect and Peer Color customization.
  - [x] Implement Keyboard Synchronization and Machine Info UI.
+ - [x] Implement Tabbed GUI and Automatic Driver Detection.
 - [x] Refactor UI and Network stacks for robust connection handling.
 - [ ] Refactor Network Protocol to use formal serialization (Protobuf/Flatbuffers).

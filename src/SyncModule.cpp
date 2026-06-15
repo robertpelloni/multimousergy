@@ -71,6 +71,9 @@ void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int nor
     peer.id = id;
     peer.groupId = groupId;
     if (name) {
+        if (std::strcmp(peer.sessionName, name) != 0 && !isNew) {
+            std::cout << "[Sync] Peer " << id << " re-entered with new session: " << name << " (Prev: " << peer.sessionName << ")" << std::endl;
+        }
         strncpy(peer.sessionName, name, sizeof(peer.sessionName) - 1);
         peer.sessionName[sizeof(peer.sessionName) - 1] = '\0';
     }

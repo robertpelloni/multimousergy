@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## [0.1.65-alpha] - 2025-01-24
+### Added
+- Modernized ConfigGUI with a Tabbed Interface for better scalability.
+- Implemented automatic driver detection (ViGEmBus/Interception) with UI feedback.
+- Enhanced File Transfer Engine with basic Resume support and error reporting.
+- Improved SyncModule robustness for peer re-entry and collision handling.
+- Added automatic network discovery scan on startup.
+
 ## [0.1.64-alpha] - 2025-01-24
 ### Added
 - Implemented full Keyboard Synchronization (capture and injection).

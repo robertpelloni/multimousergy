@@ -7,6 +7,16 @@
 #include <mutex>
 #include <functional>
 
+enum class FileTransferError {
+    None,
+    FileNotFound,
+    AccessDenied,
+    DiskFull,
+    HashMismatch,
+    TooLarge,
+    BadAlloc
+};
+
 struct FileTransfer {
     std::string filename;
     uint64_t fileSize;
@@ -15,6 +25,7 @@ struct FileTransfer {
     uint64_t bytesTransferred;
     bool isOutgoing;
     bool isComplete;
+    FileTransferError lastError = FileTransferError::None;
     std::vector<char> buffer;
 };
 
@@ -38,6 +49,7 @@ public:
         float progress;
         bool isComplete;
         bool isOutgoing;
+        FileTransferError lastError;
     };
     std::map<unsigned long long, TransferStatus> GetActiveTransfers();
 

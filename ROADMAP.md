@@ -43,4 +43,5 @@
  - [x] File Integrity: SHA-256 verification for shared data.
  - [x] Connection Resilience: Auto-Reconnect and State Monitoring.
  - [x] Keyboard Sync: Full capture and injection support.
+ - [x] UI Modernization: Tabbed interface and machine-info telemetry.
 - [ ] Native Vendor SDK linking for Drivers.

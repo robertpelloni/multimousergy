@@ -15,6 +15,8 @@ public:
     bool SendKeyboardKey(int key, bool down);
     bool SendMouseWheel(int delta, bool horizontal);
 
+    static bool IsDriverInstalled(NetMuxDriverType type);
+
 private:
     bool m_initialized;
     NetMuxDriverType m_type;

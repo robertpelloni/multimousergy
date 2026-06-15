@@ -15,6 +15,14 @@ bool FileTransferEngine::StartTransfer(const std::string& filePath, unsigned lon
 
     if (!fs::exists(filePath)) return false;
 
+    // Check if we can resume an existing transfer
+    for (auto& [id, t] : m_transfers) {
+        if (t.isOutgoing && t.localPath == filePath && !t.isComplete && t.lastError == FileTransferError::None) {
+            std::cout << "[FileTransfer] Resuming outgoing transfer ID: " << id << std::endl;
+            return true;
+        }
+    }
+
     FileTransfer transfer;
     transfer.filename = fs::path(filePath).filename().string();
     transfer.fileSize = fs::file_size(filePath);
@@ -110,6 +118,16 @@ bool FileTransferEngine::HandleFileHeader(const Packet& pkt) {
         return false;
     }
 
+    // Resume check for incoming
+    unsigned long long transferId = ((unsigned long long)(uint32_t)pkt.y << 32) | (uint32_t)pkt.x;
+    if (m_transfers.count(transferId)) {
+        FileTransfer& existing = m_transfers[transferId];
+        if (existing.hash == hash && existing.fileSize == size) {
+            std::cout << "[FileTransfer] Resuming incoming transfer ID: " << transferId << std::endl;
+            return true;
+        }
+    }
+
     FileTransfer transfer;
     transfer.filename = safeFilename;
     transfer.fileSize = size;
@@ -124,7 +142,6 @@ bool FileTransferEngine::HandleFileHeader(const Packet& pkt) {
         return false;
     }
 
-    unsigned long long transferId = ((unsigned long long)(uint32_t)pkt.y << 32) | (uint32_t)pkt.x;
     m_transfers[transferId] = transfer;
 
     std::cout << "[FileTransfer] Receiving file: " << transfer.filename << " (" << transfer.fileSize << " bytes) ID: " << transferId << std::endl;
@@ -159,6 +176,7 @@ bool FileTransferEngine::HandleFileData(const Packet& pkt) {
 
         if (calculatedHash != t.hash) {
             std::cerr << "[FileTransfer] Hash mismatch! Expected: " << t.hash << " Got: " << calculatedHash << std::endl;
+            t.lastError = FileTransferError::HashMismatch;
         } else {
             // Save to disk
             std::string savePath = "received_" + t.filename;
@@ -179,7 +197,7 @@ std::map<unsigned long long, FileTransferEngine::TransferStatus> FileTransferEng
     std::lock_guard<std::mutex> lock(m_mutex);
     std::map<unsigned long long, TransferStatus> result;
     for (auto const& [id, t] : m_transfers) {
-        result[id] = { t.filename, (float)t.bytesTransferred / t.fileSize, t.isComplete, t.isOutgoing };
+        result[id] = { t.filename, (float)t.bytesTransferred / (t.fileSize ? t.fileSize : 1), t.isComplete, t.isOutgoing, t.lastError };
     }
     return result;
 }

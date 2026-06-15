@@ -67,6 +67,22 @@ DriverInterface::~DriverInterface() {
     Shutdown();
 }
 
+static bool CheckInterception() {
+#ifdef _WIN32
+    HMODULE h = LoadLibrary("interception.dll");
+    if (h) { FreeLibrary(h); return true; }
+#endif
+    return false;
+}
+
+static bool CheckViGEm() {
+#ifdef _WIN32
+    HMODULE h = LoadLibrary("ViGEmClient.dll");
+    if (h) { FreeLibrary(h); return true; }
+#endif
+    return false;
+}
+
 bool DriverInterface::Initialize(NetMuxDriverType type) {
     m_type = type;
     std::cout << "[Driver] Initializing hardware abstraction layer..." << std::endl;
@@ -141,6 +157,12 @@ bool DriverInterface::Initialize(NetMuxDriverType type) {
 #endif
 
     m_initialized = false;
+    return false;
+}
+
+bool DriverInterface::IsDriverInstalled(NetMuxDriverType type) {
+    if (type == NetMuxDriverType::Interception) return CheckInterception();
+    if (type == NetMuxDriverType::ViGEmBus) return CheckViGEm();
     return false;
 }
 
