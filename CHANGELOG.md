@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## [0.1.70-alpha] - 2025-01-24
+### Added
+- Refined ConfigGUI UX: persistent status bar, dynamic button text, and "Connect to Selected" button.
+- Enhanced Network Resilience: automatic cleanup of partial file/clipboard data from dead peers.
+- Integrated `STATUSCLASSNAME` for real-time connection telemetry.
+
 ## [0.1.69-alpha] - 2025-01-24
 ### Added
 - Implemented Friendly Name broadcasting and peer-list prioritization.

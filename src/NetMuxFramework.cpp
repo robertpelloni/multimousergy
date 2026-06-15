@@ -603,6 +603,9 @@ void NetMuxFramework::PerformPeerCleanup() {
         std::vector<unsigned long long> pruned = m_sync.PruneInactivePeers(10000.0);
         for (auto id : pruned) {
             m_authService.ClearPeer(id);
+            m_fileTransfer.CleanupPeerTransfers(id);
+            m_clipboard.CleanupPeer(id);
+            m_clipboardReassembly.erase(id);
         }
         lastCleanup = m_loopTimer.ElapsedMilliseconds();
     }

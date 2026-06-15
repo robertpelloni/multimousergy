@@ -10,3 +10,5 @@ The UI and Network stacks were significantly refactored to resolve race conditio
 ## Architectural Lessons
 - **Deferred Handshaking**: Relying on the return value of `connect()` is insufficient for non-blocking sockets. Explicit state tracking and polling via `select` are mandatory for reliable protocol initialization.
 - **Win32 Message Passing**: Using `WM_USER + 1` for re-initialization signals is effective but requires careful cleanup of window handles to avoid resource leaks.
+- **Resource Lifecycle Guarding**: In decentralized systems, pruning dead peers must trigger recursive cleanup of all associated data structures (file buffers, reassembly queues) to prevent memory exhaustion.
+- **UX State Synchronization**: Dynamic UI elements (like button text or status bars) should be driven by the core `ConnectionState` machine to ensure visual feedback matches internal logic.

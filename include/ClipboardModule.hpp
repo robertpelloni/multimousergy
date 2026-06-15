@@ -18,6 +18,8 @@ public:
     void HandleX11Event(void* ev);
 #endif
 
+    void CleanupPeer(unsigned long long id);
+
 private:
 #ifdef __linux__
     void* m_xDisplay = nullptr;

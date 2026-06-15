@@ -83,7 +83,8 @@ enum ControlIDs {
     ID_DIAGNOSTICS_LIST = 32,
     ID_QUIT_BUTTON = 33,
     ID_DISPLAY_NAME = 34,
-    ID_START_MINIMIZED = 35
+    ID_START_MINIMIZED = 35,
+    ID_SERVER_MODE = 36
 };
 
 static HWND s_hwndFileTransferList = nullptr;
@@ -97,6 +98,9 @@ static HWND s_hwndPeerColorB = nullptr;
 static HWND s_hwndDisplayName = nullptr;
 
 static HWND s_hwndSecurityStatus = nullptr;
+static HWND s_hwndStatusBar = nullptr;
+static HWND s_hwndApplyButton = nullptr;
+static HWND s_hwndDiscoveryConnect = nullptr;
 
 static std::vector<HWND> s_groupHWNDs[5];
 
@@ -137,7 +141,7 @@ static void CreateConnectionTab(HWND hwnd) {
     s_groupHWNDs[0].push_back(CreateWindow("STATIC", info, WS_VISIBLE | WS_CHILD, 20, 60, 310, 20, hwnd, NULL, NULL, NULL));
 
     s_groupHWNDs[0].push_back(CreateWindow("STATIC", "Role:", WS_VISIBLE | WS_CHILD, 20, 85, 100, 20, hwnd, NULL, NULL, NULL));
-    s_hwndServer = CreateWindow("BUTTON", "Server Mode", WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX, 120, 85, 150, 20, hwnd, NULL, NULL, NULL);
+    s_hwndServer = CreateWindow("BUTTON", "Server Mode", WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX, 120, 85, 150, 20, hwnd, (HMENU)ID_SERVER_MODE, NULL, NULL);
     s_groupHWNDs[0].push_back(s_hwndServer);
     CreateToolTip(hwnd, s_hwndServer, "Enable to act as the authoritative host for this cursor group.");
     if (s_currentSettings->isServer) SendMessage(s_hwndServer, BM_SETCHECK, BST_CHECKED, 0);
@@ -158,9 +162,9 @@ static void CreateConnectionTab(HWND hwnd) {
     s_groupHWNDs[0].push_back(s_hwndAutoConnect);
     if (s_currentSettings->autoConnect) SendMessage(s_hwndAutoConnect, BM_SETCHECK, BST_CHECKED, 0);
 
-    HWND hwndApply = CreateWindow("BUTTON", "Apply", WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 20, 210, 100, 30, hwnd, (HMENU)ID_SAVE_BUTTON, NULL, NULL);
-    s_groupHWNDs[0].push_back(hwndApply);
-    CreateToolTip(hwnd, hwndApply, "Saves current settings and attempts to connect or start the server.");
+    s_hwndApplyButton = CreateWindow("BUTTON", s_currentSettings->isServer ? "Start Server" : "Connect", WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 20, 210, 100, 30, hwnd, (HMENU)ID_SAVE_BUTTON, NULL, NULL);
+    s_groupHWNDs[0].push_back(s_hwndApplyButton);
+    CreateToolTip(hwnd, s_hwndApplyButton, "Saves current settings and attempts to connect or start the server.");
 
     HWND hwndDisc = CreateWindow("BUTTON", "Disconnect", WS_VISIBLE | WS_CHILD, 125, 210, 100, 30, hwnd, (HMENU)ID_DISCONNECT_BUTTON, NULL, NULL);
     s_groupHWNDs[0].push_back(hwndDisc);
@@ -181,6 +185,9 @@ static void CreateConnectionTab(HWND hwnd) {
     s_hwndDiscoveryList = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER | LBS_NOTIFY, 20, 300, 305, 30, hwnd, (HMENU)ID_DISCOVERY_LIST, NULL, NULL);
     s_groupHWNDs[0].push_back(s_hwndDiscoveryList);
     CreateToolTip(hwnd, s_hwndDiscoveryList, "Servers found during network scan. Double-click to auto-fill Remote IP.");
+
+    s_hwndDiscoveryConnect = CreateWindow("BUTTON", "Connect to Selected", WS_VISIBLE | WS_CHILD, 150, 270, 175, 25, hwnd, (HMENU)ID_SAVE_BUTTON, NULL, NULL);
+    s_groupHWNDs[0].push_back(s_hwndDiscoveryConnect);
 }
 
 static void CreateCursorFileTab(HWND hwnd) {
@@ -345,6 +352,8 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             break;
 
         case WM_CREATE:
+            s_hwndStatusBar = CreateWindowEx(0, STATUSCLASSNAME, NULL, WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, hwnd, NULL, GetModuleHandle(NULL), NULL);
+
             s_hwndTabControl = CreateWindowEx(0, WC_TABCONTROL, "", WS_CHILD | WS_VISIBLE, 5, 5, 345, 1020, hwnd, (HMENU)ID_TAB_CONTROL, GetModuleHandle(NULL), NULL);
             TCITEM tie;
             tie.mask = TCIF_TEXT;
@@ -406,8 +415,13 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                 if (s_currentNetwork) {
                     SendMessage(s_hwndDiscoveryList, LB_RESETCONTENT, 0, 0);
                     ConfigGUI::LogSecurityEvent("Scanning for peers on network...");
-                    // No need to block, Tick() will poll
+                    s_currentNetwork->BroadcastDiscovery(5556);
                 }
+            }
+
+            if (LOWORD(wParam) == ID_SERVER_MODE) {
+                bool isServer = (SendMessage(s_hwndServer, BM_GETCHECK, 0, 0) == BST_CHECKED);
+                SetWindowText(s_hwndApplyButton, isServer ? "Start Server" : "Connect");
             }
 
             if (HIWORD(wParam) == LBN_DBLCLK && LOWORD(wParam) == ID_DISCOVERY_LIST) {
@@ -662,7 +676,7 @@ void ConfigGUI::Tick() {
     if (s_isRunning && s_currentNetwork) {
         static ConnectionState lastState = ConnectionState::Disconnected;
         ConnectionState currentState = s_currentNetwork->GetTcpState();
-        if (currentState != lastState) {
+        if (currentState != lastState || !s_hwndStatusBar) {
             const char* stateStr = "IDLE";
             if (currentState == ConnectionState::Connecting) stateStr = "CONNECTING";
             else if (currentState == ConnectionState::Connected) stateStr = "CONNECTED";
@@ -671,7 +685,9 @@ void ConfigGUI::Tick() {
             char status[256];
             if (s_currentSettings->securityKey.empty()) snprintf(status, sizeof(status), "Status: UNSECURED | %s", stateStr);
             else snprintf(status, sizeof(status), "Status: ENCRYPTED | %s", stateStr);
-            SetWindowText(s_hwndSecurityStatus, status);
+
+            if (s_hwndStatusBar) SendMessage(s_hwndStatusBar, SB_SETTEXT, 0, (LPARAM)status);
+            if (s_hwndSecurityStatus) SetWindowText(s_hwndSecurityStatus, status);
 
             ConfigGUI::LogSecurityEvent("Network state changed to: " + std::string(stateStr));
             lastState = currentState;

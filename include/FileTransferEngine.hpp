@@ -56,6 +56,8 @@ public:
     bool IsHeaderSent(unsigned long long transferId);
     void SetHeaderSent(unsigned long long transferId, bool sent);
 
+    void CleanupPeerTransfers(unsigned long long peerId);
+
 private:
     std::mutex m_mutex;
     std::map<unsigned long long, FileTransfer> m_transfers;

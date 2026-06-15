@@ -195,6 +195,11 @@ std::string ClipboardModule::Utf16ToUtf8(const std::wstring& wstr) {
     return out;
 }
 
+void ClipboardModule::CleanupPeer(unsigned long long id) {
+    // No explicit state stored per-peer in ClipboardModule yet,
+    // but this serves as a hook for future multi-peer clipboard isolation.
+}
+
 std::wstring ClipboardModule::Utf8ToUtf16(const std::string& str) {
     if (str.empty()) return L"";
     std::wstring out;
