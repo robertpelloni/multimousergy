@@ -37,7 +37,8 @@ enum class NetMuxPacketType {
     Wheel,
     FileHeader,
     FileData,
-    KeyboardEvent
+    KeyboardEvent,
+    DeltaMovement
 };
 
 struct Packet {
@@ -63,6 +64,7 @@ struct Packet {
     bool IsHeaderOnly() const {
         return (type == NetMuxPacketType::Movement ||
                 type == NetMuxPacketType::AbsoluteMovement ||
+                type == NetMuxPacketType::DeltaMovement ||
                 type == NetMuxPacketType::Sync ||
                 type == NetMuxPacketType::Ping ||
                 type == NetMuxPacketType::Heartbeat ||
@@ -96,5 +98,6 @@ struct AppSettings {
     unsigned char peerColorG = 0;
     unsigned char peerColorB = 0;
     bool autoConnect = false;
+    std::string displayName = "";
     std::vector<std::string> recentServers;
 };

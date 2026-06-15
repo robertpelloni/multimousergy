@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## [0.1.68-alpha] - 2025-01-24
+### Added
+- Refactored ConfigGUI to a modular tab-driven architecture.
+- Implemented Delta Compression for high-frequency cursor updates.
+- Transitioned DriverInterface to dynamic SDK loading (ViGEmBus/Interception).
+- Added "Global Settings" tab with customizable "Display Name" support.
+- Optimized tab switching with child window visibility management.
+
 ## [0.1.67-alpha] - 2025-01-24
 ### Added
 - Implemented System Tray support (Windows) with minimize-to-tray and context menu.

@@ -355,6 +355,15 @@ void NetMuxFramework::ProcessIncomingPackets() {
                 m_driver.SendMouseMovement(inPkt.x, inPkt.y);
                 if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
             }
+        } else if (inPkt.type == NetMuxPacketType::DeltaMovement) {
+            if (!IsPeerTrusted(peerId, inPkt.type)) continue;
+
+            PeerState oldPeer;
+            if (m_sync.GetPeerState(peerId, oldPeer)) {
+                m_sync.UpdatePeer(peerId, inPkt.groupId, oldPeer.normalizedX + inPkt.x, oldPeer.normalizedY + inPkt.y, inPkt.localTimestamp);
+                m_overlayDirty = true;
+                if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
+            }
         } else if (inPkt.type == NetMuxPacketType::AbsoluteMovement) {
             if (!IsPeerTrusted(peerId, inPkt.type)) continue;
 

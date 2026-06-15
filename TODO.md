@@ -26,5 +26,6 @@
  - [x] Implement Tabbed GUI and Automatic Driver Detection.
  - [x] Implement UI Tooltips and interactive Minimap selection.
  - [x] Implement System Tray and Diagnostics Logger.
+ - [x] Implement Delta Compression and Dynamic Driver Loading.
 - [x] Refactor UI and Network stacks for robust connection handling.
 - [ ] Refactor Network Protocol to use formal serialization (Protobuf/Flatbuffers).

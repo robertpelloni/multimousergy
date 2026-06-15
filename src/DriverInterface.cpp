@@ -12,12 +12,7 @@
 #define NOMINMAX
 #include <windows.h>
 
-#ifdef NETMUX_USE_NATIVE_DRIVERS
-#include <interception.h>
-#include <ViGEm/Client.h>
-#pragma comment(lib, "interception.lib")
-#pragma comment(lib, "ViGEmClient.lib")
-#endif
+// Dynamic loading replaces static linking for driver SDKs
 
 /*
  * NOTE: To compile this with actual driver support, define NETMUX_USE_NATIVE_DRIVERS
@@ -83,6 +78,23 @@ static bool CheckViGEm() {
     return false;
 }
 
+#ifdef _WIN32
+typedef void* InterceptionContext;
+typedef int InterceptionDevice;
+typedef InterceptionContext (*pinterception_create_context)(void);
+typedef void (*pinterception_destroy_context)(InterceptionContext);
+typedef int (*pinterception_send)(InterceptionContext, InterceptionDevice, const void*, unsigned int);
+
+typedef void* PVIGEM_CLIENT;
+typedef void* PVIGEM_TARGET;
+typedef int VIGEM_ERROR;
+typedef PVIGEM_CLIENT (*pvigem_alloc)(void);
+typedef void (*pvigem_free)(PVIGEM_CLIENT);
+typedef VIGEM_ERROR (*pvigem_connect)(PVIGEM_CLIENT);
+typedef PVIGEM_TARGET (*pvigem_target_x360_alloc)(void);
+typedef VIGEM_ERROR (*pvigem_target_add)(PVIGEM_CLIENT, PVIGEM_TARGET);
+#endif
+
 bool DriverInterface::Initialize(NetMuxDriverType type) {
     m_type = type;
     std::cout << "[Driver] Initializing hardware abstraction layer..." << std::endl;
@@ -111,48 +123,48 @@ bool DriverInterface::Initialize(NetMuxDriverType type) {
 
 #ifdef _WIN32
     if (m_type == NetMuxDriverType::Auto || m_type == NetMuxDriverType::Interception) {
-        std::cout << "[Driver] Attempting Interception initialization..." << std::endl;
-#ifdef NETMUX_USE_NATIVE_DRIVERS
-        m_context = interception_create_context();
-        if (m_context) {
-            m_device = 12; // Placeholder, real logic would identify device
-            m_type = NetMuxDriverType::Interception;
-            m_initialized = true;
-            m_useNativeDrivers = true;
-            std::cout << "[Driver] Native Interception driver enabled." << std::endl;
-            return true;
+        HMODULE hInt = LoadLibrary("interception.dll");
+        if (hInt) {
+            auto create = (pinterception_create_context)GetProcAddress(hInt, "interception_create_context");
+            if (create) {
+                m_context = create();
+                if (m_context) {
+                    m_device = 12;
+                    m_type = NetMuxDriverType::Interception;
+                    m_initialized = true;
+                    std::cout << "[Driver] Native Interception driver dynamically loaded." << std::endl;
+                    return true;
+                }
+            }
         }
-#else
-        m_context = (void*)1;
-        m_device = 12;
-        m_type = NetMuxDriverType::Interception;
-        m_initialized = true;
-        std::cout << "[Driver] Interception stub path enabled." << std::endl;
+        std::cout << "[Driver] Interception not found or failed to load. Using stub." << std::endl;
+        m_context = (void*)1; m_device = 12; m_type = NetMuxDriverType::Interception; m_initialized = true;
         return true;
-#endif
     }
 
     if (m_type == NetMuxDriverType::Auto || m_type == NetMuxDriverType::ViGEmBus) {
-        std::cout << "[Driver] Attempting ViGEmBus initialization..." << std::endl;
-#ifdef NETMUX_USE_NATIVE_DRIVERS
-        m_vigemClient = vigem_alloc();
-        if (VIGEM_SUCCESS(vigem_connect((PVIGEM_CLIENT)m_vigemClient))) {
-             m_vigemPad = vigem_target_x360_alloc();
-             vigem_target_add((PVIGEM_CLIENT)m_vigemClient, (PVIGEM_TARGET)m_vigemPad);
-             m_type = NetMuxDriverType::ViGEmBus;
-             m_initialized = true;
-             m_useNativeDrivers = true;
-             std::cout << "[Driver] Native ViGEmBus driver enabled." << std::endl;
-             return true;
+        HMODULE hVigem = LoadLibrary("ViGEmClient.dll");
+        if (hVigem) {
+            auto alloc = (pvigem_alloc)GetProcAddress(hVigem, "vigem_alloc");
+            auto connect = (pvigem_connect)GetProcAddress(hVigem, "vigem_connect");
+            auto t_alloc = (pvigem_target_x360_alloc)GetProcAddress(hVigem, "vigem_target_x360_alloc");
+            auto t_add = (pvigem_target_add)GetProcAddress(hVigem, "vigem_target_add");
+
+            if (alloc && connect && t_alloc && t_add) {
+                m_vigemClient = alloc();
+                if (connect((PVIGEM_CLIENT)m_vigemClient) == 0) { // VIGEM_ERROR_NONE = 0
+                    m_vigemPad = t_alloc();
+                    t_add((PVIGEM_CLIENT)m_vigemClient, (PVIGEM_TARGET)m_vigemPad);
+                    m_type = NetMuxDriverType::ViGEmBus;
+                    m_initialized = true;
+                    std::cout << "[Driver] Native ViGEmBus driver dynamically loaded." << std::endl;
+                    return true;
+                }
+            }
         }
-#else
-        m_vigemClient = (void*)1;
-        m_vigemPad = (void*)2;
-        m_type = NetMuxDriverType::ViGEmBus;
-        m_initialized = true;
-        std::cout << "[Driver] ViGEmBus stub path enabled." << std::endl;
+        std::cout << "[Driver] ViGEmBus not found or failed to load. Using stub." << std::endl;
+        m_vigemClient = (void*)1; m_vigemPad = (void*)2; m_type = NetMuxDriverType::ViGEmBus; m_initialized = true;
         return true;
-#endif
     }
 #endif
 
@@ -206,9 +218,13 @@ bool DriverInterface::SendMouseMovement(long dx, long dy) {
         stroke.x = (int)dx;
         stroke.y = (int)dy;
 
-#ifdef NETMUX_USE_NATIVE_DRIVERS
-        interception_send((InterceptionContext)m_context, m_device, (void*)&stroke, 1);
-#endif
+        if (m_context && m_context != (void*)1) {
+            HMODULE h = GetModuleHandle("interception.dll");
+            if (h) {
+                auto send = (pinterception_send)GetProcAddress(h, "interception_send");
+                if (send) send((InterceptionContext)m_context, m_device, (void*)&stroke, 1);
+            }
+        }
     }
     return true;
 #else
