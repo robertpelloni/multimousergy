@@ -65,11 +65,20 @@ enum ControlIDs {
     ID_DISCOVERY_LIST = 13,
     ID_SEND_FILE_BUTTON = 23,
     ID_FILE_TRANSFER_LIST = 24,
-    ID_RECENT_SERVERS = 25
+    ID_RECENT_SERVERS = 25,
+    ID_AUTO_CONNECT = 26,
+    ID_CLEAR_HISTORY = 27,
+    ID_PEER_COLOR_R = 28,
+    ID_PEER_COLOR_G = 29,
+    ID_PEER_COLOR_B = 30
 };
 
 static HWND s_hwndFileTransferList = nullptr;
 static HWND s_hwndRecentServers = nullptr;
+static HWND s_hwndAutoConnect = nullptr;
+static HWND s_hwndPeerColorR = nullptr;
+static HWND s_hwndPeerColorG = nullptr;
+static HWND s_hwndPeerColorB = nullptr;
 
 static HWND s_hwndSecurityStatus = nullptr;
 
@@ -92,18 +101,22 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             CreateWindow("STATIC", "Boundary X:", WS_VISIBLE | WS_CHILD, 15, 100, 100, 20, hwnd, NULL, NULL, NULL);
             s_hwndBoundary = CreateWindowEx(WS_EX_CLIENTEDGE, "EDIT", std::to_string(s_currentSettings->inputConfig.boundaryX).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER, 115, 100, 150, 20, hwnd, (HMENU)ID_BOUNDARY, NULL, NULL);
 
-            CreateWindow("BUTTON", "Apply & Connect", WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 15, 125, 120, 30, hwnd, (HMENU)ID_SAVE_BUTTON, NULL, NULL);
-            CreateWindow("BUTTON", "Disconnect", WS_VISIBLE | WS_CHILD, 145, 125, 120, 30, hwnd, (HMENU)ID_DISCONNECT_BUTTON, NULL, NULL);
+            s_hwndAutoConnect = CreateWindow("BUTTON", "Auto-Reconnect", WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX, 15, 125, 250, 20, hwnd, (HMENU)ID_AUTO_CONNECT, NULL, NULL);
+            if (s_currentSettings->autoConnect) SendMessage(s_hwndAutoConnect, BM_SETCHECK, BST_CHECKED, 0);
 
-            CreateWindow("STATIC", "History:", WS_VISIBLE | WS_CHILD, 15, 160, 60, 20, hwnd, NULL, NULL, NULL);
-            s_hwndRecentServers = CreateWindow("COMBOBOX", "", WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST, 80, 160, 185, 100, hwnd, (HMENU)ID_RECENT_SERVERS, NULL, NULL);
+            CreateWindow("BUTTON", "Apply & Connect", WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 15, 150, 120, 30, hwnd, (HMENU)ID_SAVE_BUTTON, NULL, NULL);
+            CreateWindow("BUTTON", "Disconnect", WS_VISIBLE | WS_CHILD, 145, 150, 120, 30, hwnd, (HMENU)ID_DISCONNECT_BUTTON, NULL, NULL);
+
+            CreateWindow("STATIC", "History:", WS_VISIBLE | WS_CHILD, 15, 185, 60, 20, hwnd, NULL, NULL, NULL);
+            s_hwndRecentServers = CreateWindow("COMBOBOX", "", WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST, 80, 185, 185, 100, hwnd, (HMENU)ID_RECENT_SERVERS, NULL, NULL);
             for (auto const& s : s_currentSettings->recentServers) SendMessage(s_hwndRecentServers, CB_ADDSTRING, 0, (LPARAM)s.c_str());
 
-            CreateWindow("BUTTON", "Scan Servers", WS_VISIBLE | WS_CHILD, 15, 185, 250, 25, hwnd, (HMENU)ID_SCAN_BUTTON, NULL, NULL);
-            s_hwndDiscoveryList = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER | LBS_NOTIFY, 15, 215, 250, 45, hwnd, (HMENU)ID_DISCOVERY_LIST, NULL, NULL);
+            CreateWindow("BUTTON", "Scan", WS_VISIBLE | WS_CHILD, 15, 210, 60, 25, hwnd, (HMENU)ID_SCAN_BUTTON, NULL, NULL);
+            CreateWindow("BUTTON", "Clear", WS_VISIBLE | WS_CHILD, 80, 210, 60, 25, hwnd, (HMENU)ID_CLEAR_HISTORY, NULL, NULL);
+            s_hwndDiscoveryList = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER | LBS_NOTIFY, 15, 240, 250, 25, hwnd, (HMENU)ID_DISCOVERY_LIST, NULL, NULL);
 
             // Session Group
-            CreateWindow("BUTTON", "Session & Security", WS_VISIBLE | WS_CHILD | BS_GROUPBOX, 5, 275, 290, 145, hwnd, NULL, NULL, NULL);
+            CreateWindow("BUTTON", "Session & Security", WS_VISIBLE | WS_CHILD | BS_GROUPBOX, 5, 275, 335, 145, hwnd, NULL, NULL, NULL);
 
             CreateWindow("STATIC", "Session:", WS_VISIBLE | WS_CHILD, 15, 295, 100, 20, hwnd, NULL, NULL, NULL);
             s_hwndSessionName = CreateWindow("EDIT", s_currentSettings->sessionName.c_str(), WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | WS_BORDER, 115, 295, 150, 20, hwnd, (HMENU)ID_SESSION_NAME, NULL, NULL);
@@ -122,44 +135,49 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             else SetWindowText(s_hwndSecurityStatus, "Status: ENCRYPTED | IDLE");
 
             // Cursor Group
-            CreateWindow("BUTTON", "Cursor Settings", WS_VISIBLE | WS_CHILD | BS_GROUPBOX, 5, 425, 290, 140, hwnd, NULL, NULL, NULL);
+            CreateWindow("BUTTON", "Cursor Settings", WS_VISIBLE | WS_CHILD | BS_GROUPBOX, 5, 425, 335, 165, hwnd, NULL, NULL, NULL);
 
-            CreateWindow("STATIC", "Driver:", WS_VISIBLE | WS_CHILD, 15, 445, 60, 20, hwnd, NULL, NULL, NULL);
+            CreateWindow("STATIC", "Peer Color:", WS_VISIBLE | WS_CHILD, 15, 445, 100, 20, hwnd, NULL, NULL, NULL);
+            s_hwndPeerColorR = CreateWindow("EDIT", std::to_string(s_currentSettings->peerColorR).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 115, 445, 35, 20, hwnd, (HMENU)ID_PEER_COLOR_R, NULL, NULL);
+            s_hwndPeerColorG = CreateWindow("EDIT", std::to_string(s_currentSettings->peerColorG).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 155, 445, 35, 20, hwnd, (HMENU)ID_PEER_COLOR_G, NULL, NULL);
+            s_hwndPeerColorB = CreateWindow("EDIT", std::to_string(s_currentSettings->peerColorB).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 195, 445, 35, 20, hwnd, (HMENU)ID_PEER_COLOR_B, NULL, NULL);
+
+            CreateWindow("STATIC", "Driver:", WS_VISIBLE | WS_CHILD, 15, 470, 60, 20, hwnd, NULL, NULL, NULL);
             s_hwndNetMuxDriverType = CreateWindow("COMBOBOX", "", WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST, 115, 445, 150, 100, hwnd, (HMENU)ID_DRIVER_TYPE, NULL, NULL);
             SendMessage(s_hwndNetMuxDriverType, CB_ADDSTRING, 0, (LPARAM)"Auto");
             SendMessage(s_hwndNetMuxDriverType, CB_ADDSTRING, 0, (LPARAM)"Interception");
             SendMessage(s_hwndNetMuxDriverType, CB_ADDSTRING, 0, (LPARAM)"ViGEmBus");
             SendMessage(s_hwndNetMuxDriverType, CB_SETCURSEL, (WPARAM)s_currentSettings->driverType, 0);
 
-            CreateWindow("STATIC", "Scale (%):", WS_VISIBLE | WS_CHILD, 15, 470, 100, 20, hwnd, NULL, NULL, NULL);
-            s_hwndCursorScale = CreateWindow("EDIT", "100", WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 115, 470, 50, 20, hwnd, (HMENU)ID_CURSOR_SCALE, NULL, NULL);
+            CreateWindow("STATIC", "Scale (%):", WS_VISIBLE | WS_CHILD, 15, 495, 100, 20, hwnd, NULL, NULL, NULL);
+            s_hwndCursorScale = CreateWindow("EDIT", "100", WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 115, 495, 50, 20, hwnd, (HMENU)ID_CURSOR_SCALE, NULL, NULL);
 
-            s_hwndUseD3D11 = CreateWindow("BUTTON", "Hardware Acceleration (D3D11)", WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX, 15, 495, 250, 20, hwnd, (HMENU)ID_USE_D3D11, NULL, NULL);
+            s_hwndUseD3D11 = CreateWindow("BUTTON", "D3D11 Acceleration", WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX, 15, 520, 250, 20, hwnd, (HMENU)ID_USE_D3D11, NULL, NULL);
             if (s_currentSettings->useD3D11) SendMessage(s_hwndUseD3D11, BM_SETCHECK, BST_CHECKED, 0);
 
-            CreateWindow("STATIC", "Theme:", WS_VISIBLE | WS_CHILD, 15, 515, 100, 20, hwnd, NULL, NULL, NULL);
-            s_hwndCursorThemePath = CreateWindow("EDIT", s_currentSettings->cursorThemePath.c_str(), WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | WS_BORDER, 115, 515, 120, 20, hwnd, (HMENU)ID_CURSOR_THEME_PATH, NULL, NULL);
-            CreateWindow("BUTTON", "...", WS_VISIBLE | WS_CHILD, 240, 515, 25, 20, hwnd, (HMENU)ID_BROWSE_THEME, NULL, NULL);
+            CreateWindow("STATIC", "Theme:", WS_VISIBLE | WS_CHILD, 15, 540, 100, 20, hwnd, NULL, NULL, NULL);
+            s_hwndCursorThemePath = CreateWindow("EDIT", s_currentSettings->cursorThemePath.c_str(), WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | WS_BORDER, 115, 540, 120, 20, hwnd, (HMENU)ID_CURSOR_THEME_PATH, NULL, NULL);
+            CreateWindow("BUTTON", "...", WS_VISIBLE | WS_CHILD, 240, 540, 25, 20, hwnd, (HMENU)ID_BROWSE_THEME, NULL, NULL);
 
-            CreateWindow("STATIC", "Sel RGB:", WS_VISIBLE | WS_CHILD, 15, 540, 100, 20, hwnd, NULL, NULL, NULL);
-            s_hwndSelColorR = CreateWindow("EDIT", std::to_string(s_currentSettings->selectionColorR).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 115, 540, 35, 20, hwnd, (HMENU)ID_SEL_COLOR_R, NULL, NULL);
-            s_hwndSelColorG = CreateWindow("EDIT", std::to_string(s_currentSettings->selectionColorG).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 155, 540, 35, 20, hwnd, (HMENU)ID_SEL_COLOR_G, NULL, NULL);
-            s_hwndSelColorB = CreateWindow("EDIT", std::to_string(s_currentSettings->selectionColorB).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 195, 540, 35, 20, hwnd, (HMENU)ID_SEL_COLOR_B, NULL, NULL);
+            CreateWindow("STATIC", "Sel RGB:", WS_VISIBLE | WS_CHILD, 15, 565, 100, 20, hwnd, NULL, NULL, NULL);
+            s_hwndSelColorR = CreateWindow("EDIT", std::to_string(s_currentSettings->selectionColorR).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 115, 565, 35, 20, hwnd, (HMENU)ID_SEL_COLOR_R, NULL, NULL);
+            s_hwndSelColorG = CreateWindow("EDIT", std::to_string(s_currentSettings->selectionColorG).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 155, 565, 35, 20, hwnd, (HMENU)ID_SEL_COLOR_G, NULL, NULL);
+            s_hwndSelColorB = CreateWindow("EDIT", std::to_string(s_currentSettings->selectionColorB).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 195, 565, 35, 20, hwnd, (HMENU)ID_SEL_COLOR_B, NULL, NULL);
 
             // Metrics Group
-            CreateWindow("BUTTON", "Real-Time Monitor", WS_VISIBLE | WS_CHILD | BS_GROUPBOX, 5, 570, 290, 310, hwnd, NULL, NULL, NULL);
+            CreateWindow("BUTTON", "Real-Time Monitor", WS_VISIBLE | WS_CHILD | BS_GROUPBOX, 5, 595, 335, 330, hwnd, NULL, NULL, NULL);
 
-            CreateWindow("STATIC", "Peer List & Metrics:", WS_VISIBLE | WS_CHILD, 15, 590, 250, 20, hwnd, NULL, NULL, NULL);
-            s_hwndPeerList = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 15, 610, 270, 70, hwnd, (HMENU)ID_PEER_LIST, NULL, NULL);
+            CreateWindow("STATIC", "Peer List & Metrics:", WS_VISIBLE | WS_CHILD, 15, 615, 250, 20, hwnd, NULL, NULL, NULL);
+            s_hwndPeerList = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 15, 635, 315, 70, hwnd, (HMENU)ID_PEER_LIST, NULL, NULL);
 
-            s_hwndCursorMonitor = CreateWindow("STATIC", "", WS_VISIBLE | WS_CHILD | SS_OWNERDRAW | WS_BORDER, 15, 685, 270, 80, hwnd, (HMENU)ID_CURSOR_MONITOR, NULL, NULL);
+            s_hwndCursorMonitor = CreateWindow("STATIC", "", WS_VISIBLE | WS_CHILD | SS_OWNERDRAW | SS_NOTIFY | WS_BORDER, 15, 710, 315, 80, hwnd, (HMENU)ID_CURSOR_MONITOR, NULL, NULL);
 
-            CreateWindow("STATIC", "Security Log:", WS_VISIBLE | WS_CHILD, 15, 770, 150, 20, hwnd, NULL, NULL, NULL);
-            s_hwndSecurityLog = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 15, 765, 270, 40, hwnd, (HMENU)ID_SECURITY_LOG, NULL, NULL);
+            CreateWindow("STATIC", "Security Log:", WS_VISIBLE | WS_CHILD, 15, 795, 150, 20, hwnd, NULL, NULL, NULL);
+            s_hwndSecurityLog = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 15, 815, 315, 40, hwnd, (HMENU)ID_SECURITY_LOG, NULL, NULL);
 
-            CreateWindow("STATIC", "File Transfers:", WS_VISIBLE | WS_CHILD, 15, 810, 150, 20, hwnd, NULL, NULL, NULL);
-            s_hwndFileTransferList = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 15, 830, 270, 40, hwnd, (HMENU)ID_FILE_TRANSFER_LIST, NULL, NULL);
-            CreateWindow("BUTTON", "Send File...", WS_VISIBLE | WS_CHILD, 15, 875, 120, 25, hwnd, (HMENU)ID_SEND_FILE_BUTTON, NULL, NULL);
+            CreateWindow("STATIC", "File Transfers:", WS_VISIBLE | WS_CHILD, 15, 860, 150, 20, hwnd, NULL, NULL, NULL);
+            s_hwndFileTransferList = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 15, 880, 315, 40, hwnd, (HMENU)ID_FILE_TRANSFER_LIST, NULL, NULL);
+            CreateWindow("BUTTON", "Send File...", WS_VISIBLE | WS_CHILD, 15, 925, 120, 25, hwnd, (HMENU)ID_SEND_FILE_BUTTON, NULL, NULL);
             break;
 
         case WM_DRAWITEM:
@@ -193,6 +211,12 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                     SendMessage(s_hwndRecentServers, CB_GETLBTEXT, index, (LPARAM)buffer);
                     SetWindowText(s_hwndIp, buffer);
                 }
+            }
+
+            if (LOWORD(wParam) == ID_CLEAR_HISTORY) {
+                s_currentSettings->recentServers.clear();
+                SendMessage(s_hwndRecentServers, CB_RESETCONTENT, 0, 0);
+                ConfigGUI::LogSecurityEvent("Connection history cleared.");
             }
 
             if (LOWORD(wParam) == ID_SCAN_BUTTON) {
@@ -258,8 +282,16 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                     s_currentSettings->cursorScale = (float)std::stoi(buffer) / 100.0f;
 
                     s_currentSettings->isServer = (SendMessage(s_hwndServer, BM_GETCHECK, 0, 0) == BST_CHECKED);
+                    s_currentSettings->autoConnect = (SendMessage(s_hwndAutoConnect, BM_GETCHECK, 0, 0) == BST_CHECKED);
                     s_currentSettings->useD3D11 = (SendMessage(s_hwndUseD3D11, BM_GETCHECK, 0, 0) == BST_CHECKED);
                     s_currentSettings->driverType = (NetMuxDriverType)SendMessage(s_hwndNetMuxDriverType, CB_GETCURSEL, 0, 0);
+
+                    GetWindowText(s_hwndPeerColorR, buffer, 256);
+                    s_currentSettings->peerColorR = (unsigned char)std::stoi(buffer);
+                    GetWindowText(s_hwndPeerColorG, buffer, 256);
+                    s_currentSettings->peerColorG = (unsigned char)std::stoi(buffer);
+                    GetWindowText(s_hwndPeerColorB, buffer, 256);
+                    s_currentSettings->peerColorB = (unsigned char)std::stoi(buffer);
 
                     GetWindowText(s_hwndGroupId, buffer, 256);
                     s_currentSettings->groupId = (unsigned int)std::stoul(buffer);
@@ -338,7 +370,7 @@ void ConfigGUI::Initialize(AppSettings& settings, SyncModule* sync, NetworkManag
     wc.lpszClassName = "NetMuxIntegratedGUI";
     RegisterClass(&wc);
 
-    s_hwndMain = CreateWindow("NetMuxIntegratedGUI", "NetMux Monitor", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 320, 920, NULL, NULL, GetModuleHandle(NULL), NULL);
+    s_hwndMain = CreateWindow("NetMuxIntegratedGUI", "NetMux Monitor", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 360, 1000, NULL, NULL, GetModuleHandle(NULL), NULL);
     s_isRunning = (s_hwndMain != NULL);
 #else
     s_isRunning = true;

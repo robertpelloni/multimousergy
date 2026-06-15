@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.63-alpha] - 2025-01-24
+### Added
+- Implemented Auto-Reconnect logic for resilient connection recovery.
+- Added Peer Color customization controls to ConfigGUI.
+- Improved network state robustness with graceful disconnection handling.
+- Enhanced ConfigGUI with "Clear History" and expanded layout.
+
 ## [0.1.62-alpha] - 2025-01-24
 ### Added
 - Implemented SHA-256 file integrity verification for file transfers.

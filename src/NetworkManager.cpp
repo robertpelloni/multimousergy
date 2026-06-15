@@ -301,7 +301,13 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
             }
         }
 
-        if (result == 0) {
+        if (result == 0 || (result == SOCKET_ERROR &&
+#ifdef _WIN32
+            WSAGetLastError() != WSAEWOULDBLOCK
+#else
+            errno != EAGAIN && errno != EWOULDBLOCK
+#endif
+            )) {
             std::cout << "[Network] Peer disconnected." << std::endl;
             closesocket(it->socket);
             it = m_clients.erase(it);
@@ -321,10 +327,17 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
             }
         }
 
-        if (result == 0) {
+        if (result == 0 || (result == SOCKET_ERROR &&
+#ifdef _WIN32
+            WSAGetLastError() != WSAEWOULDBLOCK
+#else
+            errno != EAGAIN && errno != EWOULDBLOCK
+#endif
+            )) {
             std::cout << "[Network] Connection lost." << std::endl;
             closesocket(m_tcpSocket);
             m_tcpSocket = INVALID_SOCKET_HANDLE;
+            m_tcpState = ConnectionState::Disconnected;
         }
     }
 

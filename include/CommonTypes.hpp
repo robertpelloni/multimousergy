@@ -82,5 +82,9 @@ struct AppSettings {
     unsigned char selectionColorR = 0;
     unsigned char selectionColorG = 120;
     unsigned char selectionColorB = 215;
+    unsigned char peerColorR = 255;
+    unsigned char peerColorG = 0;
+    unsigned char peerColorB = 0;
+    bool autoConnect = false;
     std::vector<std::string> recentServers;
 };

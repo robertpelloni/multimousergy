@@ -21,5 +21,6 @@
 - [x] Implement authoritative MasterStateSync handling for cursor alignment.
  - [x] Implement robust File Transfer protocol handlers.
  - [x] Implement SHA-256 integrity verification for file transfers.
+ - [x] Implement Auto-Reconnect and Peer Color customization.
 - [x] Refactor UI and Network stacks for robust connection handling.
 - [ ] Refactor Network Protocol to use formal serialization (Protobuf/Flatbuffers).
