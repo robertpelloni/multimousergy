@@ -25,6 +25,9 @@ static bool s_isRunning = false;
 static bool s_restartRequested = false;
 
 #ifdef _WIN32
+LRESULT CALLBACK MonitorSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
+LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 static HWND s_hwndMain = nullptr;
 static HWND s_hwndServer = nullptr;
 static HWND s_hwndIp = nullptr;

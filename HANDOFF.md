@@ -1,4 +1,4 @@
-# NetMux Session Handoff - v0.1.69-alpha
+# NetMux Session Handoff - v0.1.70-alpha
 
 ## Major Accomplishments
 - **UI/Network Overhaul**: Fixed the "multiple windows" bug, implemented a state-driven asynchronous connection model, and transitioned to a modern tabbed GUI.
@@ -10,7 +10,7 @@
 - **Driver Portability**: Transitioned `DriverInterface` to dynamic SDK loading, allowing the binary to run gracefully with or without physical drivers installed.
 
 ## Project State
-- **Version**: `v0.1.69-alpha`
+- **Version**: `v0.1.70-alpha`
 - **Build**: Passing on Windows (simulated) and Linux (actual).
 - **Tests**: All 100% passing in `NetMuxTests`.
 
