@@ -38,5 +38,6 @@
 - [x] Full D3D11 Custom Cursor Support.
 - [x] Native Linux X11 Integration (Clipboard & Cursor Position).
 - [x] Authoritative Synchronization (Server-side position enforcement).
+- [x] UI & Network Stack Refactor (Robust connection handling).
 - [ ] File Transfer Engine: Implement drag-and-drop file sharing via multi-part protocol.
 - [ ] Native Vendor SDK linking for Drivers.

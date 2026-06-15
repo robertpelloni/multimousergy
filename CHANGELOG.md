@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.60-alpha] - 2025-01-24
+### Fixed
+- Refactored UI and Network stacks for robust connection handling and single-instance window management.
+- Implemented asynchronous handshake logic to ensure TCP connectivity before protocol initialization.
+- Reorganized ConfigGUI layout for improved UX and accessibility.
+- Fixed multiple window instance bug in ConfigGUI.
+
 ## [0.1.59-alpha] - 2025-01-24
 ### Fixed
 - Fixed simultaneous cursor visibility by implementing continuous broadcasting of local cursor coordinates.

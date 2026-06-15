@@ -1,17 +1,16 @@
-# Session Handoff - v0.1.59-alpha
+# NetMux Session Handoff - v0.1.60-alpha
 
 ## Summary of Changes
-- **Multi-Cursor Consistency**: Resolved a critical bug where keep-alive packets (Heartbeat, Sync, Ping) were resetting peer positions to (0,0) because they lacked coordinate data.
-- **RefreshPeer Implementation**: Introduced `SyncModule::RefreshPeer` to specifically handle keep-alive updates without overwriting stored position data.
-- **Broadcast Visibility**: Verified that `InputEngine` correctly broadcasts local cursor coordinates to all peers, fulfilling the "Multiplexing" vision where all users are visible to each other regardless of capture state.
-- **SyncCheck Integration**: Added handling for `NetMuxPacketType::SyncCheck` in the framework to maintain peer activity status during idle periods.
-- **Test Suite Verification**: Confirmed that all concurrent synchronization and authoritative correction tests pass with the new `RefreshPeer` logic.
+- **Network Stack Refactor**: Implemented `ConnectionState` (Disconnected, Connecting, Connected, Error) in `NetworkManager`. Handshake packets are now deferred until the TCP connection is explicitly verified via `select` and `SO_ERROR` checks.
+- **UI UX Overhaul**: Reorganized `ConfigGUI` into logical group boxes. Renamed "Save & Start" to "Apply & Connect" for clarity. Added a "Disconnect" button.
+- **Single-Instance UI**: Fixed a bug where multiple overlapping windows were created during re-initialization by using `IsWindow()` checks in `ConfigGUI`.
+- **Performance Optimization**: `NetworkManager::SafeSend` now uses `select()` to wait for socket writability instead of busy-looping on `WSAEWOULDBLOCK`.
 
-## Technical Observations
-- `SyncModule::UpdatePeer` should only be used when fresh coordinate data is available. For keep-alives, `RefreshPeer` is the preferred path to avoid state corruption.
-- Authoritative synchronization remains robust; the server-side position enforcement correctly overrides any local drift or reset attempts.
+## State of the Project
+- **Version**: `v0.1.60-alpha`
+- **Tests**: All unit tests in `NetMuxTests` pass.
+- **Next Milestone**: Milestone 5 (File Transfer Engine) is the primary remaining task in the current roadmap.
 
-## Repository State
-- Version: `v0.1.59-alpha`
-- Build status: All tests passed.
-- Major Features: Authoritative Sync, Multi-Cursor Visibility, D3D11/GDI Overlay, Secure Mutual Auth.
+## Architectural Notes for Successor
+- The framework relies on a restart cycle triggered by `ConfigGUI`. When "Apply & Connect" or "Disconnect" is clicked, `s_restartRequested` signals `main.cpp` to shutdown and re-initialize the framework.
+- Handshake logic is now state-driven in `NetMuxFramework::Run`. Ensure any new protocol initialization steps follow this pattern.

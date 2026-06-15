@@ -64,12 +64,14 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
             return false;
         }
 
-        // Handshake: Initial connection. Security key will be challenged by server.
-        Packet handshake = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Handshake, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
-        std::string meta = m_settings.sessionName + "|" + m_settings.groupName;
-        strncpy(handshake.payload, meta.c_str(), sizeof(handshake.payload) - 1);
-        handshake.payloadSize = (int)meta.size();
-        m_network.SendPacket(handshake);
+        // Handshake: Defer until TCP connection is confirmed in Run loop
+        if (m_network.GetTcpState() == ConnectionState::Connected) {
+            Packet handshake = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Handshake, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+            std::string meta = m_settings.sessionName + "|" + m_settings.groupName;
+            strncpy(handshake.payload, meta.c_str(), sizeof(handshake.payload) - 1);
+            handshake.payloadSize = (int)meta.size();
+            m_network.SendPacket(handshake);
+        }
     }
 
     if (!m_overlay.Initialize()) {
@@ -108,9 +110,22 @@ void NetMuxFramework::Run() {
     const int MAX_PEER_COUNT = 20;
     bool warningLogged = false;
 
+    ConnectionState lastTcpState = m_network.GetTcpState();
+
     while (m_running) {
         double dt = frameTimer.ElapsedMilliseconds();
         frameTimer.Reset();
+
+        ConnectionState currentTcpState = m_network.GetTcpState();
+        if (!m_settings.isServer && lastTcpState == ConnectionState::Connecting && currentTcpState == ConnectionState::Connected) {
+            std::cout << "[Framework] TCP Connected. Sending handshake..." << std::endl;
+            Packet handshake = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Handshake, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+            std::string meta = m_settings.sessionName + "|" + m_settings.groupName;
+            strncpy(handshake.payload, meta.c_str(), sizeof(handshake.payload) - 1);
+            handshake.payloadSize = (int)meta.size();
+            m_network.SendPacket(handshake);
+        }
+        lastTcpState = currentTcpState;
 
         PerformLatencySync();
         PerformDiscoveryBroadcast();

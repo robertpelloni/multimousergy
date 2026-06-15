@@ -20,4 +20,5 @@
 - [x] Implement native X11 clipboard integration for Linux.
 - [x] Implement authoritative MasterStateSync handling for cursor alignment.
 - [ ] Implement robust File Transfer protocol handlers.
+- [x] Refactor UI and Network stacks for robust connection handling.
 - [ ] Refactor Network Protocol to use formal serialization (Protobuf/Flatbuffers).
