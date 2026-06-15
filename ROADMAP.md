@@ -45,4 +45,5 @@
  - [x] Keyboard Sync: Full capture and injection support.
  - [x] UI Modernization: Tabbed interface and machine-info telemetry.
  - [x] Interactive Monitoring: Minimap selection and UI tooltips.
+ - [x] Diagnostics & Tray: Integrated logging and background operation.
 - [ ] Native Vendor SDK linking for Drivers.

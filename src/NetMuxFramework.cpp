@@ -1,6 +1,7 @@
 #include "NetMuxFramework.hpp"
 #include "ConfigGUI.hpp"
 #include "AuthModule.hpp"
+#include "Logger.hpp"
 
 #ifdef __linux__
 #include <X11/Xlib.h>
@@ -55,14 +56,16 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
 
     if (m_settings.isServer) {
         if (!m_network.StartServer(m_settings.port)) {
-            std::cerr << "Failed to start server on port " << m_settings.port << std::endl;
+            Logger::Log(LogLevel::Error, "Failed to start server on port " + std::to_string(m_settings.port));
             return false;
         }
+        Logger::Log(LogLevel::Info, "Server started on port " + std::to_string(m_settings.port));
     } else {
         if (!m_network.Connect(m_settings.remoteIp, m_settings.port)) {
-            std::cerr << "Failed to connect to " << m_settings.remoteIp << ":" << m_settings.port << std::endl;
+            Logger::Log(LogLevel::Error, "Failed to connect to " + m_settings.remoteIp + ":" + std::to_string(m_settings.port));
             return false;
         }
+        Logger::Log(LogLevel::Info, "Connecting to " + m_settings.remoteIp + ":" + std::to_string(m_settings.port));
 
         // Handshake: Defer until TCP connection is confirmed in Run loop
         if (m_network.GetTcpState() == ConnectionState::Connected) {

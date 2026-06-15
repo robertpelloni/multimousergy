@@ -81,9 +81,8 @@ size_t PacketSerializer::Deserialize(const uint8_t* buffer, size_t size, Packet&
     // Default payload state
     outPkt.payloadSize = 0;
 
-    // Only movement/absolute are guaranteed to be header-only
-    bool isHeaderOnlyType = (outPkt.type == NetMuxPacketType::Movement || outPkt.type == NetMuxPacketType::AbsoluteMovement);
-    if (isHeaderOnlyType) return offset;
+    // Only certain types are guaranteed to be header-only
+    if (outPkt.IsHeaderOnly()) return offset;
 
     // For other types, we expect a payloadSize field
     if (offset + sizeof(int32_t) > size) return 0; // Need more data for payloadSize

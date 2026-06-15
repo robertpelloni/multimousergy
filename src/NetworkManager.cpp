@@ -146,11 +146,7 @@ static int SafeSend(Socket s, const char* data, int len) {
 void NetworkManager::SendPacketToGroup(const Packet& packet, unsigned int groupId) {
     if (!m_running || m_udpSocket == INVALID_SOCKET_HANDLE || !m_isServer) return;
 
-    bool headerOnly = (packet.type == NetMuxPacketType::Movement || 
-                       packet.type == NetMuxPacketType::AbsoluteMovement ||
-                       packet.type == NetMuxPacketType::Sync ||
-                       packet.type == NetMuxPacketType::Ping ||
-                       packet.type == NetMuxPacketType::Heartbeat);
+    bool headerOnly = packet.IsHeaderOnly();
     std::vector<uint8_t> data = PacketSerializer::Serialize(packet, headerOnly);
 
     for (auto const& [id, peer] : m_udpPeerMap) {
@@ -163,11 +159,7 @@ void NetworkManager::SendPacketToGroup(const Packet& packet, unsigned int groupI
 void NetworkManager::SendPacket(const Packet& packet) {
     if (!m_running || m_udpSocket == INVALID_SOCKET_HANDLE) return;
 
-    bool headerOnly = (packet.type == NetMuxPacketType::Movement || 
-                       packet.type == NetMuxPacketType::AbsoluteMovement ||
-                       packet.type == NetMuxPacketType::Sync ||
-                       packet.type == NetMuxPacketType::Ping ||
-                       packet.type == NetMuxPacketType::Heartbeat);
+    bool headerOnly = packet.IsHeaderOnly();
     std::vector<uint8_t> data = PacketSerializer::Serialize(packet, headerOnly);
 
     if (headerOnly) {

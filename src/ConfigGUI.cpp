@@ -8,7 +8,13 @@
 #define NOMINMAX
 #include <windows.h>
 #include <commctrl.h>
+#include <shellapi.h>
 #pragma comment(lib, "comctl32.lib")
+#pragma comment(lib, "shell32.lib")
+
+#define WM_TRAYICON (WM_USER + 100)
+#define ID_TRAY_EXIT 2001
+#define ID_TRAY_SHOW 2002
 #endif
 
 static AppSettings* s_currentSettings = nullptr;
@@ -73,7 +79,9 @@ enum ControlIDs {
     ID_PEER_COLOR_R = 28,
     ID_PEER_COLOR_G = 29,
     ID_PEER_COLOR_B = 30,
-    ID_TAB_CONTROL = 31
+    ID_TAB_CONTROL = 31,
+    ID_DIAGNOSTICS_LIST = 32,
+    ID_QUIT_BUTTON = 33
 };
 
 static HWND s_hwndFileTransferList = nullptr;
@@ -86,7 +94,7 @@ static HWND s_hwndPeerColorB = nullptr;
 
 static HWND s_hwndSecurityStatus = nullptr;
 
-static std::vector<HWND> s_groupHWNDs[3];
+static std::vector<HWND> s_groupHWNDs[4];
 
 static HWND CreateToolTip(HWND hwndParent, HWND hwndControl, const char* text) {
     if (!hwndControl || !text) return NULL;
@@ -106,7 +114,7 @@ static HWND CreateToolTip(HWND hwndParent, HWND hwndControl, const char* text) {
 }
 
 static void ShowGroup(int tabIndex) {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         int cmd = (i == tabIndex) ? SW_SHOW : SW_HIDE;
         for (HWND h : s_groupHWNDs[i]) ShowWindow(h, cmd);
     }
@@ -138,6 +146,29 @@ LRESULT CALLBACK MonitorSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM 
 
 LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
+        case WM_TRAYICON:
+            if (LOWORD(lParam) == WM_LBUTTONDBLCLK) {
+                ShowWindow(hwnd, SW_SHOW);
+                SetForegroundWindow(hwnd);
+            } else if (LOWORD(lParam) == WM_RBUTTONUP) {
+                POINT pt; GetCursorPos(&pt);
+                HMENU hMenu = CreatePopupMenu();
+                AppendMenu(hMenu, MF_STRING, ID_TRAY_SHOW, "Show Monitor");
+                AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
+                AppendMenu(hMenu, MF_STRING, ID_TRAY_EXIT, "Quit NetMux");
+                SetForegroundWindow(hwnd);
+                TrackPopupMenu(hMenu, TPM_BOTTOMALIGN | TPM_LEFTALIGN, pt.x, pt.y, 0, hwnd, NULL);
+                DestroyMenu(hMenu);
+            }
+            break;
+
+        case WM_SYSCOMMAND:
+            if ((wParam & 0xFFF0) == SC_MINIMIZE) {
+                ShowWindow(hwnd, SW_HIDE);
+                return 0;
+            }
+            break;
+
         case WM_CREATE:
             s_hwndTabControl = CreateWindowEx(0, WC_TABCONTROL, "", WS_CHILD | WS_VISIBLE, 5, 5, 345, 1020, hwnd, (HMENU)ID_TAB_CONTROL, GetModuleHandle(NULL), NULL);
             TCITEM tie;
@@ -145,9 +176,10 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             tie.pszText = (char*)"Connection"; TabCtrl_InsertItem(s_hwndTabControl, 0, &tie);
             tie.pszText = (char*)"Cursor & File"; TabCtrl_InsertItem(s_hwndTabControl, 1, &tie);
             tie.pszText = (char*)"Monitor"; TabCtrl_InsertItem(s_hwndTabControl, 2, &tie);
+            tie.pszText = (char*)"Logs"; TabCtrl_InsertItem(s_hwndTabControl, 3, &tie);
 
             // Clear groups
-            for(int i=0; i<3; ++i) s_groupHWNDs[i].clear();
+            for(int i=0; i<4; ++i) s_groupHWNDs[i].clear();
 
             // Connection Group
             s_groupHWNDs[0].push_back(CreateWindow("BUTTON", "Connection Settings", WS_VISIBLE | WS_CHILD | BS_GROUPBOX, 10, 35, 325, 335, hwnd, NULL, NULL, NULL));
@@ -183,13 +215,17 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             s_groupHWNDs[0].push_back(s_hwndAutoConnect);
             if (s_currentSettings->autoConnect) SendMessage(s_hwndAutoConnect, BM_SETCHECK, BST_CHECKED, 0);
 
-            HWND hwndApply = CreateWindow("BUTTON", "Apply & Connect", WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 20, 210, 120, 30, hwnd, (HMENU)ID_SAVE_BUTTON, NULL, NULL);
+            HWND hwndApply = CreateWindow("BUTTON", "Apply", WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 20, 210, 100, 30, hwnd, (HMENU)ID_SAVE_BUTTON, NULL, NULL);
             s_groupHWNDs[0].push_back(hwndApply);
             CreateToolTip(hwnd, hwndApply, "Saves current settings and attempts to connect or start the server.");
 
-            HWND hwndDisc = CreateWindow("BUTTON", "Disconnect", WS_VISIBLE | WS_CHILD, 150, 210, 120, 30, hwnd, (HMENU)ID_DISCONNECT_BUTTON, NULL, NULL);
+            HWND hwndDisc = CreateWindow("BUTTON", "Disconnect", WS_VISIBLE | WS_CHILD, 125, 210, 100, 30, hwnd, (HMENU)ID_DISCONNECT_BUTTON, NULL, NULL);
             s_groupHWNDs[0].push_back(hwndDisc);
             CreateToolTip(hwnd, hwndDisc, "Gracefully disconnects from all peers and stops the network engine.");
+
+            HWND hwndQuit = CreateWindow("BUTTON", "Quit", WS_VISIBLE | WS_CHILD, 230, 210, 100, 30, hwnd, (HMENU)ID_QUIT_BUTTON, NULL, NULL);
+            s_groupHWNDs[0].push_back(hwndQuit);
+            CreateToolTip(hwnd, hwndQuit, "Exits the application completely.");
 
             s_groupHWNDs[0].push_back(CreateWindow("STATIC", "History:", WS_VISIBLE | WS_CHILD, 20, 245, 60, 20, hwnd, NULL, NULL, NULL));
             s_hwndRecentServers = CreateWindow("COMBOBOX", "", WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST, 85, 245, 240, 100, hwnd, (HMENU)ID_RECENT_SERVERS, NULL, NULL);
@@ -295,6 +331,11 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             HWND hwndSendFile = CreateWindow("BUTTON", "Send File...", WS_VISIBLE | WS_CHILD, 20, 365, 120, 25, hwnd, (HMENU)ID_SEND_FILE_BUTTON, NULL, NULL);
             s_groupHWNDs[2].push_back(hwndSendFile);
             CreateToolTip(hwnd, hwndSendFile, "Select and broadcast a file to all connected peers in your group.");
+
+            // Logs Group
+            s_groupHWNDs[3].push_back(CreateWindow("BUTTON", "Diagnostics Log", WS_VISIBLE | WS_CHILD | BS_GROUPBOX, 10, 35, 325, 330, hwnd, NULL, NULL, NULL));
+            s_hwndDiagnosticsList = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 20, 55, 305, 260, hwnd, (HMENU)ID_DIAGNOSTICS_LIST, NULL, NULL);
+            s_groupHWNDs[3].push_back(s_hwndDiagnosticsList);
             break;
 
         case WM_DRAWITEM:
@@ -359,6 +400,11 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                 }
             }
 
+            if (LOWORD(wParam) == ID_QUIT_BUTTON) {
+                s_isRunning = false;
+                DestroyWindow(hwnd);
+            }
+
             if (LOWORD(wParam) == ID_DISCONNECT_BUTTON) {
                 s_restartRequested = true;
                 // We reuse the restart mechanism to force a stop/re-init cycle but we can also set a flag
@@ -389,6 +435,16 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             if (LOWORD(wParam) == ID_TAB_CONTROL && HIWORD(wParam) == TCN_SELCHANGE) {
                 int sel = TabCtrl_GetCurSel(s_hwndTabControl);
                 ShowGroup(sel);
+            }
+
+            if (LOWORD(wParam) == ID_TRAY_SHOW) {
+                ShowWindow(hwnd, SW_SHOW);
+                SetForegroundWindow(hwnd);
+            }
+
+            if (LOWORD(wParam) == ID_TRAY_EXIT) {
+                s_isRunning = false;
+                DestroyWindow(hwnd);
             }
 
             if (LOWORD(wParam) == ID_SAVE_BUTTON) {
@@ -494,6 +550,18 @@ void ConfigGUI::Initialize(AppSettings& settings, SyncModule* sync, NetworkManag
 
     s_hwndMain = CreateWindow("NetMuxIntegratedGUI", "NetMux Monitor", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 370, 480, NULL, NULL, GetModuleHandle(NULL), NULL);
     s_isRunning = (s_hwndMain != NULL);
+
+    if (s_hwndMain) {
+        NOTIFYICONDATA nid = {0};
+        nid.cbSize = sizeof(nid);
+        nid.hWnd = s_hwndMain;
+        nid.uID = 1;
+        nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+        nid.uCallbackMessage = WM_TRAYICON;
+        nid.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+        strncpy(nid.szTip, "NetMux Monitor", sizeof(nid.szTip));
+        Shell_NotifyIcon(NIM_ADD, &nid);
+    }
 #else
     s_isRunning = true;
 #endif
@@ -579,6 +647,22 @@ void ConfigGUI::Tick() {
         }
     }
 
+    if (s_isRunning) {
+        static double lastLogUpdate = 0;
+        double now = GetTickCount64();
+        if (now - lastLogUpdate > 1000.0) {
+            auto logs = Logger::GetRecentLogs(20);
+            static size_t lastLogSize = 0;
+            if (logs.size() != lastLogSize) {
+                SendMessage(s_hwndDiagnosticsList, LB_RESETCONTENT, 0, 0);
+                for (auto const& l : logs) SendMessage(s_hwndDiagnosticsList, LB_ADDSTRING, 0, (LPARAM)l.c_str());
+                SendMessage(s_hwndDiagnosticsList, LB_SETCURSEL, (WPARAM)logs.size() - 1, 0);
+                lastLogSize = logs.size();
+            }
+            lastLogUpdate = now;
+        }
+    }
+
     if (s_isRunning && s_currentSync) {
         static double lastPeerUpdate = 0;
         static std::map<unsigned long long, std::string> lastPeerStates;
@@ -632,6 +716,11 @@ bool ConfigGUI::RestartRequested() {
 void ConfigGUI::Shutdown() {
 #ifdef _WIN32
     if (s_hwndMain && IsWindow(s_hwndMain)) {
+        NOTIFYICONDATA nid = {0};
+        nid.cbSize = sizeof(nid);
+        nid.hWnd = s_hwndMain;
+        nid.uID = 1;
+        Shell_NotifyIcon(NIM_DELETE, &nid);
         DestroyWindow(s_hwndMain);
     }
     s_hwndMain = nullptr;

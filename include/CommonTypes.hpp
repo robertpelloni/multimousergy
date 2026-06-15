@@ -59,6 +59,15 @@ struct Packet {
     int totalChunks;
     char payload[4096]; // Dynamic data payload (e.g. clipboard text)
     int payloadSize;
+
+    bool IsHeaderOnly() const {
+        return (type == NetMuxPacketType::Movement ||
+                type == NetMuxPacketType::AbsoluteMovement ||
+                type == NetMuxPacketType::Sync ||
+                type == NetMuxPacketType::Ping ||
+                type == NetMuxPacketType::Heartbeat ||
+                type == NetMuxPacketType::SyncCheck);
+    }
 };
 
 struct Config {

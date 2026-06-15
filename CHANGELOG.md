@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.67-alpha] - 2025-01-24
+### Added
+- Implemented System Tray support (Windows) with minimize-to-tray and context menu.
+- Integrated a comprehensive Diagnostics Logger with UI "Logs" tab and file output.
+- Unified packet serialization with `IsHeaderOnly` optimization.
+- Added a "Quit" button and improved UI layout polish.
+
 ## [0.1.66-alpha] - 2025-01-24
 ### Added
 - Implemented interactive Peer Selection via the GUI Minimap.

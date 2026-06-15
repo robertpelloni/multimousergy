@@ -1,16 +1,18 @@
-# NetMux Session Handoff - v0.1.60-alpha
+# NetMux Session Handoff - v0.1.67-alpha
 
-## Summary of Changes
-- **Network Stack Refactor**: Implemented `ConnectionState` (Disconnected, Connecting, Connected, Error) in `NetworkManager`. Handshake packets are now deferred until the TCP connection is explicitly verified via `select` and `SO_ERROR` checks.
-- **UI UX Overhaul**: Reorganized `ConfigGUI` into logical group boxes. Renamed "Save & Start" to "Apply & Connect" for clarity. Added a "Disconnect" button.
-- **Single-Instance UI**: Fixed a bug where multiple overlapping windows were created during re-initialization by using `IsWindow()` checks in `ConfigGUI`.
-- **Performance Optimization**: `NetworkManager::SafeSend` now uses `select()` to wait for socket writability instead of busy-looping on `WSAEWOULDBLOCK`.
+## Major Accomplishments
+- **UI/Network Overhaul**: Fixed the "multiple windows" bug, implemented a state-driven asynchronous connection model, and transitioned to a modern tabbed GUI.
+- **Collaboration Features**: Implemented full Keyboard Synchronization and a robust File Transfer Engine (multi-file, resume, SHA-256).
+- **Interactive Monitoring**: Minimap now supports clicking to switch focus. Added descriptive tooltips to all major controls.
+- **Diagnostics & Stability**: Integrated a `Logger` system with a UI tab and `netmux.log`. Optimized network I/O with `select()` and UI rendering with state-tracking.
+- **System Integration**: Added System Tray support for background operation on Windows and native X11 event dispatching on Linux.
 
-## State of the Project
-- **Version**: `v0.1.60-alpha`
-- **Tests**: All unit tests in `NetMuxTests` pass.
-- **Next Milestone**: Milestone 5 (File Transfer Engine) is the primary remaining task in the current roadmap.
+## Project State
+- **Version**: `v0.1.67-alpha`
+- **Build**: Passing on Windows (simulated) and Linux (actual).
+- **Tests**: All 100% passing.
 
-## Architectural Notes for Successor
-- The framework relies on a restart cycle triggered by `ConfigGUI`. When "Apply & Connect" or "Disconnect" is clicked, `s_restartRequested` signals `main.cpp` to shutdown and re-initialize the framework.
-- Handshake logic is now state-driven in `NetMuxFramework::Run`. Ensure any new protocol initialization steps follow this pattern.
+## Strategic Direction
+- The core infrastructure is now extremely solid.
+- **Next Steps**: Multi-platform refactor (macOS support), Wayland research for Linux, and potentially Delta Compression for movement packets if bandwidth becomes a concern in high-user count environments.
+- **Native SDKs**: The `DriverInterface` is ready for actual ViGEmBus/Interception SDK linking once the `.lib` files are provided to the build system.
