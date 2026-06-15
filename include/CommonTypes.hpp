@@ -98,6 +98,7 @@ struct AppSettings {
     unsigned char peerColorG = 0;
     unsigned char peerColorB = 0;
     bool autoConnect = false;
+    bool startMinimized = false;
     std::string displayName = "";
     std::vector<std::string> recentServers;
 };

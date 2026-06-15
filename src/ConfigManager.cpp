@@ -47,6 +47,7 @@ bool ConfigManager::Load(AppSettings& settings) {
         else if (key == "peer_color_g") settings.peerColorG = (unsigned char)std::stoi(val);
         else if (key == "peer_color_b") settings.peerColorB = (unsigned char)std::stoi(val);
         else if (key == "auto_connect") settings.autoConnect = (val == "1" || val == "true");
+        else if (key == "start_minimized") settings.startMinimized = (val == "1" || val == "true");
         else if (key == "display_name") settings.displayName = val;
         else if (key == "recent_servers") {
             std::stringstream ss(val);
@@ -83,6 +84,7 @@ bool ConfigManager::Save(const AppSettings& settings) {
     file << "peer_color_g=" << (int)settings.peerColorG << "\n";
     file << "peer_color_b=" << (int)settings.peerColorB << "\n";
     file << "auto_connect=" << (settings.autoConnect ? "true" : "false") << "\n";
+    file << "start_minimized=" << (settings.startMinimized ? "true" : "false") << "\n";
     file << "display_name=" << settings.displayName << "\n";
 
     file << "recent_servers=";

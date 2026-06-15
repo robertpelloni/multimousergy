@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## [0.1.69-alpha] - 2025-01-24
+### Added
+- Implemented Friendly Name broadcasting and peer-list prioritization.
+- Added "Start Minimized to Tray" global preference.
+- Enhanced protocol handshake to include user-defined display names.
+### Fixed
+- Improved UI child window management for multi-tab environments.
+
 ## [0.1.68-alpha] - 2025-01-24
 ### Added
 - Refactored ConfigGUI to a modular tab-driven architecture.

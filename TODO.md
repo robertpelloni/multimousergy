@@ -23,6 +23,7 @@
  - [x] Implement SHA-256 integrity verification for file transfers.
  - [x] Implement Auto-Reconnect and Peer Color customization.
  - [x] Implement Keyboard Synchronization and Machine Info UI.
+ - [x] Implement Friendly Name broadcasting and Global Preferences.
  - [x] Implement Tabbed GUI and Automatic Driver Detection.
  - [x] Implement UI Tooltips and interactive Minimap selection.
  - [x] Implement System Tray and Diagnostics Logger.

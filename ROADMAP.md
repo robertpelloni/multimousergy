@@ -44,6 +44,7 @@
  - [x] Connection Resilience: Auto-Reconnect and State Monitoring.
  - [x] Keyboard Sync: Full capture and injection support.
  - [x] UI Modernization: Tabbed interface and machine-info telemetry.
+ - [x] Global Preferences: Friendly names and background startup.
  - [x] Interactive Monitoring: Minimap selection and UI tooltips.
  - [x] Diagnostics & Tray: Integrated logging and background operation.
  - [x] Bandwidth Optimization: Delta compression for cursor movement.

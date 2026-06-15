@@ -64,7 +64,7 @@ void SyncModule::UpdatePeerSelection(unsigned long long id, bool selecting, int 
     }
 }
 
-void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp, const char* name, const char* gname) {
+void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp, const char* name, const char* gname, const char* dname) {
     std::lock_guard<std::mutex> lock(m_mutex);
     bool isNew = (m_peers.find(id) == m_peers.end());
     PeerState& peer = m_peers[id];
@@ -80,6 +80,10 @@ void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int nor
     if (gname) {
         strncpy(peer.groupName, gname, sizeof(peer.groupName) - 1);
         peer.groupName[sizeof(peer.groupName) - 1] = '\0';
+    }
+    if (dname) {
+        strncpy(peer.displayName, dname, sizeof(peer.displayName) - 1);
+        peer.displayName[sizeof(peer.displayName) - 1] = '\0';
     }
 
     // Add to jitter buffer with current local timestamp

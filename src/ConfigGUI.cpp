@@ -82,13 +82,15 @@ enum ControlIDs {
     ID_TAB_CONTROL = 31,
     ID_DIAGNOSTICS_LIST = 32,
     ID_QUIT_BUTTON = 33,
-    ID_DISPLAY_NAME = 34
+    ID_DISPLAY_NAME = 34,
+    ID_START_MINIMIZED = 35
 };
 
 static HWND s_hwndFileTransferList = nullptr;
 static HWND s_hwndTabControl = nullptr;
 static HWND s_hwndRecentServers = nullptr;
 static HWND s_hwndAutoConnect = nullptr;
+static HWND s_hwndStartMinimized = nullptr;
 static HWND s_hwndPeerColorR = nullptr;
 static HWND s_hwndPeerColorG = nullptr;
 static HWND s_hwndPeerColorB = nullptr;
@@ -286,6 +288,11 @@ static void CreateSettingsTab(HWND hwnd) {
     s_hwndDisplayName = CreateWindowEx(WS_EX_CLIENTEDGE, "EDIT", s_currentSettings->displayName.c_str(), WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL, 120, 55, 150, 20, hwnd, (HMENU)ID_DISPLAY_NAME, NULL, NULL);
     s_groupHWNDs[4].push_back(s_hwndDisplayName);
     CreateToolTip(hwnd, s_hwndDisplayName, "Friendly name shown to other peers on the network.");
+
+    s_hwndStartMinimized = CreateWindow("BUTTON", "Start Minimized to Tray", WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX, 20, 85, 250, 20, hwnd, (HMENU)ID_START_MINIMIZED, NULL, NULL);
+    s_groupHWNDs[4].push_back(s_hwndStartMinimized);
+    if (s_currentSettings->startMinimized) SendMessage(s_hwndStartMinimized, BM_SETCHECK, BST_CHECKED, 0);
+    CreateToolTip(hwnd, s_hwndStartMinimized, "If enabled, the monitor window will automatically hide to the system tray on startup.");
 }
 
 LRESULT CALLBACK MonitorSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) {
@@ -479,6 +486,7 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
                     s_currentSettings->isServer = (SendMessage(s_hwndServer, BM_GETCHECK, 0, 0) == BST_CHECKED);
                     s_currentSettings->autoConnect = (SendMessage(s_hwndAutoConnect, BM_GETCHECK, 0, 0) == BST_CHECKED);
+                    s_currentSettings->startMinimized = (SendMessage(s_hwndStartMinimized, BM_GETCHECK, 0, 0) == BST_CHECKED);
                     s_currentSettings->useD3D11 = (SendMessage(s_hwndUseD3D11, BM_GETCHECK, 0, 0) == BST_CHECKED);
                     s_currentSettings->driverType = (NetMuxDriverType)SendMessage(s_hwndNetMuxDriverType, CB_GETCURSEL, 0, 0);
 
@@ -571,7 +579,7 @@ void ConfigGUI::Initialize(AppSettings& settings, SyncModule* sync, NetworkManag
     wc.lpszClassName = "NetMuxIntegratedGUI";
     RegisterClass(&wc);
 
-    s_hwndMain = CreateWindow("NetMuxIntegratedGUI", "NetMux Monitor", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 370, 480, NULL, NULL, GetModuleHandle(NULL), NULL);
+    s_hwndMain = CreateWindow("NetMuxIntegratedGUI", "NetMux Monitor", WS_OVERLAPPEDWINDOW | (settings.startMinimized ? 0 : WS_VISIBLE), CW_USEDEFAULT, CW_USEDEFAULT, 370, 480, NULL, NULL, GetModuleHandle(NULL), NULL);
     s_isRunning = (s_hwndMain != NULL);
 
     if (s_hwndMain) {
@@ -702,7 +710,8 @@ void ConfigGUI::Tick() {
                     if (peer.buttonState & 2) btnStr[1] = 'R';
                     if (peer.buttonState & 4) btnStr[2] = 'M';
                     const char* authStatus = (id == s_currentSync->GetLocalId() || s_currentSettings->securityKey.empty()) ? "OPEN" : (peer.isAuthenticated ? "AUTH" : "LOCKED");
-                    snprintf(info, sizeof(info), "%s | RTT:%dms | Drift:%.1fpx | [%s] | %s", peer.sessionName, (int)peer.latency, peer.drift, authStatus, btnStr);
+                    const char* pName = (peer.displayName[0] != '\0') ? peer.displayName : peer.sessionName;
+                    snprintf(info, sizeof(info), "%s | RTT:%dms | Drift:%.1fpx | [%s] | %s", pName, (int)peer.latency, peer.drift, authStatus, btnStr);
                     if (lastPeerStates[id] != info) { changed = true; break; }
                 }
             }
@@ -717,7 +726,8 @@ void ConfigGUI::Tick() {
                     if (peer.buttonState & 2) btnStr[1] = 'R';
                     if (peer.buttonState & 4) btnStr[2] = 'M';
                     const char* authStatus = (id == s_currentSync->GetLocalId() || s_currentSettings->securityKey.empty()) ? "OPEN" : (peer.isAuthenticated ? "AUTH" : "LOCKED");
-                    snprintf(info, sizeof(info), "%s | RTT:%dms | Drift:%.1fpx | [%s] | %s", peer.sessionName, (int)peer.latency, peer.drift, authStatus, btnStr);
+                    const char* pName = (peer.displayName[0] != '\0') ? peer.displayName : peer.sessionName;
+                    snprintf(info, sizeof(info), "%s | RTT:%dms | Drift:%.1fpx | [%s] | %s", pName, (int)peer.latency, peer.drift, authStatus, btnStr);
                     SendMessage(s_hwndPeerList, LB_ADDSTRING, 0, (LPARAM)info);
                     lastPeerStates[id] = info;
                 }
