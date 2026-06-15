@@ -1,5 +1,14 @@
 # CHANGELOG.md
 
+## [0.1.66-alpha] - 2025-01-24
+### Added
+- Implemented interactive Peer Selection via the GUI Minimap.
+- Added descriptive UI Tooltips for all major controls in ConfigGUI.
+- Enhanced File Transfer Engine for multi-file concurrent transfers.
+- Added local machine info (Hostname/IP) to the connection panel.
+### Fixed
+- Improved Tabbed GUI layout and child window visibility management.
+
 ## [0.1.65-alpha] - 2025-01-24
 ### Added
 - Modernized ConfigGUI with a Tabbed Interface for better scalability.

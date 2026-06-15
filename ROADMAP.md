@@ -44,4 +44,5 @@
  - [x] Connection Resilience: Auto-Reconnect and State Monitoring.
  - [x] Keyboard Sync: Full capture and injection support.
  - [x] UI Modernization: Tabbed interface and machine-info telemetry.
+ - [x] Interactive Monitoring: Minimap selection and UI tooltips.
 - [ ] Native Vendor SDK linking for Drivers.

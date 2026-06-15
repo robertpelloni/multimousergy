@@ -88,11 +88,52 @@ static HWND s_hwndSecurityStatus = nullptr;
 
 static std::vector<HWND> s_groupHWNDs[3];
 
+static HWND CreateToolTip(HWND hwndParent, HWND hwndControl, const char* text) {
+    if (!hwndControl || !text) return NULL;
+    HWND hwndTip = CreateWindowEx(NULL, TOOLTIPS_CLASS, NULL, WS_POPUP | TTS_ALWAYSTIP | TTS_BALLOON,
+                                 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+                                 hwndParent, NULL, GetModuleHandle(NULL), NULL);
+    if (!hwndTip) return NULL;
+
+    TOOLINFO toolInfo = {0};
+    toolInfo.cbSize = sizeof(toolInfo);
+    toolInfo.hwnd = hwndParent;
+    toolInfo.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
+    toolInfo.uId = (UINT_PTR)hwndControl;
+    toolInfo.lpszText = (char*)text;
+    SendMessage(hwndTip, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
+    return hwndTip;
+}
+
 static void ShowGroup(int tabIndex) {
     for (int i = 0; i < 3; ++i) {
         int cmd = (i == tabIndex) ? SW_SHOW : SW_HIDE;
         for (HWND h : s_groupHWNDs[i]) ShowWindow(h, cmd);
     }
+}
+
+LRESULT CALLBACK MonitorSubclassProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) {
+    if (msg == WM_LBUTTONDOWN) {
+        if (s_currentSync) {
+            RECT rect;
+            GetClientRect(hwnd, &rect);
+            int mx = LOWORD(lParam);
+            int my = HIWORD(lParam);
+
+            auto peers = s_currentSync->GetAllPeers();
+            for (auto const& [id, peer] : peers) {
+                int px = (int)((peer.normalizedX * (rect.right - 10)) / 65535) + 5;
+                int py = (int)((peer.normalizedY * (rect.bottom - 10)) / 65535) + 5;
+                if (abs(mx - px) < 10 && abs(my - py) < 10) {
+                    s_currentSync->SetActivePeer(id);
+                    ConfigGUI::LogSecurityEvent("Manually switched focus to Peer: " + std::to_string(id));
+                    break;
+                }
+            }
+        }
+        return 0;
+    }
+    return DefSubclassProc(hwnd, msg, wParam, lParam);
 }
 
 LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -123,6 +164,7 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             s_groupHWNDs[0].push_back(CreateWindow("STATIC", "Role:", WS_VISIBLE | WS_CHILD, 20, 85, 100, 20, hwnd, NULL, NULL, NULL));
             s_hwndServer = CreateWindow("BUTTON", "Server Mode", WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX, 120, 85, 150, 20, hwnd, NULL, NULL, NULL);
             s_groupHWNDs[0].push_back(s_hwndServer);
+            CreateToolTip(hwnd, s_hwndServer, "Enable to act as the authoritative host for this cursor group.");
             if (s_currentSettings->isServer) SendMessage(s_hwndServer, BM_SETCHECK, BST_CHECKED, 0);
 
             s_groupHWNDs[0].push_back(CreateWindow("STATIC", "Remote IP:", WS_VISIBLE | WS_CHILD, 20, 110, 100, 20, hwnd, NULL, NULL, NULL));
@@ -141,18 +183,31 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             s_groupHWNDs[0].push_back(s_hwndAutoConnect);
             if (s_currentSettings->autoConnect) SendMessage(s_hwndAutoConnect, BM_SETCHECK, BST_CHECKED, 0);
 
-            s_groupHWNDs[0].push_back(CreateWindow("BUTTON", "Apply & Connect", WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 20, 210, 120, 30, hwnd, (HMENU)ID_SAVE_BUTTON, NULL, NULL));
-            s_groupHWNDs[0].push_back(CreateWindow("BUTTON", "Disconnect", WS_VISIBLE | WS_CHILD, 150, 210, 120, 30, hwnd, (HMENU)ID_DISCONNECT_BUTTON, NULL, NULL));
+            HWND hwndApply = CreateWindow("BUTTON", "Apply & Connect", WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON, 20, 210, 120, 30, hwnd, (HMENU)ID_SAVE_BUTTON, NULL, NULL);
+            s_groupHWNDs[0].push_back(hwndApply);
+            CreateToolTip(hwnd, hwndApply, "Saves current settings and attempts to connect or start the server.");
+
+            HWND hwndDisc = CreateWindow("BUTTON", "Disconnect", WS_VISIBLE | WS_CHILD, 150, 210, 120, 30, hwnd, (HMENU)ID_DISCONNECT_BUTTON, NULL, NULL);
+            s_groupHWNDs[0].push_back(hwndDisc);
+            CreateToolTip(hwnd, hwndDisc, "Gracefully disconnects from all peers and stops the network engine.");
 
             s_groupHWNDs[0].push_back(CreateWindow("STATIC", "History:", WS_VISIBLE | WS_CHILD, 20, 245, 60, 20, hwnd, NULL, NULL, NULL));
             s_hwndRecentServers = CreateWindow("COMBOBOX", "", WS_VISIBLE | WS_CHILD | CBS_DROPDOWNLIST, 85, 245, 240, 100, hwnd, (HMENU)ID_RECENT_SERVERS, NULL, NULL);
             s_groupHWNDs[0].push_back(s_hwndRecentServers);
+            CreateToolTip(hwnd, s_hwndRecentServers, "A list of recently connected server IP addresses.");
             for (auto const& s : s_currentSettings->recentServers) SendMessage(s_hwndRecentServers, CB_ADDSTRING, 0, (LPARAM)s.c_str());
 
-            s_groupHWNDs[0].push_back(CreateWindow("BUTTON", "Scan", WS_VISIBLE | WS_CHILD, 20, 270, 60, 25, hwnd, (HMENU)ID_SCAN_BUTTON, NULL, NULL));
-            s_groupHWNDs[0].push_back(CreateWindow("BUTTON", "Clear", WS_VISIBLE | WS_CHILD, 85, 270, 60, 25, hwnd, (HMENU)ID_CLEAR_HISTORY, NULL, NULL));
+            HWND hwndScan = CreateWindow("BUTTON", "Scan", WS_VISIBLE | WS_CHILD, 20, 270, 60, 25, hwnd, (HMENU)ID_SCAN_BUTTON, NULL, NULL);
+            s_groupHWNDs[0].push_back(hwndScan);
+            CreateToolTip(hwnd, hwndScan, "Sends a UDP broadcast to discover active NetMux servers on the local network.");
+
+            HWND hwndClear = CreateWindow("BUTTON", "Clear", WS_VISIBLE | WS_CHILD, 85, 270, 60, 25, hwnd, (HMENU)ID_CLEAR_HISTORY, NULL, NULL);
+            s_groupHWNDs[0].push_back(hwndClear);
+            CreateToolTip(hwnd, hwndClear, "Clears the saved connection history.");
+
             s_hwndDiscoveryList = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER | LBS_NOTIFY, 20, 300, 305, 30, hwnd, (HMENU)ID_DISCOVERY_LIST, NULL, NULL);
             s_groupHWNDs[0].push_back(s_hwndDiscoveryList);
+            CreateToolTip(hwnd, s_hwndDiscoveryList, "Servers found during network scan. Double-click to auto-fill Remote IP.");
 
             // Session Group
             s_groupHWNDs[1].push_back(CreateWindow("BUTTON", "Session & Security", WS_VISIBLE | WS_CHILD | BS_GROUPBOX, 10, 35, 325, 145, hwnd, NULL, NULL, NULL));
@@ -164,6 +219,7 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             s_groupHWNDs[1].push_back(CreateWindow("STATIC", "Group ID:", WS_VISIBLE | WS_CHILD, 20, 80, 100, 20, hwnd, NULL, NULL, NULL));
             s_hwndGroupId = CreateWindow("EDIT", std::to_string(s_currentSettings->groupId).c_str(), WS_VISIBLE | WS_CHILD | ES_NUMBER | WS_BORDER, 120, 80, 150, 20, hwnd, (HMENU)ID_GROUP_ID, NULL, NULL);
             s_groupHWNDs[1].push_back(s_hwndGroupId);
+            CreateToolTip(hwnd, s_hwndGroupId, "Peers must have the same Group ID to see and interact with each other.");
 
             s_groupHWNDs[1].push_back(CreateWindow("STATIC", "Group Name:", WS_VISIBLE | WS_CHILD, 20, 105, 100, 20, hwnd, NULL, NULL, NULL));
             s_hwndGroupName = CreateWindow("EDIT", s_currentSettings->groupName.c_str(), WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL | WS_BORDER, 120, 105, 150, 20, hwnd, (HMENU)ID_GROUP_NAME, NULL, NULL);
@@ -227,6 +283,7 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
             s_hwndCursorMonitor = CreateWindow("STATIC", "", WS_VISIBLE | WS_CHILD | SS_OWNERDRAW | SS_NOTIFY | WS_BORDER, 20, 150, 305, 80, hwnd, (HMENU)ID_CURSOR_MONITOR, NULL, NULL);
             s_groupHWNDs[2].push_back(s_hwndCursorMonitor);
+            SetWindowSubclass(s_hwndCursorMonitor, MonitorSubclassProc, 0, 0);
 
             s_groupHWNDs[2].push_back(CreateWindow("STATIC", "Security Log:", WS_VISIBLE | WS_CHILD, 20, 235, 150, 20, hwnd, NULL, NULL, NULL));
             s_hwndSecurityLog = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 20, 255, 305, 40, hwnd, (HMENU)ID_SECURITY_LOG, NULL, NULL);
@@ -235,7 +292,9 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             s_groupHWNDs[2].push_back(CreateWindow("STATIC", "File Transfers:", WS_VISIBLE | WS_CHILD, 20, 300, 150, 20, hwnd, NULL, NULL, NULL));
             s_hwndFileTransferList = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 20, 320, 305, 40, hwnd, (HMENU)ID_FILE_TRANSFER_LIST, NULL, NULL);
             s_groupHWNDs[2].push_back(s_hwndFileTransferList);
-            s_groupHWNDs[2].push_back(CreateWindow("BUTTON", "Send File...", WS_VISIBLE | WS_CHILD, 20, 365, 120, 25, hwnd, (HMENU)ID_SEND_FILE_BUTTON, NULL, NULL));
+            HWND hwndSendFile = CreateWindow("BUTTON", "Send File...", WS_VISIBLE | WS_CHILD, 20, 365, 120, 25, hwnd, (HMENU)ID_SEND_FILE_BUTTON, NULL, NULL);
+            s_groupHWNDs[2].push_back(hwndSendFile);
+            CreateToolTip(hwnd, hwndSendFile, "Select and broadcast a file to all connected peers in your group.");
             break;
 
         case WM_DRAWITEM:

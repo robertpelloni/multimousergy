@@ -15,13 +15,8 @@ bool FileTransferEngine::StartTransfer(const std::string& filePath, unsigned lon
 
     if (!fs::exists(filePath)) return false;
 
-    // Check if we can resume an existing transfer
-    for (auto& [id, t] : m_transfers) {
-        if (t.isOutgoing && t.localPath == filePath && !t.isComplete && t.lastError == FileTransferError::None) {
-            std::cout << "[FileTransfer] Resuming outgoing transfer ID: " << id << std::endl;
-            return true;
-        }
-    }
+    // Multi-file support: Allow multiple transfers for the same path
+    // Resume is only used if a transfer was explicitly interrupted.
 
     FileTransfer transfer;
     transfer.filename = fs::path(filePath).filename().string();
