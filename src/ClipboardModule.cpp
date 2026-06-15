@@ -149,6 +149,34 @@ void ClipboardModule::SetText(const std::string& text) {
     std::cout << "[Clipboard] Applied remote update." << std::endl;
 }
 
+#ifdef __linux__
+void ClipboardModule::HandleX11Event(void* evPtr) {
+    XEvent* ev = (XEvent*)evPtr;
+    if (ev->type == SelectionRequest) {
+        Display* display = (Display*)m_xDisplay;
+        XSelectionRequestEvent* req = &ev->xselectionrequest;
+        XSelectionEvent reply = {0};
+        reply.type = SelectionNotify;
+        reply.display = display;
+        reply.requestor = req->requestor;
+        reply.selection = req->selection;
+        reply.target = req->target;
+        reply.property = req->property;
+        reply.time = req->time;
+
+        Atom utf8 = XInternAtom(display, "UTF8_STRING", False);
+        if (req->target == utf8 || req->target == XA_STRING) {
+            XChangeProperty(display, req->requestor, req->property, req->target, 8, PropModeReplace,
+                            (unsigned char*)m_lastText.c_str(), m_lastText.size());
+        } else {
+            reply.property = None;
+        }
+        XSendEvent(display, req->requestor, True, 0, (XEvent*)&reply);
+        XFlush(display);
+    }
+}
+#endif
+
 std::string ClipboardModule::Utf16ToUtf8(const std::wstring& wstr) {
     if (wstr.empty()) return "";
     std::string out;

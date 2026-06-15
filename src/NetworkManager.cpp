@@ -20,7 +20,7 @@ static void SetNonBlocking(Socket s) {
 #endif
 }
 
-NetworkManager::NetworkManager() : m_running(false), m_udpSocket(INVALID_SOCKET_HANDLE), m_tcpSocket(INVALID_SOCKET_HANDLE), m_hasRemoteAddr(false), m_isServer(false) {
+NetworkManager::NetworkManager() : m_running(false), m_udpSocket(INVALID_SOCKET_HANDLE), m_tcpSocket(INVALID_SOCKET_HANDLE), m_hasRemoteAddr(false), m_isServer(false), m_tcpState(ConnectionState::Disconnected) {
 #ifdef _WIN32
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -78,6 +78,7 @@ bool NetworkManager::StartServer(int port) {
     }
 
     m_running = true;
+    m_tcpState = ConnectionState::Connected;
     return true;
 }
 
@@ -96,14 +97,23 @@ bool NetworkManager::Connect(const std::string& address, int port) {
     m_tcpSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (m_tcpSocket == INVALID_SOCKET_HANDLE) return false;
 
+    SetNonBlocking(m_tcpSocket);
+    m_tcpState = ConnectionState::Connecting;
     if (connect(m_tcpSocket, (struct sockaddr*)&m_remoteAddr, sizeof(m_remoteAddr)) == SOCKET_ERROR) {
 #ifdef _WIN32
-        if (WSAGetLastError() != WSAEWOULDBLOCK) return false;
+        if (WSAGetLastError() != WSAEWOULDBLOCK) {
+            m_tcpState = ConnectionState::Error;
+            return false;
+        }
 #else
-        if (errno != EINPROGRESS) return false;
+        if (errno != EINPROGRESS) {
+            m_tcpState = ConnectionState::Error;
+            return false;
+        }
 #endif
+    } else {
+        m_tcpState = ConnectionState::Connected;
     }
-    SetNonBlocking(m_tcpSocket);
 
     m_running = true;
     return true;
@@ -115,10 +125,17 @@ static int SafeSend(Socket s, const char* data, int len) {
         int result = send(s, data + sent, len - sent, 0);
         if (result == SOCKET_ERROR) {
 #ifdef _WIN32
-            if (WSAGetLastError() == WSAEWOULDBLOCK) continue;
+            if (WSAGetLastError() == WSAEWOULDBLOCK) {
 #else
-            if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
 #endif
+                fd_set writeFds;
+                FD_ZERO(&writeFds);
+                FD_SET(s, &writeFds);
+                timeval tv = {0, 10000}; // 10ms wait
+                select((int)s + 1, NULL, &writeFds, NULL, &tv);
+                continue;
+            }
             return SOCKET_ERROR;
         }
         sent += result;
@@ -129,11 +146,7 @@ static int SafeSend(Socket s, const char* data, int len) {
 void NetworkManager::SendPacketToGroup(const Packet& packet, unsigned int groupId) {
     if (!m_running || m_udpSocket == INVALID_SOCKET_HANDLE || !m_isServer) return;
 
-    bool headerOnly = (packet.type == NetMuxPacketType::Movement || 
-                       packet.type == NetMuxPacketType::AbsoluteMovement ||
-                       packet.type == NetMuxPacketType::Sync ||
-                       packet.type == NetMuxPacketType::Ping ||
-                       packet.type == NetMuxPacketType::Heartbeat);
+    bool headerOnly = packet.IsHeaderOnly();
     std::vector<uint8_t> data = PacketSerializer::Serialize(packet, headerOnly);
 
     for (auto const& [id, peer] : m_udpPeerMap) {
@@ -146,11 +159,7 @@ void NetworkManager::SendPacketToGroup(const Packet& packet, unsigned int groupI
 void NetworkManager::SendPacket(const Packet& packet) {
     if (!m_running || m_udpSocket == INVALID_SOCKET_HANDLE) return;
 
-    bool headerOnly = (packet.type == NetMuxPacketType::Movement || 
-                       packet.type == NetMuxPacketType::AbsoluteMovement ||
-                       packet.type == NetMuxPacketType::Sync ||
-                       packet.type == NetMuxPacketType::Ping ||
-                       packet.type == NetMuxPacketType::Heartbeat);
+    bool headerOnly = packet.IsHeaderOnly();
     std::vector<uint8_t> data = PacketSerializer::Serialize(packet, headerOnly);
 
     if (headerOnly) {
@@ -229,6 +238,25 @@ bool NetworkManager::PollDiscovery(DiscoveryPacket& pkt) {
 bool NetworkManager::ReceivePacket(Packet& packet) {
     if (!m_running) return false;
 
+    if (!m_isServer && m_tcpState == ConnectionState::Connecting && m_tcpSocket != INVALID_SOCKET_HANDLE) {
+        fd_set writeFds;
+        FD_ZERO(&writeFds);
+        FD_SET(m_tcpSocket, &writeFds);
+        timeval tv = {0, 0};
+        if (select((int)m_tcpSocket + 1, NULL, &writeFds, NULL, &tv) > 0) {
+            int error = 0;
+            socklen_t len = sizeof(error);
+            getsockopt(m_tcpSocket, SOL_SOCKET, SO_ERROR, (char*)&error, &len);
+            if (error == 0) {
+                m_tcpState = ConnectionState::Connected;
+                std::cout << "[Network] TCP Connection established." << std::endl;
+            } else {
+                m_tcpState = ConnectionState::Error;
+                std::cout << "[Network] TCP Connection failed with error: " << error << std::endl;
+            }
+        }
+    }
+
     if (m_isServer && m_tcpSocket != INVALID_SOCKET_HANDLE) {
         sockaddr_in clientAddr;
         socklen_t clientAddrLen = sizeof(clientAddr);
@@ -265,7 +293,13 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
             }
         }
 
-        if (result == 0) {
+        if (result == 0 || (result == SOCKET_ERROR &&
+#ifdef _WIN32
+            WSAGetLastError() != WSAEWOULDBLOCK
+#else
+            errno != EAGAIN && errno != EWOULDBLOCK
+#endif
+            )) {
             std::cout << "[Network] Peer disconnected." << std::endl;
             closesocket(it->socket);
             it = m_clients.erase(it);
@@ -285,10 +319,17 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
             }
         }
 
-        if (result == 0) {
+        if (result == 0 || (result == SOCKET_ERROR &&
+#ifdef _WIN32
+            WSAGetLastError() != WSAEWOULDBLOCK
+#else
+            errno != EAGAIN && errno != EWOULDBLOCK
+#endif
+            )) {
             std::cout << "[Network] Connection lost." << std::endl;
             closesocket(m_tcpSocket);
             m_tcpSocket = INVALID_SOCKET_HANDLE;
+            m_tcpState = ConnectionState::Disconnected;
         }
     }
 
@@ -304,5 +345,6 @@ void NetworkManager::Shutdown() {
         m_clients.clear();
         m_udpSocket = INVALID_SOCKET_HANDLE;
         m_tcpSocket = INVALID_SOCKET_HANDLE;
+        m_tcpState = ConnectionState::Disconnected;
     }
 }

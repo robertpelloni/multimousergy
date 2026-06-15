@@ -38,5 +38,14 @@
 - [x] Full D3D11 Custom Cursor Support.
 - [x] Native Linux X11 Integration (Clipboard & Cursor Position).
 - [x] Authoritative Synchronization (Server-side position enforcement).
-- [ ] File Transfer Engine: Implement drag-and-drop file sharing via multi-part protocol.
-- [ ] Native Vendor SDK linking for Drivers.
+- [x] UI & Network Stack Refactor (Robust connection handling).
+ - [x] File Transfer Engine: Implement drag-and-drop file sharing via multi-part protocol.
+ - [x] File Integrity: SHA-256 verification for shared data.
+ - [x] Connection Resilience: Auto-Reconnect and State Monitoring.
+ - [x] Keyboard Sync: Full capture and injection support.
+ - [x] UI Modernization: Tabbed interface and machine-info telemetry.
+ - [x] Global Preferences: Friendly names and background startup.
+ - [x] Interactive Monitoring: Minimap selection and UI tooltips.
+ - [x] Diagnostics & Tray: Integrated logging and background operation.
+ - [x] Bandwidth Optimization: Delta compression for cursor movement.
+ - [x] Native Vendor SDK: Dynamic linking and runtime detection.

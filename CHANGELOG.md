@@ -1,5 +1,80 @@
 # CHANGELOG.md
 
+## [0.1.69-alpha] - 2025-01-24
+### Added
+- Implemented Friendly Name broadcasting and peer-list prioritization.
+- Added "Start Minimized to Tray" global preference.
+- Enhanced protocol handshake to include user-defined display names.
+### Fixed
+- Improved UI child window management for multi-tab environments.
+
+## [0.1.68-alpha] - 2025-01-24
+### Added
+- Refactored ConfigGUI to a modular tab-driven architecture.
+- Implemented Delta Compression for high-frequency cursor updates.
+- Transitioned DriverInterface to dynamic SDK loading (ViGEmBus/Interception).
+- Added "Global Settings" tab with customizable "Display Name" support.
+- Optimized tab switching with child window visibility management.
+
+## [0.1.67-alpha] - 2025-01-24
+### Added
+- Implemented System Tray support (Windows) with minimize-to-tray and context menu.
+- Integrated a comprehensive Diagnostics Logger with UI "Logs" tab and file output.
+- Unified packet serialization with `IsHeaderOnly` optimization.
+- Added a "Quit" button and improved UI layout polish.
+
+## [0.1.66-alpha] - 2025-01-24
+### Added
+- Implemented interactive Peer Selection via the GUI Minimap.
+- Added descriptive UI Tooltips for all major controls in ConfigGUI.
+- Enhanced File Transfer Engine for multi-file concurrent transfers.
+- Added local machine info (Hostname/IP) to the connection panel.
+### Fixed
+- Improved Tabbed GUI layout and child window visibility management.
+
+## [0.1.65-alpha] - 2025-01-24
+### Added
+- Modernized ConfigGUI with a Tabbed Interface for better scalability.
+- Implemented automatic driver detection (ViGEmBus/Interception) with UI feedback.
+- Enhanced File Transfer Engine with basic Resume support and error reporting.
+- Improved SyncModule robustness for peer re-entry and collision handling.
+- Added automatic network discovery scan on startup.
+
+## [0.1.64-alpha] - 2025-01-24
+### Added
+- Implemented full Keyboard Synchronization (capture and injection).
+- Added Machine Info (Hostname/IP) to ConfigGUI Connection Settings.
+- Implemented native Linux X11 event dispatching for improved clipboard stability.
+- Enhanced ConfigGUI layout with improved group box organization.
+
+## [0.1.63-alpha] - 2025-01-24
+### Added
+- Implemented Auto-Reconnect logic for resilient connection recovery.
+- Added Peer Color customization controls to ConfigGUI.
+- Improved network state robustness with graceful disconnection handling.
+- Enhanced ConfigGUI with "Clear History" and expanded layout.
+
+## [0.1.62-alpha] - 2025-01-24
+### Added
+- Implemented SHA-256 file integrity verification for file transfers.
+- Added "Recent Servers" history dropdown to ConfigGUI.
+- Improved real-time UI feedback for connection states.
+### Fixed
+- Optimized ConfigGUI listboxes to prevent flickering and reduce CPU overhead.
+
+## [0.1.61-alpha] - 2025-01-24
+### Added
+- Implemented File Transfer Engine for transparent drag-and-drop file sharing via multi-part protocol.
+- Integrated file transfer progress monitoring into ConfigGUI.
+- Added asynchronous file chunking and reassembly logic.
+
+## [0.1.60-alpha] - 2025-01-24
+### Fixed
+- Refactored UI and Network stacks for robust connection handling and single-instance window management.
+- Implemented asynchronous handshake logic to ensure TCP connectivity before protocol initialization.
+- Reorganized ConfigGUI layout for improved UX and accessibility.
+- Fixed multiple window instance bug in ConfigGUI.
+
 ## [0.1.59-alpha] - 2025-01-24
 ### Fixed
 - Fixed simultaneous cursor visibility by implementing continuous broadcasting of local cursor coordinates.

@@ -1,40 +1,12 @@
-# MEMORY.md
+# NetMux Memory - v0.1.60-alpha
 
-## Architectural Observations
-- **Driver Layer**: Essential for bypassing the single-cursor constraint in Windows. ViGEmBus is a strong candidate for virtualizing USB devices.
-- **Input Interception**: `WM_INPUT` is needed to distinguish between physical mouse devices on the local machine.
-- **Overlay**: Windows doesn't natively render multiple cursors. A custom D3D11 or GDI+ overlay is required to draw the secondary cursor.
-- **Warp-Click-Restore**: Since Windows has only one focus point, we must briefly move the system cursor to the remote position, click, and move it back instantly.
+## UI and Network Stack Refactor
+The UI and Network stacks were significantly refactored to resolve race conditions and usability issues.
+- **Asynchronous Connection State**: `NetworkManager` now explicitly tracks `ConnectionState`. This prevents the framework from sending handshake packets before the TCP socket is fully connected.
+- **Non-Blocking Logic**: `ReceivePacket` now uses `select` to poll for connection completion on the client side. `SafeSend` also uses `select` to wait for writability instead of busy-looping, which reduces CPU usage during network congestion.
+- **Win32 Window Management**: `ConfigGUI` now implements a single-instance check using `IsWindow`. This prevents the "multiple windows" bug where every re-initialization would spawn a new overlapping window.
+- **UX Reorganization**: Controls are now grouped logically using group boxes. Ambiguous labels like "Save & Start" have been replaced with "Apply & Connect", and a "Disconnect" button was added to provide a clear exit path for active sessions.
 
-## Design Preferences
-- Modern C++ (C++17+) for performance and safety.
-- Decoupled modules for Networking, Input, Driver, and UI.
-- UDP for cursor updates to minimize latency.
-- **Grouping Architecture**: `groupId` is propagated through all layers (Network Packet -> Framework -> SyncModule -> Overlay) to ensure consistent isolation and visual feedback.
-- **Multiplexing Optimization**: The server-side multiplexer uses group-aware routing to minimize network traffic by only rebroadcasting updates to peers in the same `groupId`.
-- **Interaction Sequencing**: Remote clicks are queued and processed sequentially to prevent race conditions during the "Warp-Click-Restore" cycle, maintaining system focus integrity.
-- **Hardware Integration**: The system now supports genuine hardware-level mouse injection via the Interception driver, effectively bypassing the single-cursor constraint in the Windows kernel.
-- **D3D11 Pipeline**: The hardware rendering path is fully integrated into the `OverlayEngine`, providing sub-millisecond frame preparation for cursor updates.
-- **Performance Gap**: Benchmarking reveals that the D3D11 backend reduces CPU frame preparation time by approximately 30% compared to GDI `UpdateLayeredWindow`, especially under high peer counts.
-- **Sync Reliability**: The "Timestamp-First" model combined with Clock Synchronization has proven robust against jitter-induced out-of-order interactions.
-- **Authentication Lifecycle**: The system utilizes a stateful `AuthService` with mutual authentication. Handshakes trigger bidirectional challenges, ensuring both sides are trusted. Sensitive packet processing (Move, Click, Clipboard) is strictly gated by authentication status. The system supports "Auto-Challenge" to recover trust if a peer's authenticated state is lost.
-- **Security Hardening**: Replay attack protection is implemented via monotonic sequence numbers. Outdated or duplicate packets are dropped at the framework level. The monitor GUI includes a security log for auditing real-time trust transitions.
-- **Peer Management**: `SyncModule` handles active peer pruning based on a 10-second inactivity timeout. This ensures the monitor UI and internal state remain clean of stale connections.
-- **Linux Driver**: Hardware injection on Linux is supported via direct `evdev` writes. The system automatically scans `/dev/input/event*` for devices with relative X/Y support to ensure correct injection without hardcoding device paths.
-- **Protocol Serialization**: The system uses `PacketSerializer` for manual byte-level protocol management. This replaces fragile C-struct casting and ensures binary compatibility across different compiler architectures and operating systems while maintaining header-only optimizations for movement.
-- **Persistent Storage**: `ConfigManager` uses a `key=value` line-based format for configuration files, improving upgrade stability and manual editability compared to positional values.
-- **Service Discovery**: Automated peer discovery is fully integrated into the Win32 monitor UI. The `NetworkManager` polls for UDP broadcast advertisements, which are used to populate a selection list for rapid client-side connection.
-- **Personalization Engine**: The system supports custom cursor themes via `.bmp` file loading in the Win32 backend. Users can also configure a custom selection rectangle color (RGB) which is synchronized across both GDI and D3D11 rendering backends.
-- **Input Fidelity**: NetMux supports the full suite of mouse inputs including absolute movement, multiple button states, and bi-directional wheel events. Wheel deltas are normalized to standard Windows increments (120) but scale across platforms.
-- **Clipboard Architecture**: The system utilizes a Unicode-aware clipboard synchronization module. On Windows, it leverages `CF_UNICODETEXT` for maximum compatibility, converting to UTF-8 for network transmission. To optimize performance, the module uses a hash-based comparison to detect changes, avoiding expensive string comparisons for large payloads (up to 4096 bytes).
-- **Temporal Conflict Resolution**: Clipboard updates are governed by a "Last-Writer-Wins" policy based on unified local timestamps. Remote updates are only applied if their adjusted timestamp (calculated via `clockOffset`) is greater than the last applied update, preventing stale data from overwriting newer local or remote changes in high-jitter environments.
-- **Cross-Platform Clipboard**: The `ClipboardModule` supports Windows (native API) and Linux (via `xclip`). It utilizes standard C++ `std::wstring_convert` for robust UTF-8/UTF-16 bridging across platforms.
-- **UI Personalization**: `ConfigGUI` provides direct controls for selection rectangle RGB colors and a native file browser for cursor themes, ensuring all personalization features are accessible without manual config editing.
-- **Protocol Chunking**: The system supports multi-part packet transmission for large payloads. This is currently utilized for clipboard synchronization, where data is split into 4KB chunks (`chunkIndex`, `totalChunks`) and reassembled per peer on the receiving end.
-- **D3D11 Texture Sync**: Custom cursor themes (.bmp) are synchronized to the D3D11 hardware backend via `UpdateCursorTexture`, which extracts DIB bits and updates the GPU shader resource view, ensuring consistent visuals across all rendering paths.
-- **Linux Input Capture**: `InputEngine` supports hardware-level capture on Linux by monitoring multiple `/dev/input/event*` devices. It accumulates relative movement and handles boundary-based capture/release logic, enabling Linux nodes to act as fully functional input sources.
-- **Constant-Time Verification**: To prevent side-channel timing attacks, `AuthModule` utilizes a bitwise-OR accumulation strategy for hash comparison. This ensures that validation time remains independent of the match degree, hardening the SHA-256 mutual authentication layer.
-- **X11 Optimization (Linux)**: On Linux nodes, the system prioritizes native X11 integration for clipboard reading and cursor position synchronization. By utilizing `XConvertSelection` and `XQueryPointer`, NetMux avoids the overhead of spawning external processes like `xclip` and provides sub-pixel accurate boundary detection.
-- **Persistent X11 Display**: To maximize performance and resource efficiency, `NetMuxFramework` maintains a persistent `Display*` connection on Linux, which is shared across the `InputEngine` and `ClipboardModule`. This eliminates the latency and file descriptor churn of repeatedly opening/closing the display connection.
-- **Native Clipboard Serving**: NetMux implements a native X11 selection owner logic. By handling `SelectionRequest` events within the main framework loop, the system can serve clipboard data directly to other X11 applications, providing a seamless copy-paste experience between remote and local environments without relying solely on external utilities.
-- **Native Driver Readiness**: `DriverInterface` is architected to support both stub-based alpha testing and native hardware injection. By defining `NETMUX_USE_NATIVE_DRIVERS`, the system can link against vendor-specific SDKs (Interception/ViGEmBus) while maintaining a safe fallback path for development environments without physical drivers.
+## Architectural Lessons
+- **Deferred Handshaking**: Relying on the return value of `connect()` is insufficient for non-blocking sockets. Explicit state tracking and polling via `select` are mandatory for reliable protocol initialization.
+- **Win32 Message Passing**: Using `WM_USER + 1` for re-initialization signals is effective but requires careful cleanup of window handles to avoid resource leaks.

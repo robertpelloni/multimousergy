@@ -15,6 +15,7 @@ struct PeerState {
     unsigned int groupId;
     char groupName[64];
     char sessionName[64];
+    char displayName[64];
     bool isSelecting;
     float selStartX;
     float selStartY;
@@ -50,7 +51,7 @@ public:
     SyncModule();
     ~SyncModule();
 
-    void UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp = 0, const char* name = nullptr, const char* groupName = nullptr);
+    void UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp = 0, const char* name = nullptr, const char* groupName = nullptr, const char* displayName = nullptr);
     void RefreshPeer(unsigned long long id, unsigned int groupId);
     void UpdatePeerButtons(unsigned long long id, int button, bool down);
     void UpdatePeerSelection(unsigned long long id, bool selecting, int startX, int startY);

@@ -4,6 +4,7 @@
 #include <map>
 #include "SyncModule.hpp"
 #include "NetworkManager.hpp"
+#include "FileTransferEngine.hpp"
 
 class ConfigGUI {
 public:
@@ -11,7 +12,7 @@ public:
     static void UpdateCursorMonitor(const std::map<unsigned long long, PeerState>& peers);
 
     // Lifecycle management for integrated execution
-    static void Initialize(AppSettings& settings, SyncModule* sync, NetworkManager* network = nullptr);
+    static void Initialize(AppSettings& settings, SyncModule* sync, NetworkManager* network = nullptr, FileTransferEngine* fileTransfer = nullptr);
     static void SetSyncModule(SyncModule* sync);
     static void Tick();
     static bool IsRunning();

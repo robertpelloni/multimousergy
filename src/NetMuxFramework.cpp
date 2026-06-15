@@ -1,6 +1,7 @@
 #include "NetMuxFramework.hpp"
 #include "ConfigGUI.hpp"
 #include "AuthModule.hpp"
+#include "Logger.hpp"
 
 #ifdef __linux__
 #include <X11/Xlib.h>
@@ -55,21 +56,25 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
 
     if (m_settings.isServer) {
         if (!m_network.StartServer(m_settings.port)) {
-            std::cerr << "Failed to start server on port " << m_settings.port << std::endl;
+            Logger::Log(LogLevel::Error, "Failed to start server on port " + std::to_string(m_settings.port));
             return false;
         }
+        Logger::Log(LogLevel::Info, "Server started on port " + std::to_string(m_settings.port));
     } else {
         if (!m_network.Connect(m_settings.remoteIp, m_settings.port)) {
-            std::cerr << "Failed to connect to " << m_settings.remoteIp << ":" << m_settings.port << std::endl;
+            Logger::Log(LogLevel::Error, "Failed to connect to " + m_settings.remoteIp + ":" + std::to_string(m_settings.port));
             return false;
         }
+        Logger::Log(LogLevel::Info, "Connecting to " + m_settings.remoteIp + ":" + std::to_string(m_settings.port));
 
-        // Handshake: Initial connection. Security key will be challenged by server.
-        Packet handshake = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Handshake, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
-        std::string meta = m_settings.sessionName + "|" + m_settings.groupName;
-        strncpy(handshake.payload, meta.c_str(), sizeof(handshake.payload) - 1);
-        handshake.payloadSize = (int)meta.size();
-        m_network.SendPacket(handshake);
+        // Handshake: Defer until TCP connection is confirmed in Run loop
+        if (m_network.GetTcpState() == ConnectionState::Connected) {
+            Packet handshake = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Handshake, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+            std::string meta = m_settings.sessionName + "|" + m_settings.groupName + "|" + m_settings.displayName;
+            strncpy(handshake.payload, meta.c_str(), sizeof(handshake.payload) - 1);
+            handshake.payloadSize = (int)meta.size();
+            m_network.SendPacket(handshake);
+        }
     }
 
     if (!m_overlay.Initialize()) {
@@ -108,15 +113,29 @@ void NetMuxFramework::Run() {
     const int MAX_PEER_COUNT = 20;
     bool warningLogged = false;
 
+    ConnectionState lastTcpState = m_network.GetTcpState();
+
     while (m_running) {
         double dt = frameTimer.ElapsedMilliseconds();
         frameTimer.Reset();
+
+        ConnectionState currentTcpState = m_network.GetTcpState();
+        if (!m_settings.isServer && lastTcpState == ConnectionState::Connecting && currentTcpState == ConnectionState::Connected) {
+            std::cout << "[Framework] TCP Connected. Sending handshake..." << std::endl;
+            Packet handshake = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Handshake, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+            std::string meta = m_settings.sessionName + "|" + m_settings.groupName + "|" + m_settings.displayName;
+            strncpy(handshake.payload, meta.c_str(), sizeof(handshake.payload) - 1);
+            handshake.payloadSize = (int)meta.size();
+            m_network.SendPacket(handshake);
+        }
+        lastTcpState = currentTcpState;
 
         PerformLatencySync();
         PerformDiscoveryBroadcast();
         PerformClipboardSync();
         PerformMasterStateSync();
         PerformSyncCheck();
+        PerformFileTransfer();
         PerformPeerCleanup();
 #ifdef __linux__
         ProcessX11Events();
@@ -220,7 +239,7 @@ void NetMuxFramework::UpdateSessionMetadata(const std::string& name, unsigned in
     m_settings.groupId = groupId;
 
     Packet update = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::SessionUpdate, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
-    std::string meta = m_settings.sessionName + "|" + m_settings.groupName;
+    std::string meta = m_settings.sessionName + "|" + m_settings.groupName + "|" + m_settings.displayName;
     strncpy(update.payload, meta.c_str(), sizeof(update.payload) - 1);
     update.payloadSize = (int)meta.size();
     m_network.SendPacket(update);
@@ -336,6 +355,15 @@ void NetMuxFramework::ProcessIncomingPackets() {
                 m_driver.SendMouseMovement(inPkt.x, inPkt.y);
                 if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
             }
+        } else if (inPkt.type == NetMuxPacketType::DeltaMovement) {
+            if (!IsPeerTrusted(peerId, inPkt.type)) continue;
+
+            PeerState oldPeer;
+            if (m_sync.GetPeerState(peerId, oldPeer)) {
+                m_sync.UpdatePeer(peerId, inPkt.groupId, oldPeer.normalizedX + inPkt.x, oldPeer.normalizedY + inPkt.y, inPkt.localTimestamp);
+                m_overlayDirty = true;
+                if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
+            }
         } else if (inPkt.type == NetMuxPacketType::AbsoluteMovement) {
             if (!IsPeerTrusted(peerId, inPkt.type)) continue;
 
@@ -412,18 +440,23 @@ void NetMuxFramework::ProcessIncomingPackets() {
         } else if (inPkt.type == NetMuxPacketType::Handshake) {
             int size = std::min(inPkt.payloadSize, (int)sizeof(inPkt.payload));
             std::string meta(inPkt.payload, size);
-            size_t sep = meta.find('|');
-            std::string remoteName = (sep != std::string::npos) ? meta.substr(0, sep) : meta;
-            std::string remoteGroupName = (sep != std::string::npos) ? meta.substr(sep + 1) : "";
-            std::cout << "[Network] Handshake from peer: " << remoteName << " (ID: " << peerId << " Group: " << remoteGroupName << ")" << std::endl;
-            m_sync.UpdatePeer(peerId, inPkt.groupId, 0, 0, 0, remoteName.c_str(), remoteGroupName.c_str());
+            size_t sep1 = meta.find('|');
+            size_t sep2 = meta.find('|', sep1 + 1);
+
+            std::string remoteName = (sep1 != std::string::npos) ? meta.substr(0, sep1) : meta;
+            std::string remoteGroupName = (sep1 != std::string::npos && sep2 != std::string::npos) ? meta.substr(sep1 + 1, sep2 - sep1 - 1) :
+                                         (sep1 != std::string::npos ? meta.substr(sep1 + 1) : "");
+            std::string remoteDisplayName = (sep2 != std::string::npos) ? meta.substr(sep2 + 1) : "";
+
+            std::cout << "[Network] Handshake from peer: " << remoteName << " (" << remoteDisplayName << ") ID: " << peerId << " Group: " << remoteGroupName << std::endl;
+            m_sync.UpdatePeer(peerId, inPkt.groupId, 0, 0, 0, remoteName.c_str(), remoteGroupName.c_str(), remoteDisplayName.c_str());
             m_lastSequence[peerId] = inPkt.sequenceNumber;
             Packet challenge = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::AuthChallenge, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
             challenge.x = m_authService.CreateChallenge(peerId);
             m_network.SendPacket(challenge);
             if (m_settings.isServer) {
                 Packet reply = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Handshake, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
-                std::string sMeta = m_settings.sessionName + "|" + m_settings.groupName;
+                std::string sMeta = m_settings.sessionName + "|" + m_settings.groupName + "|" + m_settings.displayName;
                 strncpy(reply.payload, sMeta.c_str(), sizeof(reply.payload) - 1);
                 reply.payloadSize = (int)sMeta.size();
                 m_network.SendPacket(reply);
@@ -485,6 +518,21 @@ void NetMuxFramework::ProcessIncomingPackets() {
             // Server Authority: Update local perception of remote peer
             if (!m_settings.isServer) {
                 m_sync.UpdatePeer(peerId, inPkt.groupId, inPkt.x, inPkt.y, inPkt.localTimestamp);
+            }
+        } else if (inPkt.type == NetMuxPacketType::FileHeader) {
+            if (IsPeerTrusted(peerId, inPkt.type)) {
+                m_fileTransfer.HandleFileHeader(inPkt);
+                if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
+            }
+        } else if (inPkt.type == NetMuxPacketType::FileData) {
+            if (IsPeerTrusted(peerId, inPkt.type)) {
+                m_fileTransfer.HandleFileData(inPkt);
+                if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
+            }
+        } else if (inPkt.type == NetMuxPacketType::KeyboardEvent) {
+            if (IsPeerTrusted(peerId, inPkt.type)) {
+                m_driver.SendKeyboardKey(inPkt.button, inPkt.down);
+                if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
             }
         }
     }
@@ -561,8 +609,36 @@ void NetMuxFramework::PerformPeerCleanup() {
 }
 
 #ifdef __linux__
-void NetMuxFramework::ProcessX11Events() {}
+void NetMuxFramework::ProcessX11Events() {
+    if (!m_xDisplay) return;
+    XEvent ev;
+    while (XPending((Display*)m_xDisplay)) {
+        XNextEvent((Display*)m_xDisplay, &ev);
+        m_clipboard.HandleX11Event(&ev);
+    }
+}
 #endif
+
+void NetMuxFramework::PerformFileTransfer() {
+    auto transfers = m_fileTransfer.GetActiveTransfers();
+    for (auto const& [id, status] : transfers) {
+        if (status.isOutgoing && !status.isComplete) {
+            Packet pkt = { m_localId, m_settings.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(), NetMuxPacketType::FileData, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+
+            // Check if we need to send header first
+            if (!m_fileTransfer.IsHeaderSent(id)) {
+                if (m_fileTransfer.GetHeaderPacket(id, pkt)) {
+                    m_network.SendPacket(pkt);
+                    m_fileTransfer.SetHeaderSent(id, true);
+                }
+            } else {
+                if (m_fileTransfer.GetNextChunk(id, pkt)) {
+                    m_network.SendPacket(pkt);
+                }
+            }
+        }
+    }
+}
 
 void NetMuxFramework::PerformClipboardSync() {
     static double lastCheck = 0;

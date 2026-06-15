@@ -7,6 +7,7 @@
 #include "ClipboardModule.hpp"
 #include "ConfigManager.hpp"
 #include "AuthService.hpp"
+#include "FileTransferEngine.hpp"
 #include "Timer.hpp"
 #include <map>
 #include <queue>
@@ -39,6 +40,7 @@ public:
     SyncModule& GetSyncModule() { return m_sync; }
     InputEngine& GetInputEngine() { return m_input; }
     NetworkManager& GetNetworkManager() { return m_network; }
+    FileTransferEngine& GetFileTransferEngine() { return m_fileTransfer; }
     bool IsRunning() const { return m_running; }
 
 #ifdef __linux__
@@ -54,6 +56,7 @@ private:
     void PerformLatencySync();
     void PerformDiscoveryBroadcast();
     void PerformClipboardSync();
+    void PerformFileTransfer();
     void PerformPeerCleanup();
 
     bool IsPeerTrusted(unsigned long long peerId, NetMuxPacketType type);
@@ -68,6 +71,7 @@ private:
     DriverInterface m_driver;
     OverlayEngine m_overlay;
     SyncModule m_sync;
+    FileTransferEngine m_fileTransfer;
 #ifdef __linux__
     ClipboardModule m_clipboard{m_xDisplay};
 #else

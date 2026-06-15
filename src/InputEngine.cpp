@@ -77,8 +77,9 @@ LRESULT CALLBACK KeyboardHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
     if (nCode >= 0 && s_instance && s_instance->m_isCaptured) {
         KBDLLHOOKSTRUCT* kbInfo = (KBDLLHOOKSTRUCT*)lParam;
         if (!(kbInfo->flags & LLKHF_INJECTED)) {
-            // Forward keys to network
-            // TODO: Packet pkt = { ... }; s_instance->m_pendingPackets.push(pkt);
+            bool down = (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN);
+            Packet pkt = { 0, 0, 0, 0.0, NetMuxPacketType::KeyboardEvent, 0, 0, (int)kbInfo->vkCode, down, false, 0, 0, 0, false, 0, 0, "", 0 };
+            s_instance->m_pendingPackets.push(pkt);
             return 1;
         }
     }
@@ -204,9 +205,17 @@ void InputEngine::Update() {
     int newVY = ((pt.y - st) * 65535) / (sh > 1 ? sh - 1 : 1);
 
     if (newVX != m_virtualX || newVY != m_virtualY) {
+        int dx = newVX - m_virtualX;
+        int dy = newVY - m_virtualY;
         m_virtualX = newVX;
         m_virtualY = newVY;
-        Packet pkt = { 0, 0, 0, 0.0, NetMuxPacketType::AbsoluteMovement, m_virtualX, m_virtualY, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+
+        // Use Delta Compression if movement is small enough to fit in a signed 16-bit int (which is always true for cursor delta)
+        // But for protocol simplicity, we always send as int and label it DeltaMovement
+        static int moveCount = 0;
+        NetMuxPacketType moveType = (moveCount++ % 10 == 0) ? NetMuxPacketType::AbsoluteMovement : NetMuxPacketType::DeltaMovement;
+
+        Packet pkt = { 0, 0, 0, 0.0, moveType, (moveType == NetMuxPacketType::DeltaMovement) ? dx : m_virtualX, (moveType == NetMuxPacketType::DeltaMovement) ? dy : m_virtualY, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
         m_pendingPackets.push(pkt);
     }
 
@@ -229,13 +238,18 @@ void InputEngine::Update() {
                         if (sw < 1) sw = 1920;
                         if (sh < 1) sh = 1080;
 
-                        m_accumulatedX += (raw->data.mouse.lLastX * 65535) / sw;
-                        m_virtualX += (raw->data.mouse.lLastX * 65535) / sw;
-                        m_virtualY += (raw->data.mouse.lLastY * 65535) / sh;
+                        int dx = (raw->data.mouse.lLastX * 65535) / sw;
+                        int dy = (raw->data.mouse.lLastY * 65535) / sh;
+                        m_accumulatedX += dx;
+                        m_virtualX += dx;
+                        m_virtualY += dy;
                         if (m_virtualX < 0) m_virtualX = 0; if (m_virtualX > 65535) m_virtualX = 65535;
                         if (m_virtualY < 0) m_virtualY = 0; if (m_virtualY > 65535) m_virtualY = 65535;
 
-                        Packet pkt = {0, 0, 0, 0.0, NetMuxPacketType::AbsoluteMovement, m_virtualX, m_virtualY, 0, false, false, 0, 0, 0, false, 0, 0, "", 0};
+                        static int rawMoveCount = 0;
+                        NetMuxPacketType moveType = (rawMoveCount++ % 10 == 0) ? NetMuxPacketType::AbsoluteMovement : NetMuxPacketType::DeltaMovement;
+
+                        Packet pkt = {0, 0, 0, 0.0, moveType, (moveType == NetMuxPacketType::DeltaMovement) ? dx : m_virtualX, (moveType == NetMuxPacketType::DeltaMovement) ? dy : m_virtualY, 0, false, false, 0, 0, 0, false, 0, 0, "", 0};
                         m_pendingPackets.push(pkt);
                     }
 

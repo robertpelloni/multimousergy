@@ -26,6 +26,13 @@ struct DiscoveryPacket {
     int port;
 };
 
+enum class ConnectionState {
+    Disconnected,
+    Connecting,
+    Connected,
+    Error
+};
+
 struct ClientConnection {
     Socket socket;
     std::vector<char> buffer;
@@ -38,6 +45,8 @@ public:
 
     bool StartServer(int port);
     bool Connect(const std::string& address, int port);
+
+    ConnectionState GetTcpState() const { return m_tcpState; }
 
     void SetIsServer(bool isServer) { m_isServer = isServer; }
     void SendPacket(const Packet& packet);
@@ -65,6 +74,7 @@ private:
     sockaddr_in m_remoteAddr;
     bool m_isServer;
     bool m_hasRemoteAddr;
+    ConnectionState m_tcpState;
 
     std::vector<char> m_connectorBuffer; // Buffer for the client-side connector socket
 };
