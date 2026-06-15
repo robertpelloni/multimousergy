@@ -12,6 +12,7 @@
 static AppSettings* s_currentSettings = nullptr;
 static SyncModule* s_currentSync = nullptr;
 static NetworkManager* s_currentNetwork = nullptr;
+static FileTransferEngine* s_currentFileTransfer = nullptr;
 static bool s_isRunning = false;
 static bool s_restartRequested = false;
 
@@ -61,8 +62,12 @@ enum ControlIDs {
     ID_DRIVER_TYPE = 10,
     ID_SECURITY_LOG = 11,
     ID_SCAN_BUTTON = 12,
-    ID_DISCOVERY_LIST = 13
+    ID_DISCOVERY_LIST = 13,
+    ID_SEND_FILE_BUTTON = 23,
+    ID_FILE_TRANSFER_LIST = 24
 };
+
+static HWND s_hwndFileTransferList = nullptr;
 
 static HWND s_hwndSecurityStatus = nullptr;
 
@@ -144,7 +149,11 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             s_hwndCursorMonitor = CreateWindow("STATIC", "", WS_VISIBLE | WS_CHILD | SS_OWNERDRAW | WS_BORDER, 15, 685, 270, 80, hwnd, (HMENU)ID_CURSOR_MONITOR, NULL, NULL);
 
             CreateWindow("STATIC", "Security Log:", WS_VISIBLE | WS_CHILD, 15, 770, 150, 20, hwnd, NULL, NULL, NULL);
-            s_hwndSecurityLog = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 15, 790, 270, 80, hwnd, (HMENU)ID_SECURITY_LOG, NULL, NULL);
+            s_hwndSecurityLog = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 15, 765, 270, 40, hwnd, (HMENU)ID_SECURITY_LOG, NULL, NULL);
+
+            CreateWindow("STATIC", "File Transfers:", WS_VISIBLE | WS_CHILD, 15, 810, 150, 20, hwnd, NULL, NULL, NULL);
+            s_hwndFileTransferList = CreateWindow("LISTBOX", "", WS_VISIBLE | WS_CHILD | WS_VSCROLL | WS_BORDER, 15, 830, 270, 40, hwnd, (HMENU)ID_FILE_TRANSFER_LIST, NULL, NULL);
+            CreateWindow("BUTTON", "Send File...", WS_VISIBLE | WS_CHILD, 15, 875, 120, 25, hwnd, (HMENU)ID_SEND_FILE_BUTTON, NULL, NULL);
             break;
 
         case WM_DRAWITEM:
@@ -200,6 +209,25 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
                 // to not auto-restart if we wanted. For now, it just stops the framework.
                 s_isRunning = false;
                 PostMessage(hwnd, WM_USER + 1, 0, 0);
+            }
+
+            if (LOWORD(wParam) == ID_SEND_FILE_BUTTON) {
+                if (s_currentFileTransfer) {
+                    OPENFILENAMEA ofn;
+                    char szFile[260] = {0};
+                    ZeroMemory(&ofn, sizeof(ofn));
+                    ofn.lStructSize = sizeof(ofn);
+                    ofn.hwndOwner = hwnd;
+                    ofn.lpstrFile = szFile;
+                    ofn.nMaxFile = sizeof(szFile);
+                    ofn.lpstrFilter = "All Files (*.*)\0*.*\0";
+                    ofn.nFilterIndex = 1;
+                    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
+                    if (GetOpenFileNameA(&ofn)) {
+                        s_currentFileTransfer->StartTransfer(ofn.lpstrFile, 0); // Send to all for now
+                        ConfigGUI::LogSecurityEvent("Started file transfer: " + std::string(ofn.lpstrFile));
+                    }
+                }
             }
 
             if (LOWORD(wParam) == ID_SAVE_BUTTON) {
@@ -265,10 +293,11 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
 
 static std::mutex s_monitorMutex;
 
-void ConfigGUI::Initialize(AppSettings& settings, SyncModule* sync, NetworkManager* network) {
+void ConfigGUI::Initialize(AppSettings& settings, SyncModule* sync, NetworkManager* network, FileTransferEngine* fileTransfer) {
     s_currentSettings = &settings;
     s_currentSync = sync;
     s_currentNetwork = network;
+    s_currentFileTransfer = fileTransfer;
     s_restartRequested = false;
 
 #ifdef _WIN32
@@ -315,6 +344,21 @@ void ConfigGUI::Tick() {
             if (SendMessage(s_hwndDiscoveryList, LB_FINDSTRINGEXACT, -1, (LPARAM)info) == LB_ERR) {
                 SendMessage(s_hwndDiscoveryList, LB_ADDSTRING, 0, (LPARAM)info);
             }
+        }
+    }
+
+    if (s_isRunning && s_currentFileTransfer) {
+        static double lastFileUpdate = 0;
+        double now = GetTickCount64();
+        if (now - lastFileUpdate > 500.0) {
+            auto transfers = s_currentFileTransfer->GetActiveTransfers();
+            SendMessage(s_hwndFileTransferList, LB_RESETCONTENT, 0, 0);
+            for (auto const& [id, t] : transfers) {
+                char buffer[256];
+                snprintf(buffer, sizeof(buffer), "%s | %.1f%% | %s", t.filename.c_str(), t.progress * 100.0f, t.isOutgoing ? "OUT" : "IN");
+                SendMessage(s_hwndFileTransferList, LB_ADDSTRING, 0, (LPARAM)buffer);
+            }
+            lastFileUpdate = now;
         }
     }
 
@@ -401,7 +445,7 @@ void ConfigGUI::UpdateCursorMonitor(const std::map<unsigned long long, PeerState
 bool ConfigGUI::ShowDialog(AppSettings& settings, SyncModule* sync) {
     s_currentSettings = &settings;
     s_currentSync = sync;
-    Initialize(settings, sync);
+    Initialize(settings, sync, nullptr, nullptr);
 
 #ifdef _WIN32
     MSG msg;

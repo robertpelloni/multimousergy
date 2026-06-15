@@ -132,6 +132,7 @@ void NetMuxFramework::Run() {
         PerformClipboardSync();
         PerformMasterStateSync();
         PerformSyncCheck();
+        PerformFileTransfer();
         PerformPeerCleanup();
 #ifdef __linux__
         ProcessX11Events();
@@ -501,6 +502,16 @@ void NetMuxFramework::ProcessIncomingPackets() {
             if (!m_settings.isServer) {
                 m_sync.UpdatePeer(peerId, inPkt.groupId, inPkt.x, inPkt.y, inPkt.localTimestamp);
             }
+        } else if (inPkt.type == NetMuxPacketType::FileHeader) {
+            if (IsPeerTrusted(peerId, inPkt.type)) {
+                m_fileTransfer.HandleFileHeader(inPkt);
+                if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
+            }
+        } else if (inPkt.type == NetMuxPacketType::FileData) {
+            if (IsPeerTrusted(peerId, inPkt.type)) {
+                m_fileTransfer.HandleFileData(inPkt);
+                if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
+            }
         }
     }
 }
@@ -578,6 +589,27 @@ void NetMuxFramework::PerformPeerCleanup() {
 #ifdef __linux__
 void NetMuxFramework::ProcessX11Events() {}
 #endif
+
+void NetMuxFramework::PerformFileTransfer() {
+    auto transfers = m_fileTransfer.GetActiveTransfers();
+    for (auto const& [id, status] : transfers) {
+        if (status.isOutgoing && !status.isComplete) {
+            Packet pkt = { m_localId, m_settings.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(), NetMuxPacketType::FileData, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+
+            // Check if we need to send header first
+            if (!m_fileTransfer.IsHeaderSent(id)) {
+                if (m_fileTransfer.GetHeaderPacket(id, pkt)) {
+                    m_network.SendPacket(pkt);
+                    m_fileTransfer.SetHeaderSent(id, true);
+                }
+            } else {
+                if (m_fileTransfer.GetNextChunk(id, pkt)) {
+                    m_network.SendPacket(pkt);
+                }
+            }
+        }
+    }
+}
 
 void NetMuxFramework::PerformClipboardSync() {
     static double lastCheck = 0;

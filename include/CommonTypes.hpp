@@ -33,7 +33,9 @@ enum class NetMuxPacketType {
     SyncCheck,
     SelectionUpdate,
     Disconnect,
-    Wheel
+    Wheel,
+    FileHeader,
+    FileData
 };
 
 struct Packet {

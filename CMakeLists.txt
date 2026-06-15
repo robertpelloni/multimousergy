@@ -25,6 +25,7 @@ set(LIB_SOURCES
     src/Timer.cpp
     src/NetMuxFramework.cpp
     src/SyncModule.cpp
+    src/FileTransferEngine.cpp
     src/ClipboardModule.cpp
     src/D3D11Overlay.cpp
     src/AuthModule.cpp

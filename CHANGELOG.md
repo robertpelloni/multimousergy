@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## [0.1.61-alpha] - 2025-01-24
+### Added
+- Implemented File Transfer Engine for transparent drag-and-drop file sharing via multi-part protocol.
+- Integrated file transfer progress monitoring into ConfigGUI.
+- Added asynchronous file chunking and reassembly logic.
+
 ## [0.1.60-alpha] - 2025-01-24
 ### Fixed
 - Refactored UI and Network stacks for robust connection handling and single-instance window management.
