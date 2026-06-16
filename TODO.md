@@ -19,5 +19,15 @@
 - [x] Enable D3D11 texture synchronization for custom cursor themes.
 - [x] Implement native X11 clipboard integration for Linux.
 - [x] Implement authoritative MasterStateSync handling for cursor alignment.
-- [ ] Implement robust File Transfer protocol handlers.
+ - [x] Implement robust File Transfer protocol handlers.
+ - [x] Implement SHA-256 integrity verification for file transfers.
+ - [x] Implement Auto-Reconnect and Peer Color customization.
+ - [x] Implement Keyboard Synchronization and Machine Info UI.
+ - [x] Implement Friendly Name broadcasting and Global Preferences.
+ - [x] Implement Tabbed GUI and Automatic Driver Detection.
+ - [x] Implement UI Tooltips and interactive Minimap selection.
+ - [x] Implement System Tray and Diagnostics Logger.
+ - [x] Implement Delta Compression and Dynamic Driver Loading.
+- [x] Refactor UI and Network stacks for robust connection handling.
+- [x] Implement Resolution-Aware Scaling and DPI metadata broadcasting.
 - [ ] Refactor Network Protocol to use formal serialization (Protobuf/Flatbuffers).

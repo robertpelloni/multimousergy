@@ -25,11 +25,16 @@ set(LIB_SOURCES
     src/Timer.cpp
     src/NetMuxFramework.cpp
     src/SyncModule.cpp
+    src/Logger.cpp
+    src/FileTransferEngine.cpp
     src/ClipboardModule.cpp
     src/D3D11Overlay.cpp
     src/AuthModule.cpp
     src/AuthService.cpp
     src/PacketSerializer.cpp
+    src/WebRTCManager.cpp
+    src/DesktopCapture.cpp
+    src/SpatialViewport.cpp
 )
 
 # Library

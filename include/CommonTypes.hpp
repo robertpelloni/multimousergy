@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 
 enum class NetMuxMouseButton {
     Left = 0,
@@ -33,7 +34,11 @@ enum class NetMuxPacketType {
     SyncCheck,
     SelectionUpdate,
     Disconnect,
-    Wheel
+    Wheel,
+    FileHeader,
+    FileData,
+    KeyboardEvent,
+    DeltaMovement
 };
 
 struct Packet {
@@ -53,8 +58,19 @@ struct Packet {
     bool isHorizontalWheel;
     int chunkIndex;
     int totalChunks;
+    float dpiScale;     // DPI Scaling factor (e.g. 1.25)
     char payload[4096]; // Dynamic data payload (e.g. clipboard text)
     int payloadSize;
+
+    bool IsHeaderOnly() const {
+        return (type == NetMuxPacketType::Movement ||
+                type == NetMuxPacketType::AbsoluteMovement ||
+                type == NetMuxPacketType::DeltaMovement ||
+                type == NetMuxPacketType::Sync ||
+                type == NetMuxPacketType::Ping ||
+                type == NetMuxPacketType::Heartbeat ||
+                type == NetMuxPacketType::SyncCheck);
+    }
 };
 
 struct Config {
@@ -79,4 +95,11 @@ struct AppSettings {
     unsigned char selectionColorR = 0;
     unsigned char selectionColorG = 120;
     unsigned char selectionColorB = 215;
+    unsigned char peerColorR = 255;
+    unsigned char peerColorG = 0;
+    unsigned char peerColorB = 0;
+    bool autoConnect = false;
+    bool startMinimized = false;
+    std::string displayName = "";
+    std::vector<std::string> recentServers;
 };

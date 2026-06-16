@@ -15,9 +15,7 @@ int main(int argc, char* argv[]) {
     ConfigManager configManager("netmux.cfg");
     AppSettings settings = { false, "127.0.0.1", 5555, {0, 0, false} };
 
-    unsigned char colorR = 255, colorG = 0, colorB = 0;
     bool benchMode = false;
-    bool autoConnect = false;
     bool firstRun = !configManager.Load(settings);
 
     for (int i = 1; i < argc; ++i) {
@@ -31,7 +29,7 @@ int main(int argc, char* argv[]) {
         else if (arg == "--right") settings.inputConfig.isLeft = false;
         else if (arg == "--gui") firstRun = true;
         else if (arg == "--bench") benchMode = true;
-        else if (arg == "--auto-connect") autoConnect = true;
+        else if (arg == "--auto-connect") settings.autoConnect = true;
         else if ((arg == "--key" || arg == "-k") && i + 1 < argc) settings.securityKey = argv[++i];
     }
 
@@ -40,18 +38,18 @@ int main(int argc, char* argv[]) {
 
         if (benchMode) framework.EnableBenchmarking(true);
 
-        if (firstRun && !autoConnect) {
+        if (firstRun && !settings.autoConnect) {
             if (!ConfigGUI::ShowDialog(settings, &framework.GetSyncModule())) return 0;
             configManager.Save(settings);
         }
 
         if (!framework.Initialize(settings)) {
-            std::cerr << "Framework init failed." << std::endl;
-            if (autoConnect || argc > 1) {
-                std::cerr << "Exiting due to initialization failure." << std::endl;
-                return 1;
+            std::cerr << "Framework init failed. Retrying..." << std::endl;
+            if (settings.autoConnect) {
+                std::this_thread::sleep_for(std::chrono::seconds(2));
+                continue;
             }
-            firstRun = true; autoConnect = false;
+            firstRun = true;
             continue;
         }
 
@@ -61,21 +59,19 @@ int main(int argc, char* argv[]) {
         framework.GetInputEngine().Initialize(settings.inputConfig);
 #endif
 
-        framework.SetCursorColor(colorR, colorG, colorB);
+        framework.SetCursorColor(settings.peerColorR, settings.peerColorG, settings.peerColorB);
 
         std::thread frameworkThread([&]() {
             framework.Run();
         });
 
-        ConfigGUI::Initialize(settings, &framework.GetSyncModule(), &framework.GetNetworkManager());
+        ConfigGUI::Initialize(settings, &framework.GetSyncModule(), &framework.GetNetworkManager(), &framework.GetFileTransferEngine());
 
         bool restartRequested = false;
         while (true) {
             if (ConfigGUI::IsRunning()) {
                 ConfigGUI::Tick();
-                // Check if user clicked "Save & Start" which sends WM_USER+1
-                // and triggers re-init in main loop
-            } else if (!autoConnect) {
+            } else if (!settings.autoConnect) {
                 break;
             }
 

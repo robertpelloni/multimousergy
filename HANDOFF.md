@@ -1,17 +1,21 @@
-# Session Handoff - v0.1.59-alpha
+# NetMux Session Handoff - v0.1.71-alpha
 
-## Summary of Changes
-- **Multi-Cursor Consistency**: Resolved a critical bug where keep-alive packets (Heartbeat, Sync, Ping) were resetting peer positions to (0,0) because they lacked coordinate data.
-- **RefreshPeer Implementation**: Introduced `SyncModule::RefreshPeer` to specifically handle keep-alive updates without overwriting stored position data.
-- **Broadcast Visibility**: Verified that `InputEngine` correctly broadcasts local cursor coordinates to all peers, fulfilling the "Multiplexing" vision where all users are visible to each other regardless of capture state.
-- **SyncCheck Integration**: Added handling for `NetMuxPacketType::SyncCheck` in the framework to maintain peer activity status during idle periods.
-- **Test Suite Verification**: Confirmed that all concurrent synchronization and authoritative correction tests pass with the new `RefreshPeer` logic.
+## Major Accomplishments
+- **UI/Network Overhaul**: Fixed the "multiple windows" bug, implemented a state-driven asynchronous connection model, and transitioned to a modern tabbed GUI.
+- **Collaboration Features**: Implemented full Keyboard Synchronization and a robust File Transfer Engine (multi-file, resume, SHA-256).
+- **Interactive Monitoring**: Minimap now supports clicking to switch focus. Added descriptive tooltips to all major controls.
+- **Diagnostics & Stability**: Integrated a `Logger` system with a UI tab and `netmux.log`. Optimized network I/O with `select()` and UI rendering with state-tracking.
+- **Performance Optimization**: Implemented Delta Compression for cursor updates to reduce network overhead.
+- **System Integration**: Added System Tray support for background operation on Windows and native X11 event dispatching on Linux.
+- **Driver Portability**: Transitioned `DriverInterface` to dynamic SDK loading, allowing the binary to run gracefully with or without physical drivers installed.
 
-## Technical Observations
-- `SyncModule::UpdatePeer` should only be used when fresh coordinate data is available. For keep-alives, `RefreshPeer` is the preferred path to avoid state corruption.
-- Authoritative synchronization remains robust; the server-side position enforcement correctly overrides any local drift or reset attempts.
+## Project State
+- **Version**: `v0.1.71-alpha`
+- **Build**: Passing on Windows (simulated) and Linux (actual).
+- **Tests**: All 100% passing in `NetMuxTests`.
 
-## Repository State
-- Version: `v0.1.59-alpha`
-- Build status: All tests passed.
-- Major Features: Authoritative Sync, Multi-Cursor Visibility, D3D11/GDI Overlay, Secure Mutual Auth.
+## Strategic Direction
+- The core infrastructure is now extremely solid.
+- **Next Steps**: Multi-platform refactor (macOS support), Wayland research for Linux.
+- **Native SDKs**: The `DriverInterface` is ready for actual ViGEmBus/Interception SDK linking once the `.lib` files are provided to the build system.
+- **Refinement**: Implement formal serialization (Flatbuffers) for long-term protocol stability.
