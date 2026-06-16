@@ -8,6 +8,9 @@
 #include "ConfigManager.hpp"
 #include "AuthService.hpp"
 #include "FileTransferEngine.hpp"
+#include "WebRTCManager.hpp"
+#include "DesktopCapture.hpp"
+#include "SpatialViewport.hpp"
 #include "Timer.hpp"
 #include <map>
 #include <queue>
@@ -72,6 +75,9 @@ private:
     OverlayEngine m_overlay;
     SyncModule m_sync;
     FileTransferEngine m_fileTransfer;
+    WebRTCManager m_webrtc;
+    DesktopCapture m_capture;
+    SpatialViewport m_spatialViewport;
 #ifdef __linux__
     ClipboardModule m_clipboard{m_xDisplay};
 #else

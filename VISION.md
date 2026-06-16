@@ -1,7 +1,7 @@
-# VISION.md
+# VISION.md: MultiMousergy
 
 ## Project Goal
-NetMux aims to be the ultimate cross-network multi-cursor system for Windows.
+MultiMousergy (formerly NetMux) is a collaborative spatial desktop environment that merges multi-cursor multiplexing with real-time video chat and seamless display-border transitions.
 Unlike traditional KM sharing tools (Synergy, Mouse Without Borders) that hijack the remote cursor,
 NetMux provides true cursor isolation by presenting remote inputs as independent virtual hardware devices.
 
@@ -15,3 +15,5 @@ NetMux provides true cursor isolation by presenting remote inputs as independent
 7. **Unified Clock Synchronization**: Distributed clock coordination to resolve race conditions and interaction order across multiple networked machines.
 8. **Multi-Platform Foundation**: A unified distributed input framework capable of bridging Windows, Linux, and macOS environments.
 9. **High-Capacity Collaboration**: Unlimited data sharing (clipboard, files) via intelligent protocol chunking and reassembly.
+10. **Spatial Workspace Viewport**: A 3D-composited desktop space that zooms and pans between peers, creating a unified physical-virtual workspace.
+11. **Integrated Media Streams**: Real-time WebRTC-powered video and audio tracks synchronized with cursor focus and spatial position.

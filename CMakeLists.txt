@@ -32,6 +32,9 @@ set(LIB_SOURCES
     src/AuthModule.cpp
     src/AuthService.cpp
     src/PacketSerializer.cpp
+    src/WebRTCManager.cpp
+    src/DesktopCapture.cpp
+    src/SpatialViewport.cpp
 )
 
 # Library

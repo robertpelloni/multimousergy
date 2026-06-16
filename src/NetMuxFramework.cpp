@@ -154,6 +154,9 @@ void NetMuxFramework::Run() {
 
         m_sync.Step(dt);
 
+        // Update MultiMousergy Spatial Viewport
+        m_spatialViewport.Update((float)dt / 1000.0f, m_input.IsCaptured());
+
         // Update input capture permission based on connectivity
         auto allPeers = m_sync.GetAllPeers();
         bool hasExternalPeers = false;
