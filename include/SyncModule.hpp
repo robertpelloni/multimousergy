@@ -25,6 +25,7 @@ struct PeerState {
     float targetY;
     int screenWidth; // Remote screen resolution for normalization context
     int screenHeight;
+    float dpiScale;
     int normalizedX; // 0-65535
     int normalizedY;
     bool isAuthenticated;
@@ -56,7 +57,7 @@ public:
     void UpdatePeerButtons(unsigned long long id, int button, bool down);
     void UpdatePeerSelection(unsigned long long id, bool selecting, int startX, int startY);
     void SetAuthenticated(unsigned long long id, bool auth);
-    void UpdatePeerResolution(unsigned long long id, int width, int height);
+    void UpdatePeerResolution(unsigned long long id, int width, int height, float dpi = 1.0f);
     void UpdateDrift(unsigned long long id, float drift);
     void UpdateLatency(unsigned long long id, double latency);
     void UpdateClockOffset(unsigned long long id, double remoteTime, double localTime);

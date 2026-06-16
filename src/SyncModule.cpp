@@ -26,11 +26,12 @@ void SyncModule::SetAuthenticated(unsigned long long id, bool auth) {
     }
 }
 
-void SyncModule::UpdatePeerResolution(unsigned long long id, int width, int height) {
+void SyncModule::UpdatePeerResolution(unsigned long long id, int width, int height, float dpi) {
     std::lock_guard<std::mutex> lock(m_mutex);
     PeerState& peer = m_peers[id];
     peer.screenWidth = width;
     peer.screenHeight = height;
+    peer.dpiScale = dpi;
 }
 
 void SyncModule::UpdateDrift(unsigned long long id, float drift) {

@@ -29,4 +29,5 @@
  - [x] Implement System Tray and Diagnostics Logger.
  - [x] Implement Delta Compression and Dynamic Driver Loading.
 - [x] Refactor UI and Network stacks for robust connection handling.
+- [x] Implement Resolution-Aware Scaling and DPI metadata broadcasting.
 - [ ] Refactor Network Protocol to use formal serialization (Protobuf/Flatbuffers).

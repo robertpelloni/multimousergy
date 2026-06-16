@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## [0.1.71-alpha] - 2025-01-24
+### Added
+- Implemented Dynamic Resolution Scaling and DPI Awareness.
+- Enhanced protocol to broadcast DPI scale factors.
+- Updated ConfigGUI with remote resolution and DPI telemetry in the peer list.
+
 ## [0.1.70-alpha] - 2025-01-24
 ### Added
 - Refined ConfigGUI UX: persistent status bar, dynamic button text, and "Connect to Selected" button.

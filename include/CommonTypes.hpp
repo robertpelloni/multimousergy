@@ -58,6 +58,7 @@ struct Packet {
     bool isHorizontalWheel;
     int chunkIndex;
     int totalChunks;
+    float dpiScale;     // DPI Scaling factor (e.g. 1.25)
     char payload[4096]; // Dynamic data payload (e.g. clipboard text)
     int payloadSize;
 

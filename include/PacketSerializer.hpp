@@ -17,10 +17,11 @@ public:
                sizeof(int) * 2 +            // selectionStartX, selectionStartY
                sizeof(int) +                // wheelDelta
                sizeof(uint8_t) +            // isHorizontalWheel
-               sizeof(int) * 2;             // chunkIndex, totalChunks
+               sizeof(int) * 2 +            // chunkIndex, totalChunks
+               sizeof(float);               // dpiScale
     }
 
-    static constexpr size_t HEADER_SIZE = 8 + 4 + 4 + 8 + 4 + 4 + 4 + 4 + 1 + 1 + 4 + 4 + 4 + 1 + 4 + 4;
+    static constexpr size_t HEADER_SIZE = 8 + 4 + 4 + 8 + 4 + 4 + 4 + 4 + 1 + 1 + 4 + 4 + 4 + 1 + 4 + 4 + 4;
 
     // Serializes a Packet struct into a byte buffer.
     // If headerOnly is true, only fields up to 'payload' are serialized.

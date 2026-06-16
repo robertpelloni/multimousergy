@@ -760,7 +760,9 @@ void ConfigGUI::Tick() {
                     if (peer.buttonState & 4) btnStr[2] = 'M';
                     const char* authStatus = (id == s_currentSync->GetLocalId() || s_currentSettings->securityKey.empty()) ? "OPEN" : (peer.isAuthenticated ? "AUTH" : "LOCKED");
                     const char* pName = (peer.displayName[0] != '\0') ? peer.displayName : peer.sessionName;
-                    snprintf(info, sizeof(info), "%s | RTT:%dms | Drift:%.1fpx | [%s] | %s", pName, (int)peer.latency, peer.drift, authStatus, btnStr);
+                    char resStr[32] = "";
+                    if (peer.screenWidth > 0) snprintf(resStr, sizeof(resStr), " [%dx%d @%.0f%%]", peer.screenWidth, peer.screenHeight, peer.dpiScale * 100.0f);
+                    snprintf(info, sizeof(info), "%s%s | RTT:%dms | Drift:%.1fpx | [%s] | %s", pName, resStr, (int)peer.latency, peer.drift, authStatus, btnStr);
                     SendMessage(s_hwndPeerList, LB_ADDSTRING, 0, (LPARAM)info);
                     lastPeerStates[id] = info;
                 }
