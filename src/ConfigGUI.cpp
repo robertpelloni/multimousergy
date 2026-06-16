@@ -1,8 +1,12 @@
 #include "ConfigGUI.hpp"
+#include "DriverInterface.hpp"
+#include "Logger.hpp"
 #include <iostream>
 #include <thread>
 #include <string>
 #include <mutex>
+#include <winsock2.h> // for gethostname, etc.
+#include <ws2tcpip.h>
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -11,6 +15,7 @@
 #include <shellapi.h>
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "shell32.lib")
+#pragma comment(lib, "Ws2_32.lib")
 
 #define WM_TRAYICON (WM_USER + 100)
 #define ID_TRAY_EXIT 2001
@@ -50,6 +55,7 @@ static HWND s_hwndSelColorB = nullptr;
 static HWND s_hwndCursorMonitor = nullptr;
 static HWND s_hwndSecurityLog = nullptr;
 static HWND s_hwndDiscoveryList = nullptr;
+static HWND s_hwndDiagnosticsList = nullptr;
 
 enum ControlIDs {
     ID_SAVE_BUTTON = 1,
