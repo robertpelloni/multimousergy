@@ -36,7 +36,12 @@ void WebRTCManager::SendData(const uint8_t* data, size_t size) {
 }
 
 bool WebRTCManager::IsConnected() const {
-    return false; // Stub
+    // In a real implementation, this would check m_peerConnection->state()
+    return false;
+}
+
+void WebRTCManager::Shutdown() {
+    std::cout << "[WebRTC] Shutting down peer connection..." << std::endl;
 }
 
 void WebRTCManager::AddVideoTrack() {

@@ -18,6 +18,7 @@ public:
     void SetLocalDesktopTexture(ID3D11ShaderResourceView* srv);
     void SetRemoteDesktopTexture(ID3D11ShaderResourceView* srv);
     void SetLocalWebcamTexture(ID3D11ShaderResourceView* srv);
+    void SetCursorTexture(ID3D11ShaderResourceView* srv);
     void SetRemoteWebcamTexture(ID3D11ShaderResourceView* srv);
 #else
     bool Initialize(void* device) { return false; }

@@ -173,8 +173,11 @@ void SpatialViewport::Render(ID3D11DeviceContext* context, const std::map<unsign
         world = DirectX::XMMatrixScaling(0.05f, 0.05f, 1.0f) * DirectX::XMMatrixTranslation(cx, cy, -0.01f);
         cb->worldViewProj = DirectX::XMMatrixTranspose(world * m_viewMatrix * m_projMatrix);
         context->Unmap(m_constantBuffer, 0);
-        // Bind cursor texture and draw...
-        context->Draw(4, 0);
+
+        if (m_cursorSRV) {
+            context->PSSetShaderResources(0, 1, &m_cursorSRV);
+            context->Draw(4, 0);
+        }
     }
 
     // Render Webcam PiP (Local: Bottom-Right, Remote: Bottom-Left)
@@ -221,5 +224,11 @@ void SpatialViewport::SetRemoteWebcamTexture(ID3D11ShaderResourceView* srv) {
     if (m_remoteWebcamSRV) m_remoteWebcamSRV->Release();
     m_remoteWebcamSRV = srv;
     if (m_remoteWebcamSRV) m_remoteWebcamSRV->AddRef();
+}
+
+void SpatialViewport::SetCursorTexture(ID3D11ShaderResourceView* srv) {
+    if (m_cursorSRV) m_cursorSRV->Release();
+    m_cursorSRV = srv;
+    if (m_cursorSRV) m_cursorSRV->AddRef();
 }
 #endif

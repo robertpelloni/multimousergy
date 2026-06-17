@@ -30,6 +30,7 @@ public:
 #ifdef _WIN32
     ID3D11Device* GetDevice() { return m_device; }
     ID3D11DeviceContext* GetContext() { return m_context; }
+    ID3D11ShaderResourceView* GetCursorSRV() { return m_textureView; }
 #endif
 
 private:

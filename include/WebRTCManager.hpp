@@ -29,6 +29,7 @@ public:
 
     void SendData(const uint8_t* data, size_t size);
     bool IsConnected() const;
+    void Shutdown();
 
     // Media track management
     void AddVideoTrack();

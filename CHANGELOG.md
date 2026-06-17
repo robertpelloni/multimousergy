@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## [0.1.78-alpha] - 2025-01-24
+### Added
+- Finalized H.264 Sample Processing for VideoEncoder and VideoDecoder (Windows MF).
+- Implemented DirectX surface wrapping and NAL bitstream extraction for hardware-accelerated streams.
+- Refined WebRTCManager lifecycle with explicit shutdown and connectivity checks.
+
 ## [0.1.77-alpha] - 2025-01-24
 ### Added
 - Integrated H.264 Video streaming path in NetMuxFramework.

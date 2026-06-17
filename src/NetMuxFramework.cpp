@@ -293,6 +293,7 @@ void NetMuxFramework::Run() {
             if (m_settings.spatialMode) {
                 D3D11Overlay* d3d = (D3D11Overlay*)m_overlay.GetD3DOverlay();
                 if (d3d && d3d->GetContext()) {
+                    m_spatialViewport.SetCursorTexture(d3d->GetCursorSRV());
                     m_spatialViewport.Render(d3d->GetContext(), overlayPeers);
                 }
             }
