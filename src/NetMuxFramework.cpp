@@ -2,6 +2,7 @@
 #include "D3D11Overlay.hpp"
 #include "ConfigGUI.hpp"
 #include "AuthModule.hpp"
+#include "PacketSerializer.hpp"
 #include "Logger.hpp"
 
 #ifdef __linux__
@@ -358,7 +359,13 @@ void NetMuxFramework::ProcessOutgoingPackets() {
         }
 
         // Always broadcast to peers so they can see us globally
-        m_network.SendPacket(outPkt);
+        // MultiMousergy: Use WebRTC DataChannel if available for low-latency movement
+        if (m_webrtc.IsConnected() && (outPkt.type == NetMuxPacketType::DeltaMovement || outPkt.type == NetMuxPacketType::AbsoluteMovement)) {
+            auto buf = PacketSerializer::Serialize(outPkt, true);
+            m_webrtc.SendData(buf.data(), buf.size());
+        } else {
+            m_network.SendPacket(outPkt);
+        }
     }
 }
 

@@ -28,6 +28,7 @@ public:
     void AddICECandidate(const std::string& candidate);
 
     void SendData(const uint8_t* data, size_t size);
+    bool IsConnected() const;
 
     // Media track management
     void AddVideoTrack();

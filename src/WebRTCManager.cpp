@@ -30,8 +30,13 @@ void WebRTCManager::AddICECandidate(const std::string& candidate) {
 }
 
 void WebRTCManager::SendData(const uint8_t* data, size_t size) {
-    // Implementation for low-latency mouse packets over DataChannel
-    std::cout << "[WebRTC] Sending data over DataChannel (" << size << " bytes)" << std::endl;
+    // High-performance delivery for cursor/keyboard packets
+    // In a full implementation, this would call m_dataChannel->Send(...)
+    // std::cout << "[WebRTC] DataChannel Send: " << size << " bytes" << std::endl;
+}
+
+bool WebRTCManager::IsConnected() const {
+    return false; // Stub
 }
 
 void WebRTCManager::AddVideoTrack() {

@@ -4,6 +4,10 @@
 
 #ifdef _WIN32
 #include <d3d11.h>
+#include <mfapi.h>
+#include <mfidl.h>
+#include <mfreadwrite.h>
+#include <mftransform.h>
 #endif
 
 class VideoEncoder {
@@ -22,5 +26,10 @@ public:
 private:
 #ifdef _WIN32
     ID3D11Device* m_device;
+    IMFTransform* m_encoder;
+    IMFMediaType* m_inputType;
+    IMFMediaType* m_outputType;
+    DWORD m_inputBufferId;
+    DWORD m_outputBufferId;
 #endif
 };

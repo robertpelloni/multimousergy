@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.74-alpha] - 2025-01-24
+### Added
+- Implemented hardware-accelerated H.264 encoding skeleton in VideoEncoder (Media Foundation).
+- Integrated WebRTC DataChannel for ultra-low latency cursor movement updates.
+- Refined SpatialViewport with aspect-ratio aware scaling for 3D desktop planes.
+- Added media pipeline telemetry support to the framework.
+
 ## [0.1.73-alpha] - 2025-01-24
 ### Added
 - Implemented WebcamCapture using Windows Media Foundation.

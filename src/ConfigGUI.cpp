@@ -772,7 +772,8 @@ void ConfigGUI::Tick() {
                     const char* pName = (peer.displayName[0] != '\0') ? peer.displayName : peer.sessionName;
                     char resStr[32] = "";
                     if (peer.screenWidth > 0) snprintf(resStr, sizeof(resStr), " [%dx%d @%.0f%%]", peer.screenWidth, peer.screenHeight, peer.dpiScale * 100.0f);
-                    snprintf(info, sizeof(info), "%s%s | RTT:%dms | Drift:%.1fpx | [%s] | %s", pName, resStr, (int)peer.latency, peer.drift, authStatus, btnStr);
+                    const char* mediaStatus = (id == s_currentSync->GetLocalId()) ? "HOST" : "IDLE";
+                    snprintf(info, sizeof(info), "%s%s | RTT:%dms | [%s] | %s | %s", pName, resStr, (int)peer.latency, authStatus, btnStr, mediaStatus);
                     SendMessage(s_hwndPeerList, LB_ADDSTRING, 0, (LPARAM)info);
                     lastPeerStates[id] = info;
                 }

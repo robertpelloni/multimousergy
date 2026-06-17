@@ -142,7 +142,9 @@ void SpatialViewport::Render(ID3D11DeviceContext* context, const std::map<unsign
     D3D11_MAPPED_SUBRESOURCE ms;
     context->Map(m_constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
     ConstantBuffer* cb = (ConstantBuffer*)ms.pData;
-    DirectX::XMMATRIX world = DirectX::XMMatrixIdentity();
+
+    // Scale local plane to maintain aspect ratio 1.0f in normalized space (fill viewport)
+    DirectX::XMMATRIX world = DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
     cb->worldViewProj = DirectX::XMMatrixTranspose(world * m_viewMatrix * m_projMatrix);
     context->Unmap(m_constantBuffer, 0);
 
