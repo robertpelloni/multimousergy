@@ -31,4 +31,5 @@
 - [x] Refactor UI and Network stacks for robust connection handling.
 - [x] Implement Resolution-Aware Scaling and DPI metadata broadcasting.
 - [x] Establish architectural skeletons for Media Pipeline (MF/WebRTC).
+- [x] Implement cross-platform capture (X11/V4L2) and rendering (X11) for Linux.
 - [ ] Refactor Network Protocol to use formal serialization (Protobuf/Flatbuffers).

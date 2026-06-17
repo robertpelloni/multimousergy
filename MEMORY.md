@@ -1,4 +1,4 @@
-# NetMux Memory - v0.1.75-alpha
+# NetMux Memory - v0.1.76-alpha
 
 ## UI and Network Stack Refactor
 The UI and Network stacks were significantly refactored to resolve race conditions and usability issues.

@@ -52,9 +52,9 @@
 
 ## Milestone 6: MultiMousergy Spatial Evolution (IN PROGRESS)
 - [x] WebRTC Signaling Structural Path (SDP/ICE).
-- [x] DXGI Desktop Duplication Skeleton (Windows).
+- [x] Cross-Platform Desktop Capture: DXGI (Windows) & X11 (Linux).
 - [x] 3D Composition Engine: D3D11-based spatial viewport basics.
 - [x] Boundary Animation: Smooth pan/zoom transitions via matrix interpolation.
-- [x] Webcam/Media Pipeline Skeletons (Windows Media Foundation).
+- [x] Cross-Platform Webcam Integration: Media Foundation (Windows) & V4L2 (Linux).
 - [ ] Complete H.264 Encoder/Decoder Implementation.
 - [ ] Complete WebRTC Native C++ Media Integration.
