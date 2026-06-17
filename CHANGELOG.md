@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.72-alpha] - 2025-01-24
+### Added
+- Integrated DXGI Desktop Duplication for ultra-low latency frame capture.
+- Implemented 3D Spatial Viewport using D3D11 with matrix-interpolated "Spatial Zoom".
+- Wired real-time desktop frame textures into the 3D composition engine.
+- Enhanced SpatialViewport with Anisotropic filtering and WVP matrix constant buffers.
+
 ## [0.1.71-alpha] - 2025-01-24
 ### Added
 - Implemented Dynamic Resolution Scaling and DPI Awareness.

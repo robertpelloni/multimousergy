@@ -1,4 +1,5 @@
 #include "NetMuxFramework.hpp"
+#include "D3D11Overlay.hpp"
 #include "ConfigGUI.hpp"
 #include "AuthModule.hpp"
 #include "Logger.hpp"
@@ -82,6 +83,17 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
         return false;
     }
 
+#ifdef _WIN32
+    D3D11Overlay* d3d = (D3D11Overlay*)m_overlay.GetD3DOverlay();
+    if (d3d && d3d->GetDevice()) {
+        int sw = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+        int sh = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+        m_spatialViewport.Initialize(d3d->GetDevice(), (float)sw / (float)sh);
+        m_capture.Initialize();
+        m_webrtc.Initialize();
+    }
+#endif
+
     if (!m_settings.cursorThemePath.empty()) {
         m_overlay.LoadCursorTheme(m_settings.cursorThemePath);
     }
@@ -156,6 +168,26 @@ void NetMuxFramework::Run() {
 
         // Update MultiMousergy Spatial Viewport
         m_spatialViewport.Update((float)dt / 1000.0f, m_input.IsCaptured());
+
+#ifdef _WIN32
+        // Throttled frame capture (e.g. 30fps) for the spatial viewport to save GPU resources
+        static double lastCapture = 0;
+        if (m_loopTimer.ElapsedMilliseconds() - lastCapture > 33.3) {
+            if (m_capture.AcquireFrame()) {
+                D3D11Overlay* d3d = (D3D11Overlay*)m_overlay.GetD3DOverlay();
+                if (d3d) {
+                    ID3D11ShaderResourceView* srv = nullptr;
+                    d3d->GetDevice()->CreateShaderResourceView(m_capture.GetCurrentFrameTexture(), NULL, &srv);
+                    if (srv) {
+                        m_spatialViewport.SetLocalDesktopTexture(srv);
+                        srv->Release();
+                    }
+                }
+                m_capture.ReleaseFrame();
+            }
+            lastCapture = m_loopTimer.ElapsedMilliseconds();
+        }
+#endif
 
         // Update input capture permission based on connectivity
         auto allPeers = m_sync.GetAllPeers();
@@ -235,6 +267,13 @@ void NetMuxFramework::Run() {
             }
             m_overlay.SetActivePeer(activeId);
             m_overlay.RenderPeers(overlayPeers);
+
+#ifdef _WIN32
+            D3D11Overlay* d3d = (D3D11Overlay*)m_overlay.GetD3DOverlay();
+            if (d3d && d3d->GetContext()) {
+                m_spatialViewport.Render(d3d->GetContext());
+            }
+#endif
             
             // Minimap logic: Show everyone
             ConfigGUI::UpdateCursorMonitor(peers); 

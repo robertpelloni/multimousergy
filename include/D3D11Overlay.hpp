@@ -27,6 +27,11 @@ public:
     void UpdateCursorTexture(void* hBitmap);
     void Shutdown();
 
+#ifdef _WIN32
+    ID3D11Device* GetDevice() { return m_device; }
+    ID3D11DeviceContext* GetContext() { return m_context; }
+#endif
+
 private:
     unsigned long long m_activePeerId = 0;
     unsigned char m_selR = 0, m_selG = 120, m_selB = 215;
