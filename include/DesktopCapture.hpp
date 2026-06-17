@@ -18,7 +18,7 @@ public:
     ~DesktopCapture();
 
 #ifdef __linux__
-    bool Initialize(void* display);
+    bool Initialize(Display* display);
 #else
     bool Initialize();
 #endif

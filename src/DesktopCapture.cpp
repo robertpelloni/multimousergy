@@ -8,34 +8,14 @@ DesktopCapture::DesktopCapture() {
     m_deskDupl = nullptr;
     m_currentFrame = nullptr;
 #endif
-#ifdef __linux__
-    m_display = nullptr;
-    m_currentImage = nullptr;
-#endif
 }
 
 DesktopCapture::~DesktopCapture() {
 #ifdef _WIN32
     if (m_deskDupl) m_deskDupl->Release();
 #endif
-#ifdef __linux__
-    if (m_currentImage) XDestroyImage(m_currentImage);
-#endif
 }
 
-#ifdef __linux__
-bool DesktopCapture::Initialize(void* display) {
-    m_display = (Display*)display;
-    if (!m_display) return false;
-    m_root = DefaultRootWindow(m_display);
-    XWindowAttributes gwa;
-    XGetWindowAttributes(m_display, m_root, &gwa);
-    m_width = gwa.width;
-    m_height = gwa.height;
-    std::cout << "[DesktopCapture] Initialized Linux X11 capture: " << m_width << "x" << m_height << std::endl;
-    return true;
-}
-#else
 bool DesktopCapture::Initialize() {
 #ifdef _WIN32
     std::cout << "[DesktopCapture] Initializing DXGI Desktop Duplication..." << std::endl;
@@ -71,15 +51,8 @@ bool DesktopCapture::Initialize() {
     return false;
 #endif
 }
-#endif
 
 bool DesktopCapture::AcquireFrame() {
-#ifdef __linux__
-    if (!m_display) return false;
-    if (m_currentImage) XDestroyImage(m_currentImage);
-    m_currentImage = XGetImage(m_display, m_root, 0, 0, m_width, m_height, AllPlanes, ZPixmap);
-    return m_currentImage != nullptr;
-#endif
 #ifdef _WIN32
     if (!m_deskDupl) return false;
 

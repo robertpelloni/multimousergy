@@ -1,12 +1,5 @@
 # CHANGELOG.md
 
-## [0.1.76-alpha] - 2025-01-24
-### Added
-- Implemented Linux Desktop Capture using X11 (XGetImage).
-- Implemented Linux Webcam Capture using V4L2 (/dev/video0).
-- Implemented native X11 Overlay backend for Linux with transparency support.
-- Unified cross-platform initialization for capture and rendering engines.
-
 ## [0.1.75-alpha] - 2025-01-24
 ### Added
 - Established architectural skeleton for VideoDecoder (Windows Media Foundation).
