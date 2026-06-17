@@ -15,6 +15,8 @@ VideoDecoder::~VideoDecoder() {
 }
 
 #ifdef _WIN32
+#include <wmcodecdsp.h>
+
 bool VideoDecoder::Initialize(ID3D11Device* device) {
     m_device = device;
     std::cout << "[VideoDecoder] Initializing hardware H.264 decoder (Media Foundation MFT)..." << std::endl;
@@ -22,7 +24,9 @@ bool VideoDecoder::Initialize(ID3D11Device* device) {
     HRESULT hr = MFStartup(MF_VERSION);
     if (FAILED(hr)) return false;
 
-    // Implementation for H.264 MFT decoder setup...
+    hr = CoCreateInstance(CLSID_CMSH264DecoderMFT, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&m_decoder));
+    if (FAILED(hr)) return false;
+
     return true;
 }
 

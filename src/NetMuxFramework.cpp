@@ -90,7 +90,7 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
         int sw = GetSystemMetrics(SM_CXVIRTUALSCREEN);
         int sh = GetSystemMetrics(SM_CYVIRTUALSCREEN);
         m_spatialViewport.Initialize(d3d->GetDevice(), (float)sw / (float)sh);
-        m_capture.Initialize();
+        m_capture.Initialize((Display*)m_xDisplay);
         m_webcam.Initialize(d3d->GetDevice());
         m_videoEncoder.Initialize(d3d->GetDevice());
         m_videoDecoder.Initialize(d3d->GetDevice());
@@ -373,7 +373,19 @@ void NetMuxFramework::PerformVideoSync() {
         std::vector<uint8_t> bitstream;
         if (m_capture.GetCurrentFrameTexture()) {
             if (m_videoEncoder.EncodeFrame(m_capture.GetCurrentFrameTexture(), bitstream)) {
-                // Chunk and send bitstream as VideoFrame packets...
+                // MultiMousergy: Video frame chunking and transmission
+                const size_t CHUNK_SIZE = 4000;
+                int totalChunks = (int)((bitstream.size() + CHUNK_SIZE - 1) / CHUNK_SIZE);
+                if (totalChunks == 0) totalChunks = 1;
+                for (int i = 0; i < totalChunks; ++i) {
+                    size_t offset = i * CHUNK_SIZE;
+                    size_t remaining = bitstream.size() - offset;
+                    size_t currentChunkSize = std::min(CHUNK_SIZE, remaining);
+                    Packet pkt = { m_localId, m_settings.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(), NetMuxPacketType::VideoFrame, 0, 0, 0, false, false, 0, 0, 0, false, i, totalChunks, 1.0f, "", 0 };
+                    if (currentChunkSize > 0) memcpy(pkt.payload, bitstream.data() + offset, currentChunkSize);
+                    pkt.payloadSize = (int)currentChunkSize;
+                    m_network.SendPacket(pkt);
+                }
             }
         }
         lastSync = m_loopTimer.ElapsedMilliseconds();

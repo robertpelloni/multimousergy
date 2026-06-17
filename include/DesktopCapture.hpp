@@ -20,7 +20,7 @@ public:
 #ifdef __linux__
     bool Initialize(Display* display);
 #else
-    bool Initialize();
+    bool Initialize(Display* display);
 #endif
     bool AcquireFrame();
     void ReleaseFrame();

@@ -1,5 +1,18 @@
 # CHANGELOG.md
 
+## [0.1.77-alpha] - 2025-01-24
+### Added
+- Integrated H.264 Video streaming path in NetMuxFramework.
+- Implemented video chunking and transmission for peer-to-peer playback.
+- Configured H.264 Encoder/Decoder MFTs for low-latency synchronization.
+
+## [0.1.76-alpha] - 2025-01-24
+### Added
+- Implemented Linux Desktop Capture using X11 (XGetImage).
+- Implemented Linux Webcam Capture using V4L2 (/dev/video0).
+- Implemented native X11 Overlay backend for Linux with transparency support.
+- Unified cross-platform initialization for capture and rendering engines.
+
 ## [0.1.75-alpha] - 2025-01-24
 ### Added
 - Established architectural skeleton for VideoDecoder (Windows Media Foundation).
@@ -145,6 +158,12 @@
 - Implement native X11 clipboard reading on Linux (optimized over `xclip`).
 - Enhance Linux input capture with real X11 cursor synchronization (`XQueryPointer`).
 - Refactor `DriverInterface` to support optional native SDK linking (Interception/ViGEmBus).
+
+## [0.1.77-alpha] - 2025-01-24
+### Added
+- Integrated H.264 Video streaming path in NetMuxFramework.
+- Implemented video chunking and transmission for peer-to-peer playback.
+- Configured H.264 Encoder/Decoder MFTs for low-latency synchronization.
 
 ## [0.1.55-alpha] - 2025-01-24
 ### Added
