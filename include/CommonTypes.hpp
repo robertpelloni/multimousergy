@@ -41,7 +41,8 @@ enum class NetMuxPacketType {
     DeltaMovement,
     WebRTCOffer,
     WebRTCAnswer,
-    ICECandidate
+    ICECandidate,
+    VideoFrame
 };
 
 struct Packet {

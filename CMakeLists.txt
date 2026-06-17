@@ -36,6 +36,7 @@ set(LIB_SOURCES
     src/DesktopCapture.cpp
     src/WebcamCapture.cpp
     src/VideoEncoder.cpp
+    src/VideoDecoder.cpp
     src/SpatialViewport.cpp
 )
 

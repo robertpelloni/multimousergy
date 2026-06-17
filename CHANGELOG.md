@@ -1,15 +1,22 @@
 # CHANGELOG.md
 
+## [0.1.75-alpha] - 2025-01-24
+### Added
+- Established architectural skeleton for VideoDecoder (Windows Media Foundation).
+- Extended protocol with VideoFrame packet type and basic reassembly logic.
+- Wired remote desktop video bitstream path to the 3D Spatial Viewport.
+- Optimized framework loop for interleaved media and input processing.
+
 ## [0.1.74-alpha] - 2025-01-24
 ### Added
-- Implemented hardware-accelerated H.264 encoding skeleton in VideoEncoder (Media Foundation).
-- Integrated WebRTC DataChannel for ultra-low latency cursor movement updates.
+- Established architectural skeleton for hardware-accelerated H.264 encoding in VideoEncoder.
+- Integrated WebRTC DataChannel structural hooks for low-latency cursor movement updates.
 - Refined SpatialViewport with aspect-ratio aware scaling for 3D desktop planes.
 - Added media pipeline telemetry support to the framework.
 
 ## [0.1.73-alpha] - 2025-01-24
 ### Added
-- Implemented WebcamCapture using Windows Media Foundation.
+- Established architectural skeleton for WebcamCapture using Windows Media Foundation.
 - Enhanced SpatialViewport with Picture-in-Picture (PiP) rendering for video chat.
 - Added WebRTC Signaling support (SDP/ICE) via the existing network protocol.
 - Integrated webcam textures into the 3D spatial composition engine.

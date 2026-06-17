@@ -91,6 +91,9 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
         int sh = GetSystemMetrics(SM_CYVIRTUALSCREEN);
         m_spatialViewport.Initialize(d3d->GetDevice(), (float)sw / (float)sh);
         m_capture.Initialize();
+        m_webcam.Initialize(d3d->GetDevice());
+        m_videoEncoder.Initialize(d3d->GetDevice());
+        m_videoDecoder.Initialize(d3d->GetDevice());
         m_webrtc.Initialize();
     }
 #endif
@@ -157,6 +160,7 @@ void NetMuxFramework::Run() {
         PerformMasterStateSync();
         PerformSyncCheck();
         PerformFileTransfer();
+        PerformVideoSync();
         PerformPeerCleanup();
 #ifdef __linux__
         ProcessX11Events();
@@ -188,6 +192,20 @@ void NetMuxFramework::Run() {
                 }
                 m_capture.ReleaseFrame();
             }
+
+            if (m_webcam.AcquireFrame()) {
+                D3D11Overlay* d3d = (D3D11Overlay*)m_overlay.GetD3DOverlay();
+                if (d3d) {
+                    ID3D11ShaderResourceView* srv = nullptr;
+                    d3d->GetDevice()->CreateShaderResourceView(m_webcam.GetCurrentFrameTexture(), NULL, &srv);
+                    if (srv) {
+                        m_spatialViewport.SetLocalWebcamTexture(srv);
+                        srv->Release();
+                    }
+                }
+                m_webcam.ReleaseFrame();
+            }
+
             lastCapture = m_loopTimer.ElapsedMilliseconds();
         }
 #endif
@@ -343,6 +361,24 @@ void NetMuxFramework::ProcessInteractionQueue() {
             }
         }
     }
+}
+
+void NetMuxFramework::PerformVideoSync() {
+#ifdef _WIN32
+    if (!m_settings.spatialMode) return;
+
+    // Send local desktop or webcam frames to peers
+    static double lastSync = 0;
+    if (m_loopTimer.ElapsedMilliseconds() - lastSync > 100.0) { // 10fps for networking
+        std::vector<uint8_t> bitstream;
+        if (m_capture.GetCurrentFrameTexture()) {
+            if (m_videoEncoder.EncodeFrame(m_capture.GetCurrentFrameTexture(), bitstream)) {
+                // Chunk and send bitstream as VideoFrame packets...
+            }
+        }
+        lastSync = m_loopTimer.ElapsedMilliseconds();
+    }
+#endif
 }
 
 void NetMuxFramework::ProcessOutgoingPackets() {
@@ -607,6 +643,31 @@ void NetMuxFramework::ProcessIncomingPackets() {
             m_webrtc.HandleAnswer(inPkt.payload);
         } else if (inPkt.type == NetMuxPacketType::ICECandidate) {
             m_webrtc.AddICECandidate(inPkt.payload);
+        } else if (inPkt.type == NetMuxPacketType::VideoFrame) {
+            // Video Frame Reassembly logic
+            auto& buffer = m_videoReassembly[peerId];
+            if (inPkt.chunkIndex == 0) buffer.clear();
+            int pSize = std::min(inPkt.payloadSize, (int)sizeof(inPkt.payload));
+            buffer.insert(buffer.end(), (uint8_t*)inPkt.payload, (uint8_t*)inPkt.payload + pSize);
+
+            if (inPkt.chunkIndex == inPkt.totalChunks - 1) {
+#ifdef _WIN32
+                ID3D11Texture2D* tex = nullptr;
+                if (m_videoDecoder.DecodeFrame(buffer, &tex)) {
+                    ID3D11ShaderResourceView* srv = nullptr;
+                    D3D11Overlay* d3d = (D3D11Overlay*)m_overlay.GetD3DOverlay();
+                    if (d3d) {
+                        d3d->GetDevice()->CreateShaderResourceView(tex, NULL, &srv);
+                        if (srv) {
+                            m_spatialViewport.SetRemoteDesktopTexture(srv);
+                            srv->Release();
+                        }
+                    }
+                    tex->Release();
+                }
+#endif
+                buffer.clear();
+            }
         }
     }
 }

@@ -51,9 +51,10 @@
  - [x] Native Vendor SDK: Dynamic linking and runtime detection.
 
 ## Milestone 6: MultiMousergy Spatial Evolution (IN PROGRESS)
-- [x] WebRTC Signaling: SDP (Offer/Answer) and ICE exchange.
-- [x] DXGI Desktop Duplication: Low-latency frame capture (Windows).
-- [x] 3D Composition Engine: D3D11-based spatial viewport.
+- [x] WebRTC Signaling Structural Path (SDP/ICE).
+- [x] DXGI Desktop Duplication Skeleton (Windows).
+- [x] 3D Composition Engine: D3D11-based spatial viewport basics.
 - [x] Boundary Animation: Smooth pan/zoom transitions via matrix interpolation.
-- [x] Webcam Integration: Windows Media Foundation PiP rendering.
-- [ ] WebRTC Media: Native C++ pipelines for peer-to-peer streaming.
+- [x] Webcam/Media Pipeline Skeletons (Windows Media Foundation).
+- [ ] Complete H.264 Encoder/Decoder Implementation.
+- [ ] Complete WebRTC Native C++ Media Integration.
