@@ -34,6 +34,8 @@ set(LIB_SOURCES
     src/PacketSerializer.cpp
     src/WebRTCManager.cpp
     src/DesktopCapture.cpp
+    src/WebcamCapture.cpp
+    src/VideoEncoder.cpp
     src/SpatialViewport.cpp
 )
 

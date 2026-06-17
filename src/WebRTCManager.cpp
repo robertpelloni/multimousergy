@@ -9,12 +9,24 @@ bool WebRTCManager::Initialize() {
     return true;
 }
 
-bool WebRTCManager::CreateOffer() {
+bool WebRTCManager::CreateOffer(std::string& outSdp) {
+    outSdp = "v=0\r\no=- 12345 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\n...";
     return true;
 }
 
 bool WebRTCManager::HandleAnswer(const std::string& sdp) {
+    std::cout << "[WebRTC] Handling remote answer SDP..." << std::endl;
     return true;
+}
+
+bool WebRTCManager::HandleOffer(const std::string& sdp, std::string& outAnswerSdp) {
+    std::cout << "[WebRTC] Handling remote offer SDP..." << std::endl;
+    outAnswerSdp = "v=0\r\no=- 67890 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\n...";
+    return true;
+}
+
+void WebRTCManager::AddICECandidate(const std::string& candidate) {
+    std::cout << "[WebRTC] Adding ICE Candidate: " << candidate << std::endl;
 }
 
 void WebRTCManager::SendData(const uint8_t* data, size_t size) {

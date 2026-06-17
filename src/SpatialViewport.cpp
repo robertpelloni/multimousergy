@@ -8,7 +8,8 @@
 
 SpatialViewport::SpatialViewport()
 #ifdef _WIN32
-    : m_currentCamX(0.0f), m_currentCamZ(0.0f), m_localSRV(nullptr), m_remoteSRV(nullptr),
+    : m_currentCamX(0.0f), m_currentCamZ(0.0f), m_localSRV(nullptr), m_remoteSRV(nullptr), m_cursorSRV(nullptr),
+      m_localWebcamSRV(nullptr), m_remoteWebcamSRV(nullptr),
       m_vertexBuffer(nullptr), m_constantBuffer(nullptr), m_vertexShader(nullptr),
       m_pixelShader(nullptr), m_inputLayout(nullptr), m_sampler(nullptr)
 #endif
@@ -25,6 +26,9 @@ SpatialViewport::~SpatialViewport() {
     if (m_sampler) m_sampler->Release();
     if (m_localSRV) m_localSRV->Release();
     if (m_remoteSRV) m_remoteSRV->Release();
+    if (m_cursorSRV) m_cursorSRV->Release();
+    if (m_localWebcamSRV) m_localWebcamSRV->Release();
+    if (m_remoteWebcamSRV) m_remoteWebcamSRV->Release();
 #endif
 }
 
@@ -121,7 +125,7 @@ void SpatialViewport::Update(float deltaTime, bool isCrossingBorder, float aspec
     m_viewMatrix = DirectX::XMMatrixLookAtLH(Eye, At, Up);
 }
 
-void SpatialViewport::Render(ID3D11DeviceContext* context) {
+void SpatialViewport::Render(ID3D11DeviceContext* context, const std::map<unsigned long long, RemoteCursorState>& peers) {
     if (!context || !m_localSRV) return;
 
     context->IASetInputLayout(m_inputLayout);
@@ -156,6 +160,41 @@ void SpatialViewport::Render(ID3D11DeviceContext* context) {
         context->PSSetShaderResources(0, 1, &m_remoteSRV);
         context->Draw(4, 0);
     }
+
+    // Render Spatial Cursors
+    for (auto const& [id, peer] : peers) {
+        float cx = (float)peer.x / 1920.0f * 2.0f - 1.0f;
+        float cy = 1.0f - (float)peer.y / 1080.0f * 2.0f;
+
+        context->Map(m_constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
+        cb = (ConstantBuffer*)ms.pData;
+        world = DirectX::XMMatrixScaling(0.05f, 0.05f, 1.0f) * DirectX::XMMatrixTranslation(cx, cy, -0.01f);
+        cb->worldViewProj = DirectX::XMMatrixTranspose(world * m_viewMatrix * m_projMatrix);
+        context->Unmap(m_constantBuffer, 0);
+        // Bind cursor texture and draw...
+        context->Draw(4, 0);
+    }
+
+    // Render Webcam PiP (Local: Bottom-Right, Remote: Bottom-Left)
+    if (m_localWebcamSRV) {
+        context->Map(m_constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
+        cb = (ConstantBuffer*)ms.pData;
+        world = DirectX::XMMatrixScaling(0.2f, 0.2f, 1.0f) * DirectX::XMMatrixTranslation(0.75f, -0.75f, -0.02f);
+        cb->worldViewProj = DirectX::XMMatrixTranspose(world * m_viewMatrix * m_projMatrix);
+        context->Unmap(m_constantBuffer, 0);
+        context->PSSetShaderResources(0, 1, &m_localWebcamSRV);
+        context->Draw(4, 0);
+    }
+
+    if (m_remoteWebcamSRV) {
+        context->Map(m_constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
+        cb = (ConstantBuffer*)ms.pData;
+        world = DirectX::XMMatrixScaling(0.2f, 0.2f, 1.0f) * DirectX::XMMatrixTranslation(-0.75f, -0.75f, -0.02f);
+        cb->worldViewProj = DirectX::XMMatrixTranspose(world * m_viewMatrix * m_projMatrix);
+        context->Unmap(m_constantBuffer, 0);
+        context->PSSetShaderResources(0, 1, &m_remoteWebcamSRV);
+        context->Draw(4, 0);
+    }
 }
 
 void SpatialViewport::SetLocalDesktopTexture(ID3D11ShaderResourceView* srv) {
@@ -168,5 +207,17 @@ void SpatialViewport::SetRemoteDesktopTexture(ID3D11ShaderResourceView* srv) {
     if (m_remoteSRV) m_remoteSRV->Release();
     m_remoteSRV = srv;
     if (m_remoteSRV) m_remoteSRV->AddRef();
+}
+
+void SpatialViewport::SetLocalWebcamTexture(ID3D11ShaderResourceView* srv) {
+    if (m_localWebcamSRV) m_localWebcamSRV->Release();
+    m_localWebcamSRV = srv;
+    if (m_localWebcamSRV) m_localWebcamSRV->AddRef();
+}
+
+void SpatialViewport::SetRemoteWebcamTexture(ID3D11ShaderResourceView* srv) {
+    if (m_remoteWebcamSRV) m_remoteWebcamSRV->Release();
+    m_remoteWebcamSRV = srv;
+    if (m_remoteWebcamSRV) m_remoteWebcamSRV->AddRef();
 }
 #endif

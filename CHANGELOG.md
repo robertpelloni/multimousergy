@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.1.73-alpha] - 2025-01-24
+### Added
+- Implemented WebcamCapture using Windows Media Foundation.
+- Enhanced SpatialViewport with Picture-in-Picture (PiP) rendering for video chat.
+- Added WebRTC Signaling support (SDP/ICE) via the existing network protocol.
+- Integrated webcam textures into the 3D spatial composition engine.
+
 ## [0.1.72-alpha] - 2025-01-24
 ### Added
 - Integrated DXGI Desktop Duplication for ultra-low latency frame capture.

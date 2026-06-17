@@ -167,7 +167,9 @@ void NetMuxFramework::Run() {
         m_sync.Step(dt);
 
         // Update MultiMousergy Spatial Viewport
-        m_spatialViewport.Update((float)dt / 1000.0f, m_input.IsCaptured());
+        if (m_settings.spatialMode) {
+            m_spatialViewport.Update((float)dt / 1000.0f, m_input.IsCaptured());
+        }
 
 #ifdef _WIN32
         // Throttled frame capture (e.g. 30fps) for the spatial viewport to save GPU resources
@@ -269,9 +271,11 @@ void NetMuxFramework::Run() {
             m_overlay.RenderPeers(overlayPeers);
 
 #ifdef _WIN32
-            D3D11Overlay* d3d = (D3D11Overlay*)m_overlay.GetD3DOverlay();
-            if (d3d && d3d->GetContext()) {
-                m_spatialViewport.Render(d3d->GetContext());
+            if (m_settings.spatialMode) {
+                D3D11Overlay* d3d = (D3D11Overlay*)m_overlay.GetD3DOverlay();
+                if (d3d && d3d->GetContext()) {
+                    m_spatialViewport.Render(d3d->GetContext(), overlayPeers);
+                }
             }
 #endif
             
@@ -584,6 +588,18 @@ void NetMuxFramework::ProcessIncomingPackets() {
                 m_driver.SendKeyboardKey(inPkt.button, inPkt.down);
                 if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
             }
+        } else if (inPkt.type == NetMuxPacketType::WebRTCOffer) {
+            std::string answer;
+            if (m_webrtc.HandleOffer(inPkt.payload, answer)) {
+                Packet reply = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::WebRTCAnswer, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
+                strncpy(reply.payload, answer.c_str(), sizeof(reply.payload)-1);
+                reply.payloadSize = (int)answer.size();
+                m_network.SendPacket(reply);
+            }
+        } else if (inPkt.type == NetMuxPacketType::WebRTCAnswer) {
+            m_webrtc.HandleAnswer(inPkt.payload);
+        } else if (inPkt.type == NetMuxPacketType::ICECandidate) {
+            m_webrtc.AddICECandidate(inPkt.payload);
         }
     }
 }
