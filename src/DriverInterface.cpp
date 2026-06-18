@@ -123,14 +123,18 @@ bool DriverInterface::Initialize(NetMuxDriverType type) {
 
 #ifdef _WIN32
     if (m_type == NetMuxDriverType::Auto || m_type == NetMuxDriverType::Interception) {
-        HMODULE hInt = LoadLibrary("interception.dll");
-        if (hInt) {
-            auto create = (pinterception_create_context)GetProcAddress(hInt, "interception_create_context");
-            if (create) {
+        m_hInterception = (void*)LoadLibrary("interception.dll");
+        if (m_hInterception) {
+            auto create = (pinterception_create_context)GetProcAddress((HMODULE)m_hInterception, "interception_create_context");
+            auto send = (pinterception_send)GetProcAddress((HMODULE)m_hInterception, "interception_send");
+            auto destroy = (pinterception_destroy_context)GetProcAddress((HMODULE)m_hInterception, "interception_destroy_context");
+            if (create && send && destroy) {
                 m_context = create();
                 if (m_context) {
                     m_device = 12;
                     m_type = NetMuxDriverType::Interception;
+                    m_interception_send = (void*)send;
+                    m_interception_destroy_context = (void*)destroy;
                     m_initialized = true;
                     std::cout << "[Driver] Native Interception driver dynamically loaded." << std::endl;
                     return true;
@@ -143,12 +147,12 @@ bool DriverInterface::Initialize(NetMuxDriverType type) {
     }
 
     if (m_type == NetMuxDriverType::Auto || m_type == NetMuxDriverType::ViGEmBus) {
-        HMODULE hVigem = LoadLibrary("ViGEmClient.dll");
-        if (hVigem) {
-            auto alloc = (pvigem_alloc)GetProcAddress(hVigem, "vigem_alloc");
-            auto connect = (pvigem_connect)GetProcAddress(hVigem, "vigem_connect");
-            auto t_alloc = (pvigem_target_x360_alloc)GetProcAddress(hVigem, "vigem_target_x360_alloc");
-            auto t_add = (pvigem_target_add)GetProcAddress(hVigem, "vigem_target_add");
+        m_hViGEm = (void*)LoadLibrary("ViGEmClient.dll");
+        if (m_hViGEm) {
+            auto alloc = (pvigem_alloc)GetProcAddress((HMODULE)m_hViGEm, "vigem_alloc");
+            auto connect = (pvigem_connect)GetProcAddress((HMODULE)m_hViGEm, "vigem_connect");
+            auto t_alloc = (pvigem_target_x360_alloc)GetProcAddress((HMODULE)m_hViGEm, "vigem_target_x360_alloc");
+            auto t_add = (pvigem_target_add)GetProcAddress((HMODULE)m_hViGEm, "vigem_target_add");
 
             if (alloc && connect && t_alloc && t_add) {
                 m_vigemClient = alloc();
@@ -183,8 +187,14 @@ void DriverInterface::Shutdown() {
         std::cout << "[Driver] Shutting down hardware interface..." << std::endl;
 #ifdef _WIN32
         if (m_type == NetMuxDriverType::Interception && m_context && m_context != (void*)1) {
-            // interception_destroy_context((InterceptionContext)m_context);
+            if (m_interception_destroy_context) {
+                ((pinterception_destroy_context)m_interception_destroy_context)((InterceptionContext)m_context);
+            }
         }
+        if (m_hInterception) FreeLibrary((HMODULE)m_hInterception);
+        if (m_hViGEm) FreeLibrary((HMODULE)m_hViGEm);
+        m_hInterception = nullptr;
+        m_hViGEm = nullptr;
         m_context = nullptr;
         m_vigemClient = nullptr;
 #endif
@@ -218,12 +228,9 @@ bool DriverInterface::SendMouseMovement(long dx, long dy) {
         stroke.x = (int)dx;
         stroke.y = (int)dy;
 
-        if (m_context && m_context != (void*)1) {
-            HMODULE h = GetModuleHandle("interception.dll");
-            if (h) {
-                auto send = (pinterception_send)GetProcAddress(h, "interception_send");
-                if (send) send((InterceptionContext)m_context, m_device, (void*)&stroke, 1);
-            }
+        if (m_context && m_context != (void*)1 && m_interception_send) {
+            auto send = (pinterception_send)m_interception_send;
+            send((InterceptionContext)m_context, m_device, (void*)&stroke, 1);
         }
     }
     return true;
@@ -310,7 +317,10 @@ bool DriverInterface::SendMouseButton(int button, bool down) {
         if (button == 0) stroke.state = down ? INTERCEPTION_MOUSE_LEFT_BUTTON_DOWN : INTERCEPTION_MOUSE_LEFT_BUTTON_UP;
         else if (button == 1) stroke.state = down ? INTERCEPTION_MOUSE_RIGHT_BUTTON_DOWN : INTERCEPTION_MOUSE_RIGHT_BUTTON_UP;
 
-        // if (m_context != (void*)1) interception_send((InterceptionContext)m_context, m_device, (void*)&stroke, 1);
+        if (m_context && m_context != (void*)1 && m_interception_send) {
+            auto send = (pinterception_send)m_interception_send;
+            send((InterceptionContext)m_context, m_device, (void*)&stroke, 1);
+        }
     }
 
     std::cout << "[Driver] Injected hardware click (" << (int)m_type << "): Button=" << button << " Down=" << down << std::endl;

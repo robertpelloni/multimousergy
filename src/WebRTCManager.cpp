@@ -10,17 +10,21 @@ bool WebRTCManager::Initialize() {
 }
 
 bool WebRTCManager::CreateOffer(std::string& outSdp) {
+    // EXPERIMENTAL: Skeleton implementation for architectural validation
+    // TODO: Integrate native WebRTC library (libwebrtc) for real SDP generation
     outSdp = "v=0\r\no=- 12345 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\n...";
     return true;
 }
 
 bool WebRTCManager::HandleAnswer(const std::string& sdp) {
-    std::cout << "[WebRTC] Handling remote answer SDP..." << std::endl;
+    // EXPERIMENTAL: Skeleton implementation
+    std::cout << "[WebRTC] Handling remote answer SDP (Skeleton Mode)..." << std::endl;
     return true;
 }
 
 bool WebRTCManager::HandleOffer(const std::string& sdp, std::string& outAnswerSdp) {
-    std::cout << "[WebRTC] Handling remote offer SDP..." << std::endl;
+    // EXPERIMENTAL: Skeleton implementation
+    std::cout << "[WebRTC] Handling remote offer SDP (Skeleton Mode)..." << std::endl;
     outAnswerSdp = "v=0\r\no=- 67890 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\n...";
     return true;
 }
@@ -30,6 +34,7 @@ void WebRTCManager::AddICECandidate(const std::string& candidate) {
 }
 
 void WebRTCManager::SendData(const uint8_t* data, size_t size) {
+    // EXPERIMENTAL: Skeleton implementation
     // High-performance delivery for cursor/keyboard packets
     // In a full implementation, this would call m_dataChannel->Send(...)
     // std::cout << "[WebRTC] DataChannel Send: " << size << " bytes" << std::endl;

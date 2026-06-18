@@ -19,7 +19,7 @@ VideoDecoder::~VideoDecoder() {
 
 bool VideoDecoder::Initialize(ID3D11Device* device) {
     m_device = device;
-    std::cout << "[VideoDecoder] Initializing hardware H.264 decoder (Media Foundation MFT)..." << std::endl;
+    std::cout << "[VideoDecoder] EXPERIMENTAL: Initializing hardware H.264 decoder (Media Foundation MFT)..." << std::endl;
 
     HRESULT hr = MFStartup(MF_VERSION);
     if (FAILED(hr)) return false;
