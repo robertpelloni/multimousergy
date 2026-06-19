@@ -164,9 +164,10 @@ bool FileTransferEngine::HandleFileData(const Packet& pkt) {
         t.isComplete = true;
 
         // Verify Hash
-        std::string data(t.buffer.begin(), t.buffer.end());
         unsigned char hash[32];
-        AuthModule::ComputeSHA256(data, hash);
+        auto ctx = AuthModule::CreateContext();
+        AuthModule::UpdateHash(ctx, t.buffer.data(), t.buffer.size());
+        AuthModule::FinalizeHash(ctx, hash);
         std::string calculatedHash = AuthModule::HashToHex(hash);
 
         if (calculatedHash != t.hash) {
@@ -211,11 +212,18 @@ std::string FileTransferEngine::CalculateHash(const std::string& path) {
     std::ifstream file(path, std::ios::binary);
     if (!file.is_open()) return "";
 
-    std::vector<char> buffer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    std::string data(buffer.begin(), buffer.end());
+    auto ctx = AuthModule::CreateContext();
+    char buffer[16384];
+    while (file) {
+        file.read(buffer, sizeof(buffer));
+        std::streamsize bytes = file.gcount();
+        if (bytes > 0) {
+            AuthModule::UpdateHash(ctx, buffer, (size_t)bytes);
+        }
+    }
 
     unsigned char hash[32];
-    if (AuthModule::ComputeSHA256(data, hash)) {
+    if (AuthModule::FinalizeHash(ctx, hash)) {
         return AuthModule::HashToHex(hash);
     }
     return "";

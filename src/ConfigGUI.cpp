@@ -1,12 +1,8 @@
 #include "ConfigGUI.hpp"
-#include "DriverInterface.hpp"
-#include "Logger.hpp"
 #include <iostream>
 #include <thread>
 #include <string>
 #include <mutex>
-#include <winsock2.h> // for gethostname, etc.
-#include <ws2tcpip.h>
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -15,7 +11,6 @@
 #include <shellapi.h>
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "shell32.lib")
-#pragma comment(lib, "Ws2_32.lib")
 
 #define WM_TRAYICON (WM_USER + 100)
 #define ID_TRAY_EXIT 2001
@@ -55,7 +50,6 @@ static HWND s_hwndSelColorB = nullptr;
 static HWND s_hwndCursorMonitor = nullptr;
 static HWND s_hwndSecurityLog = nullptr;
 static HWND s_hwndDiscoveryList = nullptr;
-static HWND s_hwndDiagnosticsList = nullptr;
 
 enum ControlIDs {
     ID_SAVE_BUTTON = 1,
@@ -93,9 +87,11 @@ enum ControlIDs {
     ID_QUIT_BUTTON = 33,
     ID_DISPLAY_NAME = 34,
     ID_START_MINIMIZED = 35,
-    ID_SERVER_MODE = 36
+    ID_SERVER_MODE = 36,
+    ID_SPATIAL_MODE = 37
 };
 
+static HWND s_hwndSpatialMode = nullptr;
 static HWND s_hwndFileTransferList = nullptr;
 static HWND s_hwndTabControl = nullptr;
 static HWND s_hwndRecentServers = nullptr;
@@ -154,6 +150,11 @@ static void CreateConnectionTab(HWND hwnd) {
     s_groupHWNDs[0].push_back(s_hwndServer);
     CreateToolTip(hwnd, s_hwndServer, "Enable to act as the authoritative host for this cursor group.");
     if (s_currentSettings->isServer) SendMessage(s_hwndServer, BM_SETCHECK, BST_CHECKED, 0);
+
+    s_hwndSpatialMode = CreateWindow("BUTTON", "Spatial Mode (3D)", WS_VISIBLE | WS_CHILD | BS_AUTOCHECKBOX, 280, 85, 150, 20, hwnd, (HMENU)ID_SPATIAL_MODE, NULL, NULL);
+    s_groupHWNDs[0].push_back(s_hwndSpatialMode);
+    CreateToolTip(hwnd, s_hwndSpatialMode, "Enable 3D Spatial Viewport and smooth transitions.");
+    if (s_currentSettings->spatialMode) SendMessage(s_hwndSpatialMode, BM_SETCHECK, BST_CHECKED, 0);
 
     s_groupHWNDs[0].push_back(CreateWindow("STATIC", "Remote IP:", WS_VISIBLE | WS_CHILD, 20, 110, 100, 20, hwnd, NULL, NULL, NULL));
     s_hwndIp = CreateWindowEx(WS_EX_CLIENTEDGE, "EDIT", s_currentSettings->remoteIp.c_str(), WS_VISIBLE | WS_CHILD | ES_AUTOHSCROLL, 120, 110, 150, 20, hwnd, (HMENU)ID_IP_ADDRESS, NULL, NULL);
@@ -439,6 +440,9 @@ LRESULT CALLBACK SettingsWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPar
             if (LOWORD(wParam) == ID_SERVER_MODE) {
                 bool isServer = (SendMessage(s_hwndServer, BM_GETCHECK, 0, 0) == BST_CHECKED);
                 SetWindowText(s_hwndApplyButton, isServer ? "Start Server" : "Connect");
+            }
+            if (LOWORD(wParam) == ID_SPATIAL_MODE) {
+                s_currentSettings->spatialMode = (SendMessage(s_hwndSpatialMode, BM_GETCHECK, 0, 0) == BST_CHECKED);
             }
 
             if ((HIWORD(wParam) == LBN_DBLCLK && LOWORD(wParam) == ID_DISCOVERY_LIST) ||
@@ -768,7 +772,8 @@ void ConfigGUI::Tick() {
                     const char* pName = (peer.displayName[0] != '\0') ? peer.displayName : peer.sessionName;
                     char resStr[32] = "";
                     if (peer.screenWidth > 0) snprintf(resStr, sizeof(resStr), " [%dx%d @%.0f%%]", peer.screenWidth, peer.screenHeight, peer.dpiScale * 100.0f);
-                    snprintf(info, sizeof(info), "%s%s | RTT:%dms | Drift:%.1fpx | [%s] | %s", pName, resStr, (int)peer.latency, peer.drift, authStatus, btnStr);
+                    const char* mediaStatus = (id == s_currentSync->GetLocalId()) ? "HOST" : "IDLE";
+                    snprintf(info, sizeof(info), "%s%s | RTT:%dms | [%s] | %s | %s", pName, resStr, (int)peer.latency, authStatus, btnStr, mediaStatus);
                     SendMessage(s_hwndPeerList, LB_ADDSTRING, 0, (LPARAM)info);
                     lastPeerStates[id] = info;
                 }
