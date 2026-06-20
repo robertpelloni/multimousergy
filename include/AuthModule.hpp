@@ -7,14 +7,6 @@ public:
     // Computes SHA-256 hash of data. outHash must be at least 32 bytes.
     static bool ComputeSHA256(const std::string& data, unsigned char* outHash);
 
-    // Streaming SHA-256
-    struct SHA256Context {
-        void* internal;
-    };
-    static SHA256Context CreateContext();
-    static bool UpdateHash(SHA256Context& ctx, const void* data, size_t len);
-    static bool FinalizeHash(SHA256Context& ctx, unsigned char* outHash);
-
     // Converts a 32-byte hash to a hex string
     static std::string HashToHex(const unsigned char* hash);
 

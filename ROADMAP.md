@@ -50,11 +50,9 @@
  - [x] Bandwidth Optimization: Delta compression for cursor movement.
  - [x] Native Vendor SDK: Dynamic linking and runtime detection.
 
-## Milestone 6: MultiMousergy Spatial Evolution (IN PROGRESS)
-- [x] WebRTC Signaling Structural Path (SDP/ICE).
-- [x] DXGI Desktop Duplication Skeleton (Windows).
-- [x] 3D Composition Engine: D3D11-based spatial viewport basics.
-- [x] Boundary Animation: Smooth pan/zoom transitions via matrix interpolation.
-- [x] Webcam/Media Pipeline Skeletons (Windows Media Foundation).
-- [ ] Complete H.264 Encoder/Decoder Implementation.
-- [ ] Complete WebRTC Native C++ Media Integration.
+## Milestone 6: MultiMousergy Spatial Evolution (PLANNED)
+- [ ] WebRTC Integration: Native C++ Data & Media pipelines.
+- [ ] DXGI Desktop Duplication: Low-latency frame capture.
+- [ ] 3D Composition Engine: D3D11-based spatial viewport.
+- [ ] Boundary Animation: Smooth pan/zoom transitions between desktops.
+- [ ] Integrated Video Chat: Synchronized webcam/audio streams.

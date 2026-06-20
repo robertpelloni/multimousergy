@@ -1,8 +1,5 @@
 #include "NetMuxFramework.hpp"
-#include "D3D11Overlay.hpp"
-#include "ConfigGUI.hpp"
 #include "AuthModule.hpp"
-#include "PacketSerializer.hpp"
 #include "Logger.hpp"
 
 #ifdef __linux__
@@ -50,9 +47,6 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
     m_settings = settings;
     m_network.SetIsServer(m_settings.isServer);
 
-    // Link SyncModule to GUI for minimap metadata
-    ConfigGUI::SetSyncModule(&m_sync);
-
     // Ensure SyncModule knows our local ID for filtering
     m_sync.UpdateLocalState(m_localId, m_settings.groupId, 0, 0, false, 0, 0);
 
@@ -83,20 +77,6 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
         std::cerr << "Failed to initialize overlay components." << std::endl;
         return false;
     }
-
-#ifdef _WIN32
-    D3D11Overlay* d3d = (D3D11Overlay*)m_overlay.GetD3DOverlay();
-    if (d3d && d3d->GetDevice()) {
-        int sw = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-        int sh = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-        m_spatialViewport.Initialize(d3d->GetDevice(), (float)sw / (float)sh);
-        m_capture.Initialize();
-        m_webcam.Initialize(d3d->GetDevice());
-        m_videoEncoder.Initialize(d3d->GetDevice());
-        m_videoDecoder.Initialize(d3d->GetDevice());
-        m_webrtc.Initialize();
-    }
-#endif
 
     if (!m_settings.cursorThemePath.empty()) {
         m_overlay.LoadCursorTheme(m_settings.cursorThemePath);
@@ -160,7 +140,6 @@ void NetMuxFramework::Run() {
         PerformMasterStateSync();
         PerformSyncCheck();
         PerformFileTransfer();
-        PerformVideoSync();
         PerformPeerCleanup();
 #ifdef __linux__
         ProcessX11Events();
@@ -172,43 +151,7 @@ void NetMuxFramework::Run() {
         m_sync.Step(dt);
 
         // Update MultiMousergy Spatial Viewport
-        if (m_settings.spatialMode) {
-            m_spatialViewport.Update((float)dt / 1000.0f, m_input.IsCaptured());
-        }
-
-#ifdef _WIN32
-        // Throttled frame capture (e.g. 30fps) for the spatial viewport to save GPU resources
-        static double lastCapture = 0;
-        if (m_loopTimer.ElapsedMilliseconds() - lastCapture > 33.3) {
-            if (m_capture.AcquireFrame()) {
-                D3D11Overlay* d3d = (D3D11Overlay*)m_overlay.GetD3DOverlay();
-                if (d3d) {
-                    ID3D11ShaderResourceView* srv = nullptr;
-                    d3d->GetDevice()->CreateShaderResourceView(m_capture.GetCurrentFrameTexture(), NULL, &srv);
-                    if (srv) {
-                        m_spatialViewport.SetLocalDesktopTexture(srv);
-                        srv->Release();
-                    }
-                }
-                m_capture.ReleaseFrame();
-            }
-
-            if (m_webcam.AcquireFrame()) {
-                D3D11Overlay* d3d = (D3D11Overlay*)m_overlay.GetD3DOverlay();
-                if (d3d) {
-                    ID3D11ShaderResourceView* srv = nullptr;
-                    d3d->GetDevice()->CreateShaderResourceView(m_webcam.GetCurrentFrameTexture(), NULL, &srv);
-                    if (srv) {
-                        m_spatialViewport.SetLocalWebcamTexture(srv);
-                        srv->Release();
-                    }
-                }
-                m_webcam.ReleaseFrame();
-            }
-
-            lastCapture = m_loopTimer.ElapsedMilliseconds();
-        }
-#endif
+        m_spatialViewport.Update((float)dt / 1000.0f, m_input.IsCaptured());
 
         // Update input capture permission based on connectivity
         auto allPeers = m_sync.GetAllPeers();
@@ -221,11 +164,18 @@ void NetMuxFramework::Run() {
         }
         m_input.SetPeerConnected(hasExternalPeers);
 
-        // UI TICK: Keep the ConfigGUI updated during active sessions
+        // Output UI Telemetry to stdout (JSON format)
         static double lastUIUpdate = 0;
         if (m_loopTimer.ElapsedMilliseconds() - lastUIUpdate > 100.0) {
             std::map<unsigned long long, PeerState> peers = m_sync.GetAllPeers();
-            ConfigGUI::UpdateCursorMonitor(peers);
+            std::cout << "{\"type\":\"telemetry\",\"peers\":[";
+            bool first = true;
+            for (auto& p : peers) {
+                if (!first) std::cout << ",";
+                std::cout << "{\"id\":" << p.first << ",\"x\":" << p.second.x << ",\"y\":" << p.second.y << "}";
+                first = false;
+            }
+            std::cout << "]}" << std::endl;
             lastUIUpdate = m_loopTimer.ElapsedMilliseconds();
         }
 
@@ -288,19 +238,7 @@ void NetMuxFramework::Run() {
             }
             m_overlay.SetActivePeer(activeId);
             m_overlay.RenderPeers(overlayPeers);
-
-#ifdef _WIN32
-            if (m_settings.spatialMode) {
-                D3D11Overlay* d3d = (D3D11Overlay*)m_overlay.GetD3DOverlay();
-                if (d3d && d3d->GetContext()) {
-                    m_spatialViewport.SetCursorTexture(d3d->GetCursorSRV());
-                    m_spatialViewport.Render(d3d->GetContext(), overlayPeers);
-                }
-            }
-#endif
             
-            // Minimap logic: Show everyone
-            ConfigGUI::UpdateCursorMonitor(peers); 
             m_renderTimer.Reset();
         }
 
@@ -364,36 +302,6 @@ void NetMuxFramework::ProcessInteractionQueue() {
     }
 }
 
-void NetMuxFramework::PerformVideoSync() {
-#ifdef _WIN32
-    if (!m_settings.spatialMode) return;
-
-    // Send local desktop or webcam frames to peers
-    static double lastSync = 0;
-    if (m_loopTimer.ElapsedMilliseconds() - lastSync > 100.0) { // 10fps for networking
-        std::vector<uint8_t> bitstream;
-        if (m_capture.GetCurrentFrameTexture()) {
-            if (m_videoEncoder.EncodeFrame(m_capture.GetCurrentFrameTexture(), bitstream)) {
-                // MultiMousergy: Video frame chunking and transmission
-                const size_t CHUNK_SIZE = 4000;
-                int totalChunks = (int)((bitstream.size() + CHUNK_SIZE - 1) / CHUNK_SIZE);
-                if (totalChunks == 0) totalChunks = 1;
-                for (int i = 0; i < totalChunks; ++i) {
-                    size_t offset = i * CHUNK_SIZE;
-                    size_t remaining = bitstream.size() - offset;
-                    size_t currentChunkSize = std::min(CHUNK_SIZE, remaining);
-                    Packet pkt = { m_localId, m_settings.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(), NetMuxPacketType::VideoFrame, 0, 0, 0, false, false, 0, 0, 0, false, i, totalChunks, 1.0f, "", 0 };
-                    if (currentChunkSize > 0) memcpy(pkt.payload, bitstream.data() + offset, currentChunkSize);
-                    pkt.payloadSize = (int)currentChunkSize;
-                    m_network.SendPacket(pkt);
-                }
-            }
-        }
-        lastSync = m_loopTimer.ElapsedMilliseconds();
-    }
-#endif
-}
-
 void NetMuxFramework::ProcessOutgoingPackets() {
     Packet outPkt;
     while (m_input.GetPendingPacket(outPkt)) {
@@ -408,13 +316,7 @@ void NetMuxFramework::ProcessOutgoingPackets() {
         }
 
         // Always broadcast to peers so they can see us globally
-        // MultiMousergy: Use WebRTC DataChannel if available for low-latency movement
-        if (m_webrtc.IsConnected() && (outPkt.type == NetMuxPacketType::DeltaMovement || outPkt.type == NetMuxPacketType::AbsoluteMovement)) {
-            auto buf = PacketSerializer::Serialize(outPkt, true);
-            m_webrtc.SendData(buf.data(), buf.size());
-        } else {
-            m_network.SendPacket(outPkt);
-        }
+        m_network.SendPacket(outPkt);
     }
 }
 
@@ -643,43 +545,6 @@ void NetMuxFramework::ProcessIncomingPackets() {
             if (IsPeerTrusted(peerId, inPkt.type)) {
                 m_driver.SendKeyboardKey(inPkt.button, inPkt.down);
                 if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
-            }
-        } else if (inPkt.type == NetMuxPacketType::WebRTCOffer) {
-            std::string answer;
-            if (m_webrtc.HandleOffer(inPkt.payload, answer)) {
-                Packet reply = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::WebRTCAnswer, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
-                strncpy(reply.payload, answer.c_str(), sizeof(reply.payload)-1);
-                reply.payloadSize = (int)answer.size();
-                m_network.SendPacket(reply);
-            }
-        } else if (inPkt.type == NetMuxPacketType::WebRTCAnswer) {
-            m_webrtc.HandleAnswer(inPkt.payload);
-        } else if (inPkt.type == NetMuxPacketType::ICECandidate) {
-            m_webrtc.AddICECandidate(inPkt.payload);
-        } else if (inPkt.type == NetMuxPacketType::VideoFrame) {
-            // Video Frame Reassembly logic
-            auto& buffer = m_videoReassembly[peerId];
-            if (inPkt.chunkIndex == 0) buffer.clear();
-            int pSize = std::min(inPkt.payloadSize, (int)sizeof(inPkt.payload));
-            buffer.insert(buffer.end(), (uint8_t*)inPkt.payload, (uint8_t*)inPkt.payload + pSize);
-
-            if (inPkt.chunkIndex == inPkt.totalChunks - 1) {
-#ifdef _WIN32
-                ID3D11Texture2D* tex = nullptr;
-                if (m_videoDecoder.DecodeFrame(buffer, &tex)) {
-                    ID3D11ShaderResourceView* srv = nullptr;
-                    D3D11Overlay* d3d = (D3D11Overlay*)m_overlay.GetD3DOverlay();
-                    if (d3d) {
-                        d3d->GetDevice()->CreateShaderResourceView(tex, NULL, &srv);
-                        if (srv) {
-                            m_spatialViewport.SetRemoteDesktopTexture(srv);
-                            srv->Release();
-                        }
-                    }
-                    tex->Release();
-                }
-#endif
-                buffer.clear();
             }
         }
     }

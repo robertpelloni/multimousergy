@@ -21,7 +21,6 @@ set(LIB_SOURCES
     src/NetworkManager.cpp
     src/OverlayEngine.cpp
     src/ConfigManager.cpp
-    src/ConfigGUI.cpp
     src/Timer.cpp
     src/NetMuxFramework.cpp
     src/SyncModule.cpp
@@ -34,9 +33,6 @@ set(LIB_SOURCES
     src/PacketSerializer.cpp
     src/WebRTCManager.cpp
     src/DesktopCapture.cpp
-    src/WebcamCapture.cpp
-    src/VideoEncoder.cpp
-    src/VideoDecoder.cpp
     src/SpatialViewport.cpp
 )
 

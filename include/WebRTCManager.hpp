@@ -22,14 +22,10 @@ public:
     ~WebRTCManager();
 
     bool Initialize();
-    bool CreateOffer(std::string& outSdp);
+    bool CreateOffer();
     bool HandleAnswer(const std::string& sdp);
-    bool HandleOffer(const std::string& sdp, std::string& outAnswerSdp);
-    void AddICECandidate(const std::string& candidate);
 
     void SendData(const uint8_t* data, size_t size);
-    bool IsConnected() const;
-    void Shutdown();
 
     // Media track management
     void AddVideoTrack();

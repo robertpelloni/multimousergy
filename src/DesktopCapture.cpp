@@ -16,7 +16,7 @@ DesktopCapture::~DesktopCapture() {
 #endif
 }
 
-bool DesktopCapture::Initialize(void* display) {
+bool DesktopCapture::Initialize() {
 #ifdef _WIN32
     std::cout << "[DesktopCapture] Initializing DXGI Desktop Duplication..." << std::endl;
 
@@ -59,45 +59,11 @@ bool DesktopCapture::AcquireFrame() {
     DXGI_OUTDUPL_FRAME_INFO frameInfo;
     IDXGIResource* desktopResource = nullptr;
     HRESULT hr = m_deskDupl->AcquireNextFrame(100, &frameInfo, &desktopResource);
-
-    // Timeout is a normal condition when the screen hasn't changed.
-    if (hr == DXGI_ERROR_WAIT_TIMEOUT) {
-        return false;
-    }
-
-    // If we lost access, we need to re-initialize the duplicator in the future.
-    if (hr == DXGI_ERROR_ACCESS_LOST) {
-        m_deskDupl->Release();
-        m_deskDupl = nullptr;
-        return false;
-    }
-
     if (FAILED(hr)) return false;
 
-    ID3D11Texture2D* acquiredTexture = nullptr;
-    hr = desktopResource->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&acquiredTexture);
+    if (m_currentFrame) m_currentFrame->Release();
+    hr = desktopResource->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&m_currentFrame);
     desktopResource->Release();
-
-    if (FAILED(hr)) return false;
-
-    D3D11_TEXTURE2D_DESC desc;
-    acquiredTexture->GetDesc(&desc);
-
-    // Create a new texture with BIND_SHADER_RESOURCE so it can be used in the Spatial Viewport
-    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-    desc.MiscFlags = 0;
-    desc.Usage = D3D11_USAGE_DEFAULT;
-    desc.CPUAccessFlags = 0;
-
-    ID3D11Texture2D* copyTexture = nullptr;
-    hr = m_device->CreateTexture2D(&desc, NULL, &copyTexture);
-    if (SUCCEEDED(hr)) {
-        m_context->CopyResource(copyTexture, acquiredTexture);
-        if (m_currentFrame) m_currentFrame->Release();
-        m_currentFrame = copyTexture;
-    }
-
-    acquiredTexture->Release();
 
     return SUCCEEDED(hr);
 #else

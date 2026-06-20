@@ -40,10 +40,6 @@ public:
     void LoadCursorTheme(const std::string& path);
     void SetSelectionColor(unsigned char r, unsigned char g, unsigned char b);
 
-#ifdef _WIN32
-    void* GetD3DOverlay() { return m_d3dOverlay; }
-#endif
-
 private:
     bool m_active;
     unsigned char m_colorR = 255;
