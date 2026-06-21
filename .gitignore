@@ -41,4 +41,3 @@ out/
 *.bak
 *~
 ui/node_modules
-ui.log
