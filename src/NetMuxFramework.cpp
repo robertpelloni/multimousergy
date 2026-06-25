@@ -640,6 +640,16 @@ void NetMuxFramework::PerformFileTransfer() {
         if (status.isOutgoing && !status.isComplete) {
             Packet pkt = { m_localId, m_settings.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(), NetMuxPacketType::FileData, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
 
+            // Emit telemetry progress
+            // Note: X11 defines 'None' as 0L, so we fully qualify the enum to avoid macro collision or we cast.
+            // Using static_cast to int avoids the X11 None macro issue.
+            bool hasError = static_cast<int>(status.lastError) != 0;
+            std::string statusStr = hasError ? "error" : "transferring";
+            std::string outJson = "{\"type\":\"transfer_progress\",\"transferId\":\"" + std::to_string(id) +
+                                  "\",\"filename\":\"" + status.filename + "\",\"progress\":" + std::to_string(status.progress) +
+                                  ",\"status\":\"" + statusStr + "\"}";
+            std::cout << outJson << std::endl;
+
             // Check if we need to send header first
             if (!m_fileTransfer.IsHeaderSent(id)) {
                 if (m_fileTransfer.GetHeaderPacket(id, pkt)) {
@@ -651,6 +661,9 @@ void NetMuxFramework::PerformFileTransfer() {
                     m_network.SendPacket(pkt);
                 }
             }
+        } else if (status.isComplete) {
+            // Can optionally emit a completion once
+            // For now, let's keep it simple.
         }
     }
 }

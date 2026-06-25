@@ -5,5 +5,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   stopNetMux: () => ipcRenderer.send('stop-netmux'),
   onTelemetry: (callback) => ipcRenderer.on('telemetry-data', (_event, value) => callback(value)),
   onLog: (callback) => ipcRenderer.on('log-data', (_event, value) => callback(value)),
-  onNetMuxExit: (callback) => ipcRenderer.on('netmux-exit', (_event, code) => callback(code))
+  onNetMuxExit: (callback) => ipcRenderer.on('netmux-exit', (_event, code) => callback(code)),
+  sendFile: (fileData) => ipcRenderer.send('send-file', fileData),
+  onTransferProgress: (callback) => ipcRenderer.on('transfer-progress', (_event, data) => callback(data))
 })

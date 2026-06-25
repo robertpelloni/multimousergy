@@ -4,6 +4,55 @@
 
 #include <thread>
 #include <chrono>
+#include <string>
+
+// We need an approach to parse JSON without adding a heavy library if we don't have one.
+// Let's check if there's a simple parsing logic we can use, or write a lightweight one.
+// Since we expect `{"command":"send_file","path":"...","target":0}`, we can use a naive string search.
+
+void HandleStdin(NetMuxFramework& framework) {
+    std::string line;
+    while (framework.IsRunning() && std::getline(std::cin, line)) {
+        if (line.find("\"command\":\"send_file\"") != std::string::npos) {
+            // Extract path
+            size_t pathPos = line.find("\"path\":\"");
+            if (pathPos != std::string::npos) {
+                pathPos += 8;
+                size_t pathEnd = line.find("\"", pathPos);
+                if (pathEnd != std::string::npos) {
+                    std::string path = line.substr(pathPos, pathEnd - pathPos);
+
+                    // Unescape backslashes if any (basic support)
+                    std::string cleanPath;
+                    for (size_t i = 0; i < path.length(); ++i) {
+                        if (path[i] == '\\' && i + 1 < path.length()) {
+                            cleanPath += path[i + 1];
+                            ++i;
+                        } else {
+                            cleanPath += path[i];
+                        }
+                    }
+
+                    // Extract target (basic support)
+                    unsigned long long target = 0;
+                    size_t targetPos = line.find("\"target\":");
+                    if (targetPos != std::string::npos) {
+                        targetPos += 9;
+                        size_t targetEnd = line.find("}", targetPos);
+                        if (targetEnd != std::string::npos) {
+                            try {
+                                target = std::stoull(line.substr(targetPos, targetEnd - targetPos));
+                            } catch (...) {}
+                        }
+                    }
+
+                    std::cout << "[Main] Received send_file command for path: " << cleanPath << " to target: " << target << std::endl;
+                    framework.GetFileTransferEngine().StartTransfer(cleanPath, target);
+                }
+            }
+        }
+    }
+}
 
 int main(int argc, char* argv[]) {
     #ifdef _WIN32
@@ -48,13 +97,22 @@ int main(int argc, char* argv[]) {
         framework.Run();
     });
 
+    std::thread stdinThread([&]() {
+        HandleStdin(framework);
+    });
+
     while (framework.IsRunning()) {
         framework.GetInputEngine().Update();
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 
+    // Force close stdin thread by shutting down (though std::getline can block)
+    // We exit process gracefully below
     framework.Shutdown();
     if (frameworkThread.joinable()) frameworkThread.join();
+
+    // std::cin might be blocked, so we detach if it's still running
+    if (stdinThread.joinable()) stdinThread.detach();
 
     return 0;
 }
