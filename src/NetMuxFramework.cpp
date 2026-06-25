@@ -353,13 +353,39 @@ void NetMuxFramework::ProcessIncomingPackets() {
 
         // Replay Protection
         bool isUdpPacket = (inPkt.type == NetMuxPacketType::Movement || inPkt.type == NetMuxPacketType::AbsoluteMovement ||
-                            inPkt.type == NetMuxPacketType::Heartbeat || inPkt.type == NetMuxPacketType::SyncCheck);
+                            inPkt.type == NetMuxPacketType::Heartbeat || inPkt.type == NetMuxPacketType::SyncCheck ||
+                            inPkt.type == NetMuxPacketType::DeltaMovement);
 
         if (isUdpPacket) {
-            if (m_lastSequence.count(peerId) && inPkt.sequenceNumber <= m_lastSequence[peerId]) {
-                continue;
+            if (m_lastSequence.count(peerId)) {
+                unsigned int lastSeq = m_lastSequence[peerId];
+                // Sequence wrap-around handling
+                // If sequence difference is negative and large, it's likely a wrap-around
+                int diff = (int)(inPkt.sequenceNumber - lastSeq);
+
+                // Allow sequence if it's strictly greater, OR if it wrapped around (e.g., diff < -0x7FFFFFFF)
+                if (diff <= 0 && diff > -100000) {
+                    continue; // Drop replayed or out-of-order old packet
+                }
             }
             m_lastSequence[peerId] = inPkt.sequenceNumber;
+        } else {
+            // TCP Replay Cache for strict exactly-once semantics
+            // Clean up old entries
+            double now = m_loopTimer.ElapsedMilliseconds();
+            auto& cache = m_tcpReplayCache[peerId];
+            for (auto it = cache.begin(); it != cache.end();) {
+                if (now - it->second > 60000.0) { // 60 seconds
+                    it = cache.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+            if (cache.count(inPkt.sequenceNumber)) {
+                std::cerr << "[Security] TCP Replay attack detected from peer " << peerId << " seq " << inPkt.sequenceNumber << std::endl;
+                continue; // Drop packet
+            }
+            cache[inPkt.sequenceNumber] = now;
         }
 
         if (inPkt.type == NetMuxPacketType::Movement) {
@@ -640,16 +666,6 @@ void NetMuxFramework::PerformFileTransfer() {
         if (status.isOutgoing && !status.isComplete) {
             Packet pkt = { m_localId, m_settings.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(), NetMuxPacketType::FileData, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
 
-            // Emit telemetry progress
-            // Note: X11 defines 'None' as 0L, so we fully qualify the enum to avoid macro collision or we cast.
-            // Using static_cast to int avoids the X11 None macro issue.
-            bool hasError = static_cast<int>(status.lastError) != 0;
-            std::string statusStr = hasError ? "error" : "transferring";
-            std::string outJson = "{\"type\":\"transfer_progress\",\"transferId\":\"" + std::to_string(id) +
-                                  "\",\"filename\":\"" + status.filename + "\",\"progress\":" + std::to_string(status.progress) +
-                                  ",\"status\":\"" + statusStr + "\"}";
-            std::cout << outJson << std::endl;
-
             // Check if we need to send header first
             if (!m_fileTransfer.IsHeaderSent(id)) {
                 if (m_fileTransfer.GetHeaderPacket(id, pkt)) {
@@ -661,9 +677,6 @@ void NetMuxFramework::PerformFileTransfer() {
                     m_network.SendPacket(pkt);
                 }
             }
-        } else if (status.isComplete) {
-            // Can optionally emit a completion once
-            // For now, let's keep it simple.
         }
     }
 }

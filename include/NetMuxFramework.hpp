@@ -109,6 +109,7 @@ private:
     std::mutex m_interactionMutex;
     AuthService m_authService;
     std::map<unsigned long long, unsigned int> m_lastSequence;
+    std::map<unsigned long long, std::map<unsigned int, double>> m_tcpReplayCache;
     double m_lastClipboardTimestamp = 0;
     std::map<unsigned long long, std::vector<char>> m_clipboardReassembly;
 };

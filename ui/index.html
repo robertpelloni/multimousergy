@@ -31,15 +31,6 @@
         .log-box { flex: 1; background: #111; border: 1px solid #555; border-radius: 4px; padding: 10px; font-family: monospace; font-size: 12px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
         .log-error { color: #ff5555; }
         .log-info { color: #aaaaaa; }
-
-        .dropzone-container { flex: 1; min-height: 100px; display: flex; flex-direction: column; }
-        .dropzone { flex: 1; border: 2px dashed #555; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #222; transition: all 0.2s; color: #aaa; text-align: center; padding: 10px; }
-        .dropzone.dragover { border-color: #007acc; background: #2a3d4d; color: #fff; }
-        .dropzone p { margin: 5px 0; }
-        .transfer-status { margin-top: 10px; font-size: 12px; }
-        .transfer-item { display: flex; justify-content: space-between; margin-bottom: 5px; background: #333; padding: 5px; border-radius: 3px; }
-        .transfer-bar-container { height: 4px; background: #555; border-radius: 2px; margin-top: 5px; overflow: hidden; }
-        .transfer-bar { height: 100%; background: #007acc; width: 0%; transition: width 0.1s; }
     </style>
 </head>
 <body>
@@ -90,17 +81,6 @@
         </div>
 
         <div class="right-panel">
-            <div class="widget dropzone-container">
-                <h3 style="margin-top:0;">File Transfer</h3>
-                <div class="dropzone" id="dropzone">
-                    <p>Drag & Drop files here to send</p>
-                    <p style="font-size: 12px;">Files will be sent to the connected peer</p>
-                </div>
-                <div class="transfer-status" id="transferStatus">
-                    <!-- Transfer items will appear here -->
-                </div>
-            </div>
-
             <div class="widget minimap-container">
                 <canvas id="minimap" width="400" height="300"></canvas>
             </div>
@@ -220,74 +200,6 @@
                 });
             }
         });
-
-        // Drag and Drop implementation
-        const dropzone = document.getElementById('dropzone');
-        const transferStatus = document.getElementById('transferStatus');
-
-        dropzone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropzone.classList.add('dragover');
-        });
-
-        dropzone.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropzone.classList.remove('dragover');
-        });
-
-        dropzone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropzone.classList.remove('dragover');
-
-            if (document.getElementById('statusText').innerText !== "Status: Running") {
-                const div = document.createElement('div');
-                div.className = 'log-error';
-                div.innerText = "Cannot send files: NetMux is not running";
-                logBox.appendChild(div);
-                logBox.scrollTop = logBox.scrollHeight;
-                return;
-            }
-
-            for (const f of e.dataTransfer.files) {
-                // Determine target peer - for now we'll assume there's one target peer we want to send to
-                // Typically you'd have a UI to select a peer, but for the simplest multi-part protocol
-                // drag-and-drop we can send a broadcast target (e.g. 0) or the first connected peer.
-                // For this implementation we will set target to 0 (broadcast or auto-select in backend).
-                const targetPeer = 0;
-
-                window.electronAPI.sendFile({
-                    path: f.path,
-                    name: f.name,
-                    size: f.size,
-                    target: targetPeer
-                });
-
-                // Add to UI
-                const transferId = 'transfer_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-                const el = document.createElement('div');
-                el.className = 'transfer-item';
-                el.id = transferId;
-                el.innerHTML = `
-                    <div style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                        Sending: ${f.name}
-                        <div class="transfer-bar-container"><div class="transfer-bar" id="${transferId}_bar"></div></div>
-                    </div>
-                `;
-                transferStatus.appendChild(el);
-            }
-        });
-
-        // Listen for file transfer progress from telemetry/logs
-        window.electronAPI.onTransferProgress((data) => {
-            // Update UI with transfer progress
-            // In a real implementation we would match the transferId
-            // For now, if we get progress we can just update a generic UI or specific IDs if provided
-            console.log("Transfer progress:", data);
-        });
-
     </script>
 </body>
 </html>

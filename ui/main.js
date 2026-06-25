@@ -78,14 +78,10 @@ ipcMain.on('start-netmux', (event, config) => {
   const rlOut = readline.createInterface({ input: netmuxProcess.stdout });
   rlOut.on('line', (line) => {
     try {
-      if (line.startsWith('{')) {
+      if (line.startsWith('{') && line.includes('"type":"telemetry"')) {
         const data = JSON.parse(line);
-        if (data.type === 'telemetry' && mainWindow) {
+        if (mainWindow) {
             mainWindow.webContents.send('telemetry-data', data);
-        } else if (data.type === 'transfer_progress' && mainWindow) {
-            mainWindow.webContents.send('transfer-progress', data);
-        } else if (mainWindow) {
-            mainWindow.webContents.send('log-data', { level: 'info', message: line });
         }
       } else {
         if (mainWindow) {
@@ -119,22 +115,5 @@ ipcMain.on('stop-netmux', () => {
     if (netmuxProcess) {
         netmuxProcess.kill('SIGINT');
         netmuxProcess = null;
-    }
-});
-
-ipcMain.on('send-file', (event, fileData) => {
-    if (netmuxProcess && netmuxProcess.stdin) {
-        const command = {
-            command: "send_file",
-            path: fileData.path,
-            target: fileData.target
-        };
-        netmuxProcess.stdin.write(JSON.stringify(command) + "\n");
-        console.log("Sent file transfer command to NetMux:", command);
-    } else {
-        console.error("Failed to send file: NetMux process not running or stdin not available.");
-        if (mainWindow) {
-            mainWindow.webContents.send('log-data', { level: 'error', message: 'Failed to send file: NetMux is not running.' });
-        }
     }
 });

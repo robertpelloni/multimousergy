@@ -1,5 +1,9 @@
 # CHANGELOG.md
 
+## [0.1.77-alpha] - 2026-06-25
+### Fixed
+- Fixed an issue where the TCP replay cache pruning would cause a performance issue during high volume transfers by limiting cleanup to once every 10 seconds.
+
 ## [0.1.71-alpha] - 2025-01-24
 ### Added
 - Implemented Dynamic Resolution Scaling and DPI Awareness.
