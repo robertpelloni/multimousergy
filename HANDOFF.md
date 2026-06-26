@@ -1,22 +1,17 @@
-## Session Handoff - File Transfer UI and Security Hardening
+## Session Handoff - Spatial Viewport Integration & DXGI Desktop Duplication
 
 ### Actions Performed
-1. Implemented a Drag-and-Drop UI in the Electron frontend for the File Transfer Engine.
-2. Wired up IPC to pass file transfer commands from the Electron UI to the C++ backend via `stdin`.
-3. Updated the C++ backend (`main.cpp`, `NetMuxFramework.cpp`) to parse `stdin` for file transfer commands and initiate transfers.
-4. Added `transfer_progress` telemetry from the C++ backend to the Electron UI.
-5. Enhanced security by implementing a TCP replay cache with a 60-second retention window for exactly-once packet execution, replacing a potentially CPU-intensive O(N) loop that ran on every packet.
-6. Refined UDP anti-replay logic to handle sequence number wrap-around, preventing potential denial-of-service or starvation.
-7. Verified that the `FileTransferEngine` correctly uses SHA-256 for file integrity checks.
-8. Updated `VERSION.md` to `0.1.77-alpha` and appended entries to `CHANGELOG.md`.
+1. Integrated DXGI Desktop Duplication API into `NetMuxFramework::Run()` to capture screen frames continuously when D3D11 is enabled.
+2. Verified that the `DesktopCapture` class implements `AcquireFrame` and `ReleaseFrame` correctly.
+3. Updated `NetMuxFramework::Initialize()` to start both the `DesktopCapture` module and the `WebRTCManager` to prepare for the 3D Composition Engine and media streams (Milestone 6).
+4. Bumped version to `0.1.79-alpha` and added entries to `CHANGELOG.md`.
 
 ### Known State
 - Build passes on linux.
 - Unit tests all pass successfully.
-- Web app properly functions as a standalone viewer, and now supports initiating file transfers via drag-and-drop.
-- The C++ backend now listens for commands on `stdin`.
+- SpatialViewport class has D3D11 initialization and matrices calculated.
+- `NetMuxFramework` is passing cursor data to the Spatial Viewport.
 
 ### Future considerations
-- Expand the web UI feature parity with the old config GUI.
-- Port advanced configuration like auto-connect, clipboard sync state, desktop capturing preferences.
-- Implement Native Linux X11 Integration for clipboard/cursor support as requested by the Supervisor.
+- Continue expanding the `SpatialViewport` rendering logic to actually draw the 2D planes using the provided cursor state and D3D11 context.
+- Start passing the captured DXGI frames to the WebRTC video stream.

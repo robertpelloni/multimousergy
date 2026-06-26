@@ -82,6 +82,21 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
         m_overlay.LoadCursorTheme(m_settings.cursorThemePath);
     }
 
+#ifdef _WIN32
+    if (m_settings.useD3D11) {
+        if (!m_spatialViewport.Initialize((ID3D11Device*)m_overlay.GetD3D11Context())) {
+            std::cerr << "[Warning] Failed to initialize Spatial Viewport." << std::endl;
+        }
+        if (!m_capture.Initialize()) {
+            std::cerr << "[Warning] Failed to initialize DXGI Desktop Duplication." << std::endl;
+        }
+    }
+#endif
+
+    if (!m_webrtc.Initialize()) {
+        std::cerr << "[Warning] WebRTC initialization failed. High-bandwidth media streams will be unavailable." << std::endl;
+    }
+
     if (!m_driver.Initialize(m_settings.driverType)) {
         std::cout << "[Warning] Virtual HID Driver not available. Using software fallback." << std::endl;
     }
@@ -152,6 +167,28 @@ void NetMuxFramework::Run() {
 
         // Update MultiMousergy Spatial Viewport
         m_spatialViewport.Update((float)dt / 1000.0f, m_input.IsCaptured());
+
+#ifdef _WIN32
+        if (m_settings.useD3D11) {
+            if (m_capture.AcquireFrame()) {
+                ID3D11Texture2D* frame = m_capture.GetCurrentFrameTexture();
+                if (frame) {
+                    ID3D11ShaderResourceView* srv = nullptr;
+                    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+                    srvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+                    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+                    srvDesc.Texture2D.MostDetailedMip = 0;
+                    srvDesc.Texture2D.MipLevels = 1;
+
+                    // Note: In a real app we'd cache this SRV, creating it per-frame is inefficient
+                    // We also need the device to create the SRV, which we'd get from the texture
+                    // For now, this hooks the systems together conceptually
+                    // m_spatialViewport.SetLocalDesktopTexture(srv);
+                }
+                m_capture.ReleaseFrame();
+            }
+        }
+#endif
 
         // Update input capture permission based on connectivity
         auto allPeers = m_sync.GetAllPeers();

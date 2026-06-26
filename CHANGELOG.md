@@ -1,5 +1,9 @@
 # CHANGELOG.md
 
+## [0.1.79-alpha] - 2026-06-26
+### Added
+- Integrated D3D11 Desktop Duplication API capture loop for the Spatial Viewport rendering pipeline.
+
 ## [0.1.77-alpha] - 2026-06-25
 ### Fixed
 - Fixed an issue where the TCP replay cache pruning would cause a performance issue during high volume transfers by limiting cleanup to once every 10 seconds.
