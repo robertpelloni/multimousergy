@@ -40,11 +40,17 @@ void SpatialViewport::Update(float deltaTime, bool isCrossingBorder) {
     m_viewMatrix = DirectX::XMMatrixLookAtLH(Eye, At, Up);
 }
 
-void SpatialViewport::Render(ID3D11DeviceContext* context) {
+void SpatialViewport::Render(ID3D11DeviceContext* context, const std::map<unsigned long long, RemoteCursorState>& peers) {
     // 1. Set Vertex/Pixel Shaders for 2D planes in 3D space
     // 2. Bind m_localSRV (Local Desktop) to Plane 1
     // 3. Bind m_remoteSRV (Remote WebRTC Stream) to Plane 2 (offset in X)
     // 4. Apply View/Proj constant buffers
     // 5. Draw planes using Anisotropic filtering to prevent blurriness
+
+    // Stub implementation for now until WebRTC/DXGI frames are fully wired in.
+    if (!context) return;
+
+    // We would typically map our D3D11 buffer here and draw the 3D planes
+    // representing the different desktops, and map the cursor states to those planes.
 }
 #endif

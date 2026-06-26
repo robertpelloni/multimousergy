@@ -199,15 +199,6 @@ void OverlayEngine::SetActivePeer(unsigned long long id) {
 #endif
 }
 
-#ifdef _WIN32
-void* OverlayEngine::GetD3D11Context() {
-    if (m_backend == OverlayBackend::D3D11 && m_d3dOverlay) {
-        return static_cast<D3D11Overlay*>(m_d3dOverlay)->GetContext();
-    }
-    return nullptr;
-}
-#endif
-
 void OverlayEngine::SetSelectionColor(unsigned char r, unsigned char g, unsigned char b) {
     m_selR = r; m_selG = g; m_selB = b;
 #ifdef _WIN32
