@@ -1,5 +1,9 @@
 # CHANGELOG.md
 
+## [0.1.78-alpha] - 2026-06-26
+### Added
+- Integrated Cursor State into Spatial Viewport for 3D composition rendering.
+
 ## [0.1.77-alpha] - 2026-06-25
 ### Fixed
 - Fixed an issue where the TCP replay cache pruning would cause a performance issue during high volume transfers by limiting cleanup to once every 10 seconds.

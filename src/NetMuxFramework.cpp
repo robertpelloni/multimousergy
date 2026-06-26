@@ -239,6 +239,13 @@ void NetMuxFramework::Run() {
             m_overlay.SetActivePeer(activeId);
             m_overlay.RenderPeers(overlayPeers);
             
+#ifdef _WIN32
+            // Delegate spatial rendering to SpatialViewport if D3D11 is used
+            if (m_settings.useD3D11 && m_overlay.GetD3D11Context() != nullptr) {
+                m_spatialViewport.Render(m_overlay.GetD3D11Context(), overlayPeers);
+            }
+#endif
+
             m_renderTimer.Reset();
         }
 
