@@ -1,5 +1,9 @@
 # CHANGELOG.md
 
+## [0.1.82-alpha] - 2026-06-27
+### Changed
+- Clarified completion of Milestone 4 (Collaborative Selection and Drag Sync) and Milestone 5 (File Transfer Engine).
+
 ## [0.1.81-alpha] - 2026-06-27
 ### Added
 - Implemented `XQueryPointer` fallback in `InputEngine` for native Linux X11 integration to ensure robust cursor capturing.
