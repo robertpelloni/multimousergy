@@ -95,6 +95,12 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
 
     if (!m_webrtc.Initialize()) {
         std::cerr << "[Warning] WebRTC initialization failed. High-bandwidth media streams will be unavailable." << std::endl;
+    } else {
+        m_webrtc.AddVideoTrack();
+        m_webrtc.AddAudioTrack();
+        if (m_settings.isServer) {
+            m_webrtc.CreateOffer();
+        }
     }
 
     if (!m_driver.Initialize(m_settings.driverType)) {
@@ -171,23 +177,9 @@ void NetMuxFramework::Run() {
 #ifdef _WIN32
         if (m_settings.useD3D11) {
             if (m_capture.AcquireFrame()) {
-                ID3D11Texture2D* frame = m_capture.GetCurrentFrameTexture();
-                if (frame) {
-                    ID3D11ShaderResourceView* srv = nullptr;
-                    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-                    srvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-                    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-                    srvDesc.Texture2D.MostDetailedMip = 0;
-                    srvDesc.Texture2D.MipLevels = 1;
-
-                    // For the sake of the exercise, we will just use the texture to create an SRV
-                    // In a full implementation, we'd cache the SRV to avoid recreating it every frame.
-                    ID3D11Device* device = (ID3D11Device*)m_overlay.GetD3D11Device();
-                    if (device) {
-                        device->CreateShaderResourceView(frame, &srvDesc, &srv);
-                        m_spatialViewport.SetLocalDesktopTexture(srv);
-                    }
-                }
+                // Pass the frame to the viewport, which will manage the SRV lifecycle
+                // to prevent memory leaks from creating SRVs every frame.
+                m_spatialViewport.UpdateLocalDesktopFrame(m_capture.GetCurrentFrameTexture(), (ID3D11Device*)m_overlay.GetD3D11Device());
                 m_capture.ReleaseFrame();
             }
         }

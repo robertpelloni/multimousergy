@@ -1,3 +1,5 @@
+#include <map>
+#include "OverlayEngine.hpp"
 #pragma once
 
 #ifdef _WIN32
@@ -17,10 +19,12 @@ public:
 
     void SetLocalDesktopTexture(ID3D11ShaderResourceView* srv) { m_localSRV = srv; }
     void SetRemoteDesktopTexture(ID3D11ShaderResourceView* srv) { m_remoteSRV = srv; }
+    void UpdateLocalDesktopFrame(ID3D11Texture2D* frame, ID3D11Device* device);
 #else
     bool Initialize(void* device) { return false; }
     void Update(float deltaTime, bool isCrossingBorder) {}
-    void Render(void* context) {}
+    void Render(void* context, const std::map<unsigned long long, RemoteCursorState>& peers, float localDpiScale) {}
+    void UpdateLocalDesktopFrame(void* frame, void* device) {}
 #endif
 
 private:
