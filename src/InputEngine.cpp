@@ -12,6 +12,7 @@ static InputEngine* s_instance = nullptr;
 #include <fcntl.h>
 #include <unistd.h>
 #include <linux/input.h>
+#include <X11/Xlib.h>
 #endif
 
 #include <vector>
@@ -171,19 +172,51 @@ void InputEngine::Update() {
     if (!m_active) return;
 
 #ifdef __linux__
-    for (int fd : m_fds) {
-        struct input_event ev;
-        while (read(fd, &ev, sizeof(ev)) > 0) {
-            if (ev.type == EV_REL) {
-                int dx = (ev.code == REL_X) ? ev.value : 0;
-                int dy = (ev.code == REL_Y) ? ev.value : 0;
-                m_virtualX += (dx * 65535) / 1919;
-                m_virtualY += (dy * 65535) / 1079;
-                if (m_virtualX < 0) m_virtualX = 0; if (m_virtualX > 65535) m_virtualX = 65535;
-                if (m_virtualY < 0) m_virtualY = 0; if (m_virtualY > 65535) m_virtualY = 65535;
+    // Fallback/Supplement with X11 Query Pointer
+    if (m_xDisplay) {
+        Display* dpy = (Display*)m_xDisplay;
+        Window root_return, child_return;
+        int root_x_return, root_y_return;
+        int win_x_return, win_y_return;
+        unsigned int mask_return;
+
+        if (XQueryPointer(dpy, DefaultRootWindow(dpy), &root_return, &child_return,
+                          &root_x_return, &root_y_return, &win_x_return, &win_y_return, &mask_return)) {
+
+            // Assuming standard 1920x1080 for X11 fallback (this could be queried via Xlib too)
+            int newVX = (root_x_return * 65535) / 1919;
+            int newVY = (root_y_return * 65535) / 1079;
+
+            if (newVX != m_virtualX || newVY != m_virtualY) {
+                int dx = newVX - m_virtualX;
+                int dy = newVY - m_virtualY;
+                m_virtualX = newVX;
+                m_virtualY = newVY;
+
                 if (m_isCaptured) m_accumulatedX += dx;
-                Packet pkt = { 0, 0, 0, 0.0, NetMuxPacketType::AbsoluteMovement, m_virtualX, m_virtualY, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
+
+                static int linuxMoveCount = 0;
+                NetMuxPacketType moveType = (linuxMoveCount++ % 10 == 0) ? NetMuxPacketType::AbsoluteMovement : NetMuxPacketType::DeltaMovement;
+                Packet pkt = { 0, 0, 0, 0.0, moveType, (moveType == NetMuxPacketType::DeltaMovement) ? dx : m_virtualX, (moveType == NetMuxPacketType::DeltaMovement) ? dy : m_virtualY, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
                 m_pendingPackets.push(pkt);
+            }
+        }
+    } else {
+        // Fallback to evdev if X11 display isn't available
+        for (int fd : m_fds) {
+            struct input_event ev;
+            while (read(fd, &ev, sizeof(ev)) > 0) {
+                if (ev.type == EV_REL) {
+                    int dx = (ev.code == REL_X) ? ev.value : 0;
+                    int dy = (ev.code == REL_Y) ? ev.value : 0;
+                    m_virtualX += (dx * 65535) / 1919;
+                    m_virtualY += (dy * 65535) / 1079;
+                    if (m_virtualX < 0) m_virtualX = 0; if (m_virtualX > 65535) m_virtualX = 65535;
+                    if (m_virtualY < 0) m_virtualY = 0; if (m_virtualY > 65535) m_virtualY = 65535;
+                    if (m_isCaptured) m_accumulatedX += dx;
+                    Packet pkt = { 0, 0, 0, 0.0, NetMuxPacketType::AbsoluteMovement, m_virtualX, m_virtualY, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
+                    m_pendingPackets.push(pkt);
+                }
             }
         }
     }

@@ -1,5 +1,9 @@
 # CHANGELOG.md
 
+## [0.1.81-alpha] - 2026-06-27
+### Added
+- Implemented `XQueryPointer` fallback in `InputEngine` for native Linux X11 integration to ensure robust cursor capturing.
+
 ## [0.1.80-alpha] - 2026-06-27
 ### Added
 - Marked DXGI Desktop Duplication, 3D Composition Engine, and Boundary Animation as completed in the Roadmap.

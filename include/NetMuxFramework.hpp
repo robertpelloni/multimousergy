@@ -112,4 +112,5 @@ private:
     std::map<unsigned long long, std::map<unsigned int, double>> m_tcpReplayCache;
     double m_lastClipboardTimestamp = 0;
     std::map<unsigned long long, std::vector<char>> m_clipboardReassembly;
+    std::map<unsigned long long, std::pair<int, int>> m_lastMasterSyncPos;
 };

@@ -422,14 +422,18 @@ void NetMuxFramework::ProcessIncomingPackets() {
             m_lastSequence[peerId] = inPkt.sequenceNumber;
         } else {
             // TCP Replay Cache for strict exactly-once semantics
-            // Clean up old entries
+            // Clean up old entries periodically, not every packet
             double now = m_loopTimer.ElapsedMilliseconds();
+            static double lastCleanupTime = 0;
             auto& cache = m_tcpReplayCache[peerId];
-            for (auto it = cache.begin(); it != cache.end();) {
-                if (now - it->second > 60000.0) { // 60 seconds
-                    it = cache.erase(it);
-                } else {
-                    ++it;
+            if (now - lastCleanupTime > 10000.0) { // Cleanup every 10 seconds
+                lastCleanupTime = now;
+                for (auto it = cache.begin(); it != cache.end();) {
+                    if (now - it->second > 60000.0) { // 60 seconds retention
+                        it = cache.erase(it);
+                    } else {
+                        ++it;
+                    }
                 }
             }
             if (cache.count(inPkt.sequenceNumber)) {
@@ -647,8 +651,15 @@ void NetMuxFramework::PerformMasterStateSync() {
     if (m_loopTimer.ElapsedMilliseconds() - lastMasterSync > 100.0) {
         auto peers = m_sync.GetAllPeers();
         for (auto const& [id, peer] : peers) {
-            Packet masterPkt = { id, peer.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(), NetMuxPacketType::MasterStateSync, peer.normalizedX, peer.normalizedY, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
-            m_network.SendPacket(masterPkt);
+            // Optimization: Only broadcast master state if position has changed
+            if (m_lastMasterSyncPos.count(id) == 0 ||
+                m_lastMasterSyncPos[id].first != peer.normalizedX ||
+                m_lastMasterSyncPos[id].second != peer.normalizedY) {
+
+                Packet masterPkt = { id, peer.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(), NetMuxPacketType::MasterStateSync, peer.normalizedX, peer.normalizedY, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
+                m_network.SendPacket(masterPkt);
+                m_lastMasterSyncPos[id] = {peer.normalizedX, peer.normalizedY};
+            }
         }
         lastMasterSync = m_loopTimer.ElapsedMilliseconds();
     }
