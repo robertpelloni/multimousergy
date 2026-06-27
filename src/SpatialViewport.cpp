@@ -50,11 +50,23 @@ void SpatialViewport::Render(ID3D11DeviceContext* context, const std::map<unsign
     // Stub implementation for now until WebRTC/DXGI frames are fully wired in.
     if (!context) return;
 
-    // Example of using DPI scale for cursor rendering in 3D space
+    // Map normalized coordinates to 3D plane positions for each connected peer
     for (auto const& [id, peer] : peers) {
         float dpiRatio = localDpiScale;
-        // In a real implementation we would adjust the cursor's world position based on dpiRatio
-        // float worldX = (peer.x * dpiRatio) / screenWidth;
+
+        // Convert normalized coordinates (0-65535) to -1.0 to 1.0 screen space
+        // Then apply scaling based on DPI to map onto the 3D plane
+        float normX = (peer.x / 65535.0f);
+        float normY = (peer.y / 65535.0f);
+
+        // Calculate 3D world position
+        // Assuming Plane 1 is at z=0, and Plane 2 is at z=0 with an x-offset
+        // The x-offset would depend on the peer ID or relative position
+        float worldX = ((normX * 2.0f) - 1.0f) * dpiRatio;
+        float worldY = (1.0f - (normY * 2.0f)) * dpiRatio; // Invert Y for 3D space
+
+        // In a full implementation, we would bind these coordinates to a vertex buffer
+        // and draw the cursor sprite at (worldX, worldY, 0.0f)
     }
 }
 #endif

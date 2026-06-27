@@ -40,7 +40,7 @@
 - [x] Authoritative Synchronization (Server-side position enforcement).
 - [x] UI & Network Stack Refactor (Robust connection handling).
  - [x] File Transfer Engine: Implement drag-and-drop file sharing via multi-part protocol.
- - [x] File Integrity: SHA-256 verification for shared data.
+ - [x] File Integrity: SHA-256 verification for shared data, including chunking/reassembly logic and robust integrity checks.
  - [x] Connection Resilience: Auto-Reconnect and State Monitoring.
  - [x] Keyboard Sync: Full capture and injection support.
  - [x] UI Modernization: Tabbed interface and machine-info telemetry.

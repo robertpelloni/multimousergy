@@ -180,10 +180,13 @@ void NetMuxFramework::Run() {
                     srvDesc.Texture2D.MostDetailedMip = 0;
                     srvDesc.Texture2D.MipLevels = 1;
 
-                    // Note: In a real app we'd cache this SRV, creating it per-frame is inefficient
-                    // We also need the device to create the SRV, which we'd get from the texture
-                    // For now, this hooks the systems together conceptually
-                    // m_spatialViewport.SetLocalDesktopTexture(srv);
+                    // For the sake of the exercise, we will just use the texture to create an SRV
+                    // In a full implementation, we'd cache the SRV to avoid recreating it every frame.
+                    ID3D11Device* device = (ID3D11Device*)m_overlay.GetD3D11Device();
+                    if (device) {
+                        device->CreateShaderResourceView(frame, &srvDesc, &srv);
+                        m_spatialViewport.SetLocalDesktopTexture(srv);
+                    }
                 }
                 m_capture.ReleaseFrame();
             }

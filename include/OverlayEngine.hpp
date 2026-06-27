@@ -53,6 +53,8 @@ private:
     unsigned long long m_activePeerId = 0;
 
 #ifdef _WIN32
+    void* GetD3D11Device();
+    void* GetD3D11Context();
     void* m_hwnd;
     void* m_d3dOverlay; // Reference to D3D11Overlay class
     void* m_hdcMem;
