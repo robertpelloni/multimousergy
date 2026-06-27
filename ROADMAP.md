@@ -52,7 +52,7 @@
 
 ## Milestone 6: MultiMousergy Spatial Evolution (PLANNED)
 - [ ] WebRTC Integration: Native C++ Data & Media pipelines.
-- [ ] DXGI Desktop Duplication: Low-latency frame capture.
-- [ ] 3D Composition Engine: D3D11-based spatial viewport.
-- [ ] Boundary Animation: Smooth pan/zoom transitions between desktops.
+- [x] DXGI Desktop Duplication: Low-latency frame capture.
+- [x] 3D Composition Engine: D3D11-based spatial viewport.
+- [x] Boundary Animation: Smooth pan/zoom transitions between desktops.
 - [ ] Integrated Video Chat: Synchronized webcam/audio streams.

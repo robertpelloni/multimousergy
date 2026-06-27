@@ -1,5 +1,9 @@
 # CHANGELOG.md
 
+## [0.1.80-alpha] - 2026-06-27
+### Added
+- Marked DXGI Desktop Duplication, 3D Composition Engine, and Boundary Animation as completed in the Roadmap.
+
 ## [0.1.79-alpha] - 2026-06-26
 ### Added
 - Integrated D3D11 Desktop Duplication API capture loop for the Spatial Viewport rendering pipeline.
