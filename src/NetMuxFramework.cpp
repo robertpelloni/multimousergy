@@ -279,7 +279,18 @@ void NetMuxFramework::Run() {
 #ifdef _WIN32
             // Delegate spatial rendering to SpatialViewport if D3D11 is used
             if (m_settings.useD3D11 && m_overlay.GetD3D11Context() != nullptr) {
+
                 m_spatialViewport.Render((ID3D11DeviceContext*)m_overlay.GetD3D11Context(), overlayPeers);
+
+                // Get local DPI scale
+                float localDpi = 1.0f;
+                HDC hdc = GetDC(NULL);
+                if (hdc) {
+                    localDpi = (float)GetDeviceCaps(hdc, LOGPIXELSX) / 96.0f;
+                    ReleaseDC(NULL, hdc);
+                }
+                m_spatialViewport.Render((ID3D11DeviceContext*)m_overlay.GetD3D11Context(), overlayPeers, localDpi);
+
             }
 #endif
 
@@ -415,14 +426,18 @@ void NetMuxFramework::ProcessIncomingPackets() {
             m_lastSequence[peerId] = inPkt.sequenceNumber;
         } else {
             // TCP Replay Cache for strict exactly-once semantics
-            // Clean up old entries
+            // Clean up old entries periodically, not every packet
             double now = m_loopTimer.ElapsedMilliseconds();
+            static double lastCleanupTime = 0;
             auto& cache = m_tcpReplayCache[peerId];
-            for (auto it = cache.begin(); it != cache.end();) {
-                if (now - it->second > 60000.0) { // 60 seconds
-                    it = cache.erase(it);
-                } else {
-                    ++it;
+            if (now - lastCleanupTime > 10000.0) { // Cleanup every 10 seconds
+                lastCleanupTime = now;
+                for (auto it = cache.begin(); it != cache.end();) {
+                    if (now - it->second > 60000.0) { // 60 seconds retention
+                        it = cache.erase(it);
+                    } else {
+                        ++it;
+                    }
                 }
             }
             if (cache.count(inPkt.sequenceNumber)) {

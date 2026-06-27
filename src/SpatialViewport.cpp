@@ -1,5 +1,6 @@
 #include "SpatialViewport.hpp"
 #include <iostream>
+#include <cmath>
 
 SpatialViewport::SpatialViewport()
 #ifdef _WIN32
@@ -26,21 +27,30 @@ bool SpatialViewport::Initialize(ID3D11Device* device) {
 
 void SpatialViewport::Update(float deltaTime, bool isCrossingBorder) {
     // Boundary-triggered Spatial Animation (The "Zoom")
-    float targetX = isCrossingBorder ? 4.0f : 0.0f; // Shift to remote plane
-    float targetZ = isCrossingBorder ? -3.0f : -5.0f; // Zoom out to see context
+    // Enhance smoothing logic to make it more seamless
+    float targetX = isCrossingBorder ? 2.5f : 0.0f; // Shift slightly towards the remote plane
+    float targetZ = isCrossingBorder ? -6.0f : -4.0f; // Zoom out more for context
 
-    float lerpSpeed = 5.0f;
-    m_currentCamX += (targetX - m_currentCamX) * deltaTime * lerpSpeed;
-    m_currentCamZ += (targetZ - m_currentCamZ) * deltaTime * lerpSpeed;
+    // Smooth step easing (could use smoothstep or similar for better feel)
+    float lerpSpeed = 8.0f; // Slightly faster, but smoother easing
+
+    // Simple exponential smoothing
+    m_currentCamX += (targetX - m_currentCamX) * (1.0f - std::exp(-lerpSpeed * deltaTime));
+    m_currentCamZ += (targetZ - m_currentCamZ) * (1.0f - std::exp(-lerpSpeed * deltaTime));
 
     // Update view matrix based on interpolated camera position
-    DirectX::XMVECTOR Eye = DirectX::XMVectorSet(m_currentCamX, 0.0f, m_currentCamZ, 0.0f);
-    DirectX::XMVECTOR At = DirectX::XMVectorSet(m_currentCamX, 0.0f, 0.0f, 0.0f);
+    // Adding a slight tilt to the camera for a 3D effect
+    DirectX::XMVECTOR Eye = DirectX::XMVectorSet(m_currentCamX, 0.5f, m_currentCamZ, 0.0f); // Slightly elevated
+    DirectX::XMVECTOR At = DirectX::XMVectorSet(m_currentCamX * 0.5f, 0.0f, 0.0f, 0.0f);  // Look slightly towards center
     DirectX::XMVECTOR Up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
     m_viewMatrix = DirectX::XMMatrixLookAtLH(Eye, At, Up);
 }
 
-void SpatialViewport::Render(ID3D11DeviceContext* context, const std::map<unsigned long long, RemoteCursorState>& peers) {
+
+
+
+void SpatialViewport::Render(ID3D11DeviceContext* context, const std::map<unsigned long long, RemoteCursorState>& peers, float localDpiScale) {
+
     // 1. Set Vertex/Pixel Shaders for 2D planes in 3D space
     // 2. Bind m_localSRV (Local Desktop) to Plane 1
     // 3. Bind m_remoteSRV (Remote WebRTC Stream) to Plane 2 (offset in X)
@@ -50,7 +60,16 @@ void SpatialViewport::Render(ID3D11DeviceContext* context, const std::map<unsign
     // Stub implementation for now until WebRTC/DXGI frames are fully wired in.
     if (!context) return;
 
-    // We would typically map our D3D11 buffer here and draw the 3D planes
-    // representing the different desktops, and map the cursor states to those planes.
+
+
+
+
+    // Example of using DPI scale for cursor rendering in 3D space
+    for (auto const& [id, peer] : peers) {
+        float dpiRatio = localDpiScale;
+        // In a real implementation we would adjust the cursor's world position based on dpiRatio
+        // float worldX = (peer.x * dpiRatio) / screenWidth;
+    }
+
 }
 #endif
