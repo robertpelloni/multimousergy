@@ -3,12 +3,25 @@
 
 SpatialViewport::SpatialViewport()
 #ifdef _WIN32
-    : m_currentCamX(0.0f), m_currentCamZ(0.0f), m_localSRV(nullptr), m_remoteSRV(nullptr)
+    : m_currentCamX(0.0f), m_currentCamZ(0.0f), m_localSRV(nullptr), m_remoteSRV(nullptr),
+      m_vertexShader(nullptr), m_pixelShader(nullptr), m_inputLayout(nullptr),
+      m_vertexBuffer(nullptr), m_indexBuffer(nullptr), m_constantBuffer(nullptr),
+      m_samplerState(nullptr)
 #endif
 {
 }
 
-SpatialViewport::~SpatialViewport() {}
+SpatialViewport::~SpatialViewport() {
+#ifdef _WIN32
+    if (m_samplerState) m_samplerState->Release();
+    if (m_constantBuffer) m_constantBuffer->Release();
+    if (m_indexBuffer) m_indexBuffer->Release();
+    if (m_vertexBuffer) m_vertexBuffer->Release();
+    if (m_inputLayout) m_inputLayout->Release();
+    if (m_pixelShader) m_pixelShader->Release();
+    if (m_vertexShader) m_vertexShader->Release();
+#endif
+}
 
 #ifdef _WIN32
 bool SpatialViewport::Initialize(ID3D11Device* device) {
@@ -20,6 +33,58 @@ bool SpatialViewport::Initialize(ID3D11Device* device) {
     DirectX::XMVECTOR Up = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
     m_viewMatrix = DirectX::XMMatrixLookAtLH(Eye, At, Up);
     m_projMatrix = DirectX::XMMatrixPerspectiveFovLH(DirectX::XM_PIDIV4, 16.0f / 9.0f, 0.01f, 100.0f);
+
+    if (!device) return false;
+
+    // 1. Create Quad Vertices
+    Vertex vertices[] = {
+        { DirectX::XMFLOAT3(-1.0f,  1.0f, 0.0f), DirectX::XMFLOAT2(0.0f, 0.0f) }, // Top-left
+        { DirectX::XMFLOAT3( 1.0f,  1.0f, 0.0f), DirectX::XMFLOAT2(1.0f, 0.0f) }, // Top-right
+        { DirectX::XMFLOAT3(-1.0f, -1.0f, 0.0f), DirectX::XMFLOAT2(0.0f, 1.0f) }, // Bottom-left
+        { DirectX::XMFLOAT3( 1.0f, -1.0f, 0.0f), DirectX::XMFLOAT2(1.0f, 1.0f) }  // Bottom-right
+    };
+
+    D3D11_BUFFER_DESC vertexDesc = {};
+    vertexDesc.Usage = D3D11_USAGE_DEFAULT;
+    vertexDesc.ByteWidth = sizeof(Vertex) * 4;
+    vertexDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+    D3D11_SUBRESOURCE_DATA vertexData = {};
+    vertexData.pSysMem = vertices;
+    device->CreateBuffer(&vertexDesc, &vertexData, &m_vertexBuffer);
+
+    // 2. Create Quad Indices
+    unsigned long indices[] = { 0, 1, 2, 2, 1, 3 };
+    D3D11_BUFFER_DESC indexDesc = {};
+    indexDesc.Usage = D3D11_USAGE_DEFAULT;
+    indexDesc.ByteWidth = sizeof(unsigned long) * 6;
+    indexDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+
+    D3D11_SUBRESOURCE_DATA indexData = {};
+    indexData.pSysMem = indices;
+    device->CreateBuffer(&indexDesc, &indexData, &m_indexBuffer);
+
+    // 3. Create Constant Buffer
+    D3D11_BUFFER_DESC cbDesc = {};
+    cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+    cbDesc.ByteWidth = sizeof(ConstantBufferType);
+    cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    device->CreateBuffer(&cbDesc, nullptr, &m_constantBuffer);
+
+    // 4. Create Sampler State
+    D3D11_SAMPLER_DESC samplerDesc = {};
+    samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.MaxAnisotropy = 8;
+    samplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+    samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+    device->CreateSamplerState(&samplerDesc, &m_samplerState);
+
+    // TODO: Compile and load actual Vertex and Pixel shaders here.
+    // Since we don't have shader files yet or a compiler built-in, we just prepare the structures.
 
     return true;
 }
@@ -48,30 +113,61 @@ void SpatialViewport::Update(float deltaTime, bool isCrossingBorder) {
 void SpatialViewport::Render(ID3D11DeviceContext* context, const std::map<unsigned long long, RemoteCursorState>& peers, float localDpiScale) {
     if (!context) return;
 
-    // TODO: Implement D3D11 3D plane rendering.
-    // This requires setting up vertex/pixel shaders, constant buffers, and drawing quads.
-    // For now, we focus on the WebRTC media pipeline integration to supply the textures.
+    // Set buffers and topology
+    unsigned int stride = sizeof(Vertex);
+    unsigned int offset = 0;
+    context->IASetVertexBuffers(0, 1, &m_vertexBuffer, &stride, &offset);
+    context->IASetIndexBuffer(m_indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+    // Set shaders and sampler (assuming they were created)
+    if (m_vertexShader) context->VSSetShader(m_vertexShader, nullptr, 0);
+    if (m_pixelShader) context->PSSetShader(m_pixelShader, nullptr, 0);
+    if (m_samplerState) context->PSSetSamplers(0, 1, &m_samplerState);
+
+    // 1. Draw Local Desktop Plane
     if (m_localSRV) {
-        // Draw Local Desktop Plane using m_localSRV
+        D3D11_MAPPED_SUBRESOURCE mappedResource;
+        if (SUCCEEDED(context->Map(m_constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource))) {
+            ConstantBufferType* dataPtr = (ConstantBufferType*)mappedResource.pData;
+
+            // Local plane is centered at world origin
+            dataPtr->world = DirectX::XMMatrixTranspose(DirectX::XMMatrixIdentity());
+            dataPtr->view = DirectX::XMMatrixTranspose(m_viewMatrix);
+            dataPtr->projection = DirectX::XMMatrixTranspose(m_projMatrix);
+
+            context->Unmap(m_constantBuffer, 0);
+            context->VSSetConstantBuffers(0, 1, &m_constantBuffer);
+        }
+
+        context->PSSetShaderResources(0, 1, &m_localSRV);
+        context->DrawIndexed(6, 0, 0);
     }
 
+    // 2. Draw Remote Desktop Planes
     int planeIndex = 1;
     for (auto const& [id, peer] : peers) {
-        float dpiRatio = localDpiScale;
+        // Obtain remote SRV from WebRTC media pipeline manager
+        ID3D11ShaderResourceView* remoteSRV = WebRTCManager::GetInstance()->GetRemoteDesktopTexture(id);
 
-        // Map normalized coordinates (0-65535) to -1.0 to 1.0 screen space
-        float normX = (peer.x / 65535.0f);
-        float normY = (peer.y / 65535.0f);
+        if (remoteSRV) {
+            D3D11_MAPPED_SUBRESOURCE mappedResource;
+            if (SUCCEEDED(context->Map(m_constantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource))) {
+                ConstantBufferType* dataPtr = (ConstantBufferType*)mappedResource.pData;
 
-        float worldX = ((normX * 2.0f) - 1.0f) * dpiRatio;
-        float worldY = (1.0f - (normY * 2.0f)) * dpiRatio;
+                // Offset each remote plane in X space
+                DirectX::XMMATRIX worldMatrix = DirectX::XMMatrixTranslation(planeIndex * 2.5f, 0.0f, 0.0f);
 
-        // TODO: Obtain remote SRV from WebRTC media pipeline manager
-        // ID3D11ShaderResourceView* remoteSRV = WebRTCManager::GetInstance()->GetRemoteDesktopTexture(id);
+                dataPtr->world = DirectX::XMMatrixTranspose(worldMatrix);
+                dataPtr->view = DirectX::XMMatrixTranspose(m_viewMatrix);
+                dataPtr->projection = DirectX::XMMatrixTranspose(m_projMatrix);
 
-        if (m_remoteSRV) {
-            // Draw remote desktop quad
+                context->Unmap(m_constantBuffer, 0);
+                context->VSSetConstantBuffers(0, 1, &m_constantBuffer);
+            }
+
+            context->PSSetShaderResources(0, 1, &remoteSRV);
+            context->DrawIndexed(6, 0, 0);
         }
 
         planeIndex++;

@@ -29,6 +29,24 @@ public:
 
 private:
 #ifdef _WIN32
+    ID3D11VertexShader* m_vertexShader = nullptr;
+    ID3D11PixelShader* m_pixelShader = nullptr;
+    ID3D11InputLayout* m_inputLayout = nullptr;
+    ID3D11Buffer* m_vertexBuffer = nullptr;
+    ID3D11Buffer* m_indexBuffer = nullptr;
+    ID3D11Buffer* m_constantBuffer = nullptr;
+    ID3D11SamplerState* m_samplerState = nullptr;
+
+    struct Vertex {
+        DirectX::XMFLOAT3 position;
+        DirectX::XMFLOAT2 texcoord;
+    };
+
+    struct ConstantBufferType {
+        DirectX::XMMATRIX world;
+        DirectX::XMMATRIX view;
+        DirectX::XMMATRIX projection;
+    };
     DirectX::XMMATRIX m_viewMatrix;
     DirectX::XMMATRIX m_projMatrix;
     float m_currentCamX;
