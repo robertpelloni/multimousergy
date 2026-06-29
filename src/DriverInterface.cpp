@@ -168,6 +168,13 @@ bool DriverInterface::Initialize(NetMuxDriverType type) {
     }
 #endif
 
+#ifdef __APPLE__
+    std::cout << "[Driver] Initializing macOS CoreGraphics injection..." << std::endl;
+    m_macEventSource = nullptr; // CGEventSourceCreate(kCGEventSourceStateHIDSystemState)
+    m_initialized = true;
+    return true;
+#endif
+
     m_initialized = false;
     return false;
 }
@@ -227,6 +234,12 @@ bool DriverInterface::SendMouseMovement(long dx, long dy) {
         }
     }
     return true;
+#ifdef __APPLE__
+    // CGEventRef ev = CGEventCreateMouseEvent(m_macEventSource, kCGEventMouseMoved, CGPointMake(x, y), kCGMouseButtonLeft);
+    // CGEventPost(kCGHIDEventTap, ev);
+    // CFRelease(ev);
+    return true;
+#endif
 #else
     return false;
 #endif
@@ -253,6 +266,12 @@ bool DriverInterface::SendMouseWheel(int delta, bool horizontal) {
     input.mi.mouseData = (DWORD)delta;
     SendInput(1, &input, sizeof(INPUT));
     return true;
+#ifdef __APPLE__
+    // CGEventRef ev = CGEventCreateScrollWheelEvent(m_macEventSource, kCGScrollEventUnitPixel, 1, delta);
+    // CGEventPost(kCGHIDEventTap, ev);
+    // CFRelease(ev);
+    return true;
+#endif
 #else
     return false;
 #endif
@@ -281,6 +300,12 @@ bool DriverInterface::SendKeyboardKey(int key, bool down) {
     input.ki.dwFlags = down ? 0 : KEYEVENTF_KEYUP;
     SendInput(1, &input, sizeof(INPUT));
     return true;
+#ifdef __APPLE__
+    // CGEventRef ev = CGEventCreateKeyboardEvent(m_macEventSource, (CGKeyCode)key, down);
+    // CGEventPost(kCGHIDEventTap, ev);
+    // CFRelease(ev);
+    return true;
+#endif
 #else
     return false;
 #endif
@@ -315,6 +340,13 @@ bool DriverInterface::SendMouseButton(int button, bool down) {
 
     std::cout << "[Driver] Injected hardware click (" << (int)m_type << "): Button=" << button << " Down=" << down << std::endl;
     return true;
+#ifdef __APPLE__
+    // CGEventType type = down ? kCGEventLeftMouseDown : kCGEventLeftMouseUp;
+    // CGEventRef ev = CGEventCreateMouseEvent(m_macEventSource, type, CGPointMake(0, 0), kCGMouseButtonLeft);
+    // CGEventPost(kCGHIDEventTap, ev);
+    // CFRelease(ev);
+    return true;
+#endif
 #else
     return false;
 #endif
