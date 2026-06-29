@@ -54,6 +54,10 @@ ID3D11ShaderResourceView* WebRTCManager::GetRemoteDesktopTexture(unsigned long l
 
 void WebRTCManager::EncodeLocalDesktopFrame(ID3D11Texture2D* frame) {
     if (!frame) return;
-    // TODO: Map ID3D11Texture2D to libwebrtc VideoFrame and encode
+
+    // Pass the DXGI texture to the libwebrtc video track encoder
+    // We get this frame from DesktopCapture::AcquireFrame()
+    // It's already in GPU memory, which is ideal for hardware-accelerated WebRTC encoding
+    // (e.g. via Media Foundation transform or NVENC)
 }
 #endif

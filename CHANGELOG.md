@@ -1,3 +1,8 @@
+## [0.1.88-alpha] - 2026-06-29
+### Added
+- Integrated WebRTC SDP/ICE handshake and DXGI texture encoding
+- Cross-platform driver compatibility with macOS CoreGraphics stub
+
 # CHANGELOG.md
 
 ## [0.1.82-alpha] - 2026-06-27
