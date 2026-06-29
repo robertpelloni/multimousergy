@@ -1,3 +1,6 @@
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #include <iostream>
 #include <algorithm>
 #include "NetMuxFramework.hpp"
@@ -48,10 +51,24 @@ int main(int argc, char* argv[]) {
         framework.Run();
     });
 
+    #ifdef _WIN32
+    MSG msg;
+    while (framework.IsRunning()) {
+        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+            if (msg.message == WM_QUIT) break;
+        } else {
+            framework.GetInputEngine().Update();
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    }
+#else
     while (framework.IsRunning()) {
         framework.GetInputEngine().Update();
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
+#endif
 
     framework.Shutdown();
     if (frameworkThread.joinable()) frameworkThread.join();

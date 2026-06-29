@@ -35,4 +35,5 @@ void WebRTCManager::AddVideoTrack() {
 void WebRTCManager::AddAudioTrack() {
     std::cout << "[WebRTC] Initializing spatial audio pipeline..." << std::endl;
     // Integration with Windows Media Foundation (WMF) for audio capture
+    // using the WebcamCapture class (which handles both video and audio).
 }

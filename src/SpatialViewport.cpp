@@ -83,8 +83,73 @@ bool SpatialViewport::Initialize(ID3D11Device* device) {
     samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
     device->CreateSamplerState(&samplerDesc, &m_samplerState);
 
-    // TODO: Compile and load actual Vertex and Pixel shaders here.
-    // Since we don't have shader files yet or a compiler built-in, we just prepare the structures.
+    // Compile basic shaders
+    const char* vertexShaderSrc =
+        "cbuffer ConstantBuffer : register(b0) {"
+        "    matrix World;"
+        "    matrix View;"
+        "    matrix Projection;"
+        "}"
+        "struct VS_INPUT {"
+        "    float3 Pos : POSITION;"
+        "    float2 Tex : TEXCOORD0;"
+        "};"
+        "struct PS_INPUT {"
+        "    float4 Pos : SV_POSITION;"
+        "    float2 Tex : TEXCOORD0;"
+        "};"
+        "PS_INPUT main(VS_INPUT input) {"
+        "    PS_INPUT output = (PS_INPUT)0;"
+        "    float4 pos = float4(input.Pos, 1.0f);"
+        "    pos = mul(pos, World);"
+        "    pos = mul(pos, View);"
+        "    pos = mul(pos, Projection);"
+        "    output.Pos = pos;"
+        "    output.Tex = input.Tex;"
+        "    return output;"
+        "}";
+
+    const char* pixelShaderSrc =
+        "Texture2D txDiffuse : register(t0);"
+        "SamplerState samLinear : register(s0);"
+        "struct PS_INPUT {"
+        "    float4 Pos : SV_POSITION;"
+        "    float2 Tex : TEXCOORD0;"
+        "};"
+        "float4 main(PS_INPUT input) : SV_Target {"
+        "    return txDiffuse.Sample(samLinear, input.Tex);"
+        "}";
+
+    ID3DBlob* vsBlob = nullptr;
+    ID3DBlob* errorBlob = nullptr;
+    HRESULT hr = D3DCompile(vertexShaderSrc, strlen(vertexShaderSrc), nullptr, nullptr, nullptr, "main", "vs_4_0", 0, 0, &vsBlob, &errorBlob);
+    if (SUCCEEDED(hr)) {
+        device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, &m_vertexShader);
+
+        D3D11_INPUT_ELEMENT_DESC layout[] = {
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+        };
+        device->CreateInputLayout(layout, 2, vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &m_inputLayout);
+        vsBlob->Release();
+    } else {
+        if (errorBlob) {
+            std::cerr << "[SpatialViewport] VS Error: " << (char*)errorBlob->GetBufferPointer() << std::endl;
+            errorBlob->Release();
+        }
+    }
+
+    ID3DBlob* psBlob = nullptr;
+    hr = D3DCompile(pixelShaderSrc, strlen(pixelShaderSrc), nullptr, nullptr, nullptr, "main", "ps_4_0", 0, 0, &psBlob, &errorBlob);
+    if (SUCCEEDED(hr)) {
+        device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, &m_pixelShader);
+        psBlob->Release();
+    } else {
+        if (errorBlob) {
+            std::cerr << "[SpatialViewport] PS Error: " << (char*)errorBlob->GetBufferPointer() << std::endl;
+            errorBlob->Release();
+        }
+    }
 
     return true;
 }

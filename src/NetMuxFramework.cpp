@@ -84,7 +84,7 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
 
 #ifdef _WIN32
     if (m_settings.useD3D11) {
-        if (!m_spatialViewport.Initialize((ID3D11Device*)m_overlay.GetD3D11Context())) {
+        if (!m_spatialViewport.Initialize((ID3D11Device*)m_overlay.GetD3D11Device())) {
             std::cerr << "[Warning] Failed to initialize Spatial Viewport." << std::endl;
         }
         if (!m_capture.Initialize()) {
@@ -420,17 +420,19 @@ void NetMuxFramework::ProcessIncomingPackets() {
             // Clean up old entries periodically, not every packet
             double now = m_loopTimer.ElapsedMilliseconds();
             static double lastCleanupTime = 0;
-            auto& cache = m_tcpReplayCache[peerId];
             if (now - lastCleanupTime > 10000.0) { // Cleanup every 10 seconds
                 lastCleanupTime = now;
-                for (auto it = cache.begin(); it != cache.end();) {
-                    if (now - it->second > 60000.0) { // 60 seconds retention
-                        it = cache.erase(it);
-                    } else {
-                        ++it;
+                for (auto& [id, peerCache] : m_tcpReplayCache) {
+                    for (auto it = peerCache.begin(); it != peerCache.end();) {
+                        if (now - it->second > 60000.0) { // 60 seconds retention
+                            it = peerCache.erase(it);
+                        } else {
+                            ++it;
+                        }
                     }
                 }
             }
+            auto& cache = m_tcpReplayCache[peerId];
             if (cache.count(inPkt.sequenceNumber)) {
                 std::cerr << "[Security] TCP Replay attack detected from peer " << peerId << " seq " << inPkt.sequenceNumber << std::endl;
                 continue; // Drop packet
