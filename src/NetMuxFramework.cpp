@@ -180,6 +180,10 @@ void NetMuxFramework::Run() {
                 // Pass the frame to the viewport, which will manage the SRV lifecycle
                 // to prevent memory leaks from creating SRVs every frame.
                 m_spatialViewport.UpdateLocalDesktopFrame(m_capture.GetCurrentFrameTexture(), (ID3D11Device*)m_overlay.GetD3D11Device());
+
+                // Pass the frame to WebRTC Manager for encoding
+                WebRTCManager::GetInstance()->EncodeLocalDesktopFrame(m_capture.GetCurrentFrameTexture());
+
                 m_capture.ReleaseFrame();
             }
         }

@@ -1,4 +1,5 @@
 #include "SpatialViewport.hpp"
+#include "WebRTCManager.hpp"
 #include <iostream>
 
 SpatialViewport::SpatialViewport()

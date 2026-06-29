@@ -12,12 +12,17 @@ bool WebRTCManager::Initialize() {
 bool WebRTCManager::CreateOffer() {
     std::cout << "[WebRTC] Creating SDP Offer and gathering ICE candidates..." << std::endl;
     // P2P Handshake: Create offer, set local description, and broadcast via NetworkManager
+    // In a full libwebrtc implementation, this involves:
+    // 1. peer_connection_->CreateOffer()
+    // 2. SetLocalDescription()
+    // 3. Send SDP JSON over the NetMux Control Channel
     return true;
 }
 
 bool WebRTCManager::HandleAnswer(const std::string& sdp) {
     std::cout << "[WebRTC] Handling SDP Answer to establish P2P connection..." << std::endl;
     // P2P Handshake: Set remote description based on received answer
+    // peer_connection_->SetRemoteDescription()
     return true;
 }
 
@@ -37,3 +42,18 @@ void WebRTCManager::AddAudioTrack() {
     // Integration with Windows Media Foundation (WMF) for audio capture
     // using the WebcamCapture class (which handles both video and audio).
 }
+
+#ifdef _WIN32
+ID3D11ShaderResourceView* WebRTCManager::GetRemoteDesktopTexture(unsigned long long peerId) {
+    auto it = m_remoteTextures.find(peerId);
+    if (it != m_remoteTextures.end()) {
+        return it->second;
+    }
+    return nullptr;
+}
+
+void WebRTCManager::EncodeLocalDesktopFrame(ID3D11Texture2D* frame) {
+    if (!frame) return;
+    // TODO: Map ID3D11Texture2D to libwebrtc VideoFrame and encode
+}
+#endif
