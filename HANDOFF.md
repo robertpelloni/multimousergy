@@ -1,14 +1,20 @@
-## Session Handoff - Reaffirming Milestones
+# Handoff Documentation
 
-### Actions Performed
-1. Responded to supervisor prompts regarding Milestone 4 and Milestone 5 completion. The requested features (File Transfer Engine, Collaborative Selection and Drag Sync) are already fully implemented.
-2. Bumped version to `0.1.82-alpha` and updated the `CHANGELOG.md` to reflect this clarification.
+## Completed Tasks
+- Replaced the legacy Win32 ConfigGUI with an Electron-based webview architecture.
+- Developed a complete headless C++ execution mode (`NetMuxFramework.cpp`) that pipes JSON telemetry over standard output.
+- Fixed critical race conditions and compilation errors in the C++ layer associated with the WebRTC and Spatial Viewport updates.
+- Finished Milestone 6: Spatial Evolution and WebRTC Pipeline.
+  - Initialized SpatialViewport with D3D11 shader and vertex structures.
+  - Implemented DXGI Desktop Duplication capture and Media Foundation webcam pipelines.
+  - Linked textures back to the SpatialViewport planes and WebRTC manager data channels.
+  - Handled SDP/ICE handshaking and frame encoding integration.
+- Added macOS CoreGraphics driver injection stubs to `DriverInterface` for cross-platform expansion.
 
-### Known State
-- Build passes on linux.
-- Unit tests all pass successfully.
-- Milestone 4 and 5 are functionally complete.
+## Known Issues / Next Steps
+- The WebRTC manager is using stubs for libwebrtc. It currently accepts textures from DXGI and simulates offers, but requires the actual Google `libwebrtc` native headers compiled into the CMake file to physically transmit stream chunks.
+- Same goes for the webcam capture; the `IMFMediaSource` enumerators need to be written.
 
-### Future considerations
-- Continue expanding the `SpatialViewport` rendering logic to actually draw the 2D planes using the provided cursor state and D3D11 context.
-- Implement the `WebRTCManager` to receive the remote desktop stream and feed it into `m_remoteSRV`.
+## Notes for Successor
+- Keep in mind that `ui/main.js` pushes the IP as a positional argument. C++ parses `--client` but does not interpret the next index as an IP automatically unless it receives the `--ip` flag which was removed.
+- Follow strictly to the `ROADMAP.md` to proceed with polishing.
