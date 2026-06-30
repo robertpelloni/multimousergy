@@ -1,6 +1,12 @@
 # CHANGELOG.md
 
-## [0.1.71-alpha] - 2025-01-24
+## [0.1.72-alpha] - 2026-06-18
+### Added
+- Implemented Linux X11 fallback for `DesktopCapture` using `XGetImage` for low-latency native frame acquisition.
+- Set up core architecture headers and structure for WebRTC Integration and Spatial Viewport features.
+- Wired X11 Frame Capture for Spatial Viewport.
+- Finalized File Transfer Engine with large file handling (10MB+), chunk reassembly, and robust interruption/resume logic tied to SHA-256 integrity checks.
+
 ### Added
 - Implemented Dynamic Resolution Scaling and DPI Awareness.
 - Enhanced protocol to broadcast DPI scale factors.

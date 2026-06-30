@@ -23,7 +23,7 @@
 #endif
 
 NetMuxFramework::NetMuxFramework()
-    : m_running(false), m_lastSyncTime(0), m_lastPerfLog(0), m_overlayDirty(false) {
+    : m_running(false), m_lastSyncTime(0), m_lastPerfLog(0), m_overlayDirty(false), m_webrtcInitialized(false) {
     m_localId = (unsigned long long)std::chrono::system_clock::now().time_since_epoch().count();
 #ifdef __linux__
     m_xDisplay = XOpenDisplay(NULL);
@@ -75,6 +75,17 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
             handshake.payloadSize = (int)meta.size();
             m_network.SendPacket(handshake);
         }
+    }
+
+    m_webrtc.SetSignalingCallback([this](const std::string& sdp) {
+        Packet signalingPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::WebRTCSignaling, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
+        strncpy(signalingPkt.payload, sdp.c_str(), sizeof(signalingPkt.payload) - 1);
+        signalingPkt.payloadSize = std::min((int)sdp.size(), (int)sizeof(signalingPkt.payload) - 1);
+        m_network.SendPacket(signalingPkt);
+    });
+    m_webrtc.Initialize();
+    if (!m_capture.Initialize()) {
+        std::cerr << "[Warning] Failed to initialize DesktopCapture." << std::endl;
     }
 
     if (!m_overlay.Initialize()) {
@@ -157,6 +168,16 @@ void NetMuxFramework::Run() {
         // Update MultiMousergy Spatial Viewport
         m_spatialViewport.Update((float)dt / 1000.0f, m_input.IsCaptured());
 
+        // WebRTC Media Pipeline: Push desktop frames
+        if (m_webrtcInitialized && m_capture.AcquireFrame()) {
+#ifdef _WIN32
+            m_webrtc.SendDesktopFrame((void*)m_capture.GetCurrentFrameTexture());
+#else
+            m_webrtc.SendDesktopFrame((void*)m_capture.GetCurrentFrameImage());
+#endif
+            m_capture.ReleaseFrame();
+        }
+
         // Update input capture permission based on connectivity
         auto allPeers = m_sync.GetAllPeers();
         bool hasExternalPeers = false;
@@ -167,6 +188,11 @@ void NetMuxFramework::Run() {
             }
         }
         m_input.SetPeerConnected(hasExternalPeers);
+
+        if (hasExternalPeers && !m_webrtcInitialized) {
+            m_webrtcInitialized = true;
+            m_webrtc.CreateOffer();
+        }
 
         // UI TICK: Keep the ConfigGUI updated during active sessions
         static double lastUIUpdate = 0;
@@ -491,6 +517,14 @@ void NetMuxFramework::ProcessIncomingPackets() {
             }
         } else if (inPkt.type == NetMuxPacketType::FocusUpdate) {
             m_sync.SetActivePeer((unsigned long long)inPkt.button);
+            if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
+        } else if (inPkt.type == NetMuxPacketType::WebRTCSignaling) {
+            std::string sdp(inPkt.payload, std::min((size_t)inPkt.payloadSize, sizeof(inPkt.payload)));
+            if (sdp.find("OFFER:") == 0) {
+                m_webrtc.HandleOffer(sdp);
+            } else if (sdp.find("ANSWER:") == 0) {
+                m_webrtc.HandleAnswer(sdp);
+            }
             if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
         } else if (inPkt.type == NetMuxPacketType::SessionUpdate) {
             if (!IsPeerTrusted(peerId, inPkt.type)) continue;

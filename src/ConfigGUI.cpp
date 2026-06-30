@@ -5,8 +5,10 @@
 #include <thread>
 #include <string>
 #include <mutex>
+#ifdef _WIN32
 #include <winsock2.h> // for gethostname, etc.
 #include <ws2tcpip.h>
+#endif
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -616,7 +618,7 @@ void ConfigGUI::Initialize(AppSettings& settings, SyncModule* sync, NetworkManag
     wc.lpszClassName = "NetMuxIntegratedGUI";
     RegisterClass(&wc);
 
-    s_hwndMain = CreateWindow("NetMuxIntegratedGUI", "NetMux Monitor", WS_OVERLAPPEDWINDOW | (settings.startMinimized ? 0 : WS_VISIBLE), CW_USEDEFAULT, CW_USEDEFAULT, 370, 480, NULL, NULL, GetModuleHandle(NULL), NULL);
+    s_hwndMain = CreateWindow("NetMuxIntegratedGUI", "NetMux Monitor", WS_OVERLAPPEDWINDOW | (settings.startMinimized ? 0 : WS_VISIBLE), CW_USEDEFAULT, CW_USEDEFAULT, 370, 540, NULL, NULL, GetModuleHandle(NULL), NULL);
     s_isRunning = (s_hwndMain != NULL);
 
     if (s_hwndMain) {

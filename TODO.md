@@ -31,3 +31,8 @@
 - [x] Refactor UI and Network stacks for robust connection handling.
 - [x] Implement Resolution-Aware Scaling and DPI metadata broadcasting.
 - [ ] Refactor Network Protocol to use formal serialization (Protobuf/Flatbuffers).
+- [x] Implement DXGI Desktop Duplication and X11 Frame Capture for Spatial Viewport.
+- [x] Implement D3D11-based spatial viewport prototype.
+- [x] Implement smooth pan/zoom boundary animations for the Spatial Viewport.
+- [x] WebRTC Integration: Setup Native C++ Data & Media pipeline scaffolding and signaling integration.
+- [x] Implement WebRTC Media Pipeline scaffolding for synchronized webcam/audio streams.
