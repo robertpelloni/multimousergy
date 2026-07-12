@@ -31,15 +31,22 @@ DesktopCapture::~DesktopCapture() {
 #endif
 }
 
-bool DesktopCapture::Initialize(Display* display) {
 #ifdef _WIN32
+bool DesktopCapture::Initialize(ID3D11Device* device, ID3D11DeviceContext* context) {
     std::cout << "[DesktopCapture] Initializing DXGI Desktop Duplication..." << std::endl;
 
-    HRESULT hr = D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, NULL, 0, D3D11_SDK_VERSION, &m_device, NULL, &m_context);
-    if (FAILED(hr)) return false;
+    if (device && context) {
+        m_device = device;
+        m_context = context;
+        m_device->AddRef();
+        m_context->AddRef();
+    } else {
+        HRESULT hr = D3D11CreateDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, NULL, 0, D3D11_SDK_VERSION, &m_device, NULL, &m_context);
+        if (FAILED(hr)) return false;
+    }
 
     IDXGIDevice* dxgiDevice = nullptr;
-    hr = m_device->QueryInterface(__uuidof(IDXGIDevice), (void**)&dxgiDevice);
+    HRESULT hr = m_device->QueryInterface(__uuidof(IDXGIDevice), (void**)&dxgiDevice);
     if (FAILED(hr)) return false;
 
     IDXGIAdapter* dxgiAdapter = nullptr;
@@ -62,7 +69,8 @@ bool DesktopCapture::Initialize(Display* display) {
     if (FAILED(hr)) return false;
 
     return true;
-#else
+#elif defined(__linux__)
+bool DesktopCapture::Initialize(Display* display) {
     std::cout << "[DesktopCapture] Initializing X11 Frame Capture..." << std::endl;
     m_display = XOpenDisplay(NULL);
     if (!m_display) {
@@ -76,6 +84,11 @@ bool DesktopCapture::Initialize(Display* display) {
     m_screenHeight = DisplayHeight(m_display, screen);
 
     return true;
+#else
+bool DesktopCapture::Initialize() {
+    // Stub for non-Windows, non-Linux platforms
+    return false;
+}
 #endif
 }
 

@@ -1,10 +1,10 @@
-# NetMux Memory - v0.1.75-alpha
+# NetMux Memory - v0.1.88-alpha
 
 ## UI and Network Stack Refactor
 The UI and Network stacks were significantly refactored to resolve race conditions and usability issues.
 - **Asynchronous Connection State**: `NetworkManager` now explicitly tracks `ConnectionState`. This prevents the framework from sending handshake packets before the TCP socket is fully connected.
 - **Non-Blocking Logic**: `ReceivePacket` now uses `select` to poll for connection completion on the client side. `SafeSend` also uses `select` to wait for writability instead of busy-looping, which reduces CPU usage during network congestion.
-- **Win32 Window Management**: `ConfigGUI` now implements a single-instance check using `IsWindow`. This prevents the "multiple windows" bug where every re-initialization would spawn a new overlapping window.
+- **Win32 Window Management**: `ConfigGUI` (now replaced by Electron UI in `ui/`) previously implemented a single-instance check using `IsWindow`. The new Electron-based webview architecture provides headless C++ execution with JSON telemetry over stdout.
 - **UX Reorganization**: Controls are now grouped logically using group boxes. Ambiguous labels like "Save & Start" have been replaced with "Apply & Connect", and a "Disconnect" button was added to provide a clear exit path for active sessions.
 
 ## Architectural Lessons

@@ -87,7 +87,7 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
         if (!m_spatialViewport.Initialize((ID3D11Device*)m_overlay.GetD3D11Device())) {
             std::cerr << "[Warning] Failed to initialize Spatial Viewport." << std::endl;
         }
-        if (!m_capture.Initialize()) {
+        if (!m_capture.Initialize((ID3D11Device*)m_overlay.GetD3D11Device(), (ID3D11DeviceContext*)m_overlay.GetD3D11Context())) {
             std::cerr << "[Warning] Failed to initialize DXGI Desktop Duplication." << std::endl;
         }
     }
@@ -99,7 +99,8 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
         m_webrtc.AddVideoTrack();
         m_webrtc.AddAudioTrack();
         if (m_settings.isServer) {
-            m_webrtc.CreateOffer();
+            std::string offerSdp;
+            m_webrtc.CreateOffer(offerSdp);
         }
     }
 

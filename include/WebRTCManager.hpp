@@ -5,6 +5,11 @@
 #include <functional>
 #include "webrtc_mock.hpp"
 
+#ifdef _WIN32
+struct ID3D11ShaderResourceView;
+struct ID3D11Texture2D;
+#endif
+
 class WebRTCManager {
 public:
     WebRTCManager();
@@ -29,7 +34,17 @@ public:
         m_signalingCallback = callback;
     }
 
+    // Singleton accessor for subsystems that need the WebRTC pipeline
+    static WebRTCManager* GetInstance() { return s_instance; }
+
+    // Remote desktop texture streaming (DXGI path)
+#ifdef _WIN32
+    ID3D11ShaderResourceView* GetRemoteDesktopTexture(unsigned long long peerId);
+    void EncodeLocalDesktopFrame(ID3D11Texture2D* frame);
+#endif
+
 private:
+    static WebRTCManager* s_instance;
     rtc::Thread* m_networkThread;
     rtc::Thread* m_workerThread;
     rtc::Thread* m_signalingThread;

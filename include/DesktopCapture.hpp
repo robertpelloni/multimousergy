@@ -5,12 +5,7 @@
 #ifdef _WIN32
 #include <d3d11.h>
 #include <dxgi1_2.h>
-#else
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#endif
-
-#ifdef __linux__
+#elif defined(__linux__)
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #endif
@@ -20,21 +15,19 @@ public:
     DesktopCapture();
     ~DesktopCapture();
 
-#ifdef __linux__
+#ifdef _WIN32
+    bool Initialize(ID3D11Device* device, ID3D11DeviceContext* context);
+#elif defined(__linux__)
     bool Initialize(Display* display);
 #else
-    bool Initialize(Display* display);
+    bool Initialize();
 #endif
     bool AcquireFrame();
     void ReleaseFrame();
 
 #ifdef _WIN32
     ID3D11Texture2D* GetCurrentFrameTexture() { return m_currentFrame; }
-#else
-    XImage* GetCurrentFrameImage() { return m_currentImage; }
-#endif
-
-#ifdef __linux__
+#elif defined(__linux__)
     XImage* GetCurrentFrameImage() { return m_currentImage; }
 #endif
 
@@ -44,19 +37,11 @@ private:
     ID3D11DeviceContext* m_context;
     IDXGIOutputDuplication* m_deskDupl;
     ID3D11Texture2D* m_currentFrame;
-#else
+#elif defined(__linux__)
     Display* m_display;
     Window m_rootWindow;
     XImage* m_currentImage;
     int m_screenWidth;
     int m_screenHeight;
-#endif
-
-#ifdef __linux__
-    Display* m_display;
-    Window m_root;
-    XImage* m_currentImage;
-    int m_width;
-    int m_height;
 #endif
 };
