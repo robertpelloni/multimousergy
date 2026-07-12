@@ -10,9 +10,6 @@
 #include "FileTransferEngine.hpp"
 #include "WebRTCManager.hpp"
 #include "DesktopCapture.hpp"
-#include "WebcamCapture.hpp"
-#include "VideoEncoder.hpp"
-#include "VideoDecoder.hpp"
 #include "SpatialViewport.hpp"
 #include "Timer.hpp"
 #include <map>
@@ -63,7 +60,6 @@ private:
     void PerformDiscoveryBroadcast();
     void PerformClipboardSync();
     void PerformFileTransfer();
-    void PerformVideoSync();
     void PerformPeerCleanup();
 
     bool IsPeerTrusted(unsigned long long peerId, NetMuxPacketType type);
@@ -81,9 +77,6 @@ private:
     FileTransferEngine m_fileTransfer;
     WebRTCManager m_webrtc;
     DesktopCapture m_capture;
-    WebcamCapture m_webcam;
-    VideoEncoder m_videoEncoder;
-    VideoDecoder m_videoDecoder;
     SpatialViewport m_spatialViewport;
 #ifdef __linux__
     ClipboardModule m_clipboard{m_xDisplay};
@@ -104,7 +97,6 @@ private:
     double m_lastSyncTime;
     double m_lastPerfLog;
     bool m_overlayDirty;
-    bool m_webrtcInitialized;
 
     struct InteractionEvent {
         unsigned long long peerId;
@@ -117,7 +109,8 @@ private:
     std::mutex m_interactionMutex;
     AuthService m_authService;
     std::map<unsigned long long, unsigned int> m_lastSequence;
+    std::map<unsigned long long, std::map<unsigned int, double>> m_tcpReplayCache;
     double m_lastClipboardTimestamp = 0;
     std::map<unsigned long long, std::vector<char>> m_clipboardReassembly;
-    std::map<unsigned long long, std::vector<uint8_t>> m_videoReassembly;
+    std::map<unsigned long long, std::pair<int, int>> m_lastMasterSyncPos;
 };

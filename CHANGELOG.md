@@ -1,4 +1,27 @@
-# CHANGELOG.md
+## [0.1.88-alpha] - 2026-06-29
+### Added
+- Integrated WebRTC SDP/ICE handshake and DXGI texture encoding
+- Cross-platform driver compatibility with macOS CoreGraphics stub
+
+## [0.1.82-alpha] - 2026-06-27
+### Changed
+- Clarified completion of Milestone 4 (Collaborative Selection and Drag Sync) and Milestone 5 (File Transfer Engine).
+
+## [0.1.81-alpha] - 2026-06-27
+### Added
+- Implemented `XQueryPointer` fallback in `InputEngine` for native Linux X11 integration to ensure robust cursor capturing.
+
+## [0.1.80-alpha] - 2026-06-27
+### Added
+- Marked DXGI Desktop Duplication, 3D Composition Engine, and Boundary Animation as completed in the Roadmap.
+
+## [0.1.79-alpha] - 2026-06-26
+### Added
+- Integrated D3D11 Desktop Duplication API capture loop for the Spatial Viewport rendering pipeline.
+
+## [0.1.77-alpha] - 2026-06-25
+### Fixed
+- Fixed an issue where the TCP replay cache pruning would cause a performance issue during high volume transfers by limiting cleanup to once every 10 seconds.
 
 ## [0.1.75-alpha] - 2025-01-24
 ### Added

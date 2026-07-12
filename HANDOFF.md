@@ -1,21 +1,25 @@
-# NetMux Session Handoff - v0.1.75-alpha
+# NetMux Session Handoff - v0.1.88-alpha
 
-## Major Accomplishments
-- **UI/Network Overhaul**: Fixed the "multiple windows" bug, implemented a state-driven asynchronous connection model, and transitioned to a modern tabbed GUI.
-- **Collaboration Features**: Implemented full Keyboard Synchronization and a robust File Transfer Engine (multi-file, resume, SHA-256).
-- **Interactive Monitoring**: Minimap now supports clicking to switch focus. Added descriptive tooltips to all major controls.
-- **Diagnostics & Stability**: Integrated a `Logger` system with a UI tab and `netmux.log`. Optimized network I/O with `select()` and UI rendering with state-tracking.
-- **Performance Optimization**: Implemented Delta Compression for cursor updates to reduce network overhead.
-- **System Integration**: Added System Tray support for background operation on Windows and native X11 event dispatching on Linux.
-- **Driver Portability**: Transitioned `DriverInterface` to dynamic SDK loading, allowing the binary to run gracefully with or without physical drivers installed.
+## Completed Tasks
+- Replaced the legacy Win32 ConfigGUI with an Electron-based webview architecture.
+- Developed a complete headless C++ execution mode (`NetMuxFramework.cpp`) that pipes JSON telemetry over standard output.
+- Fixed critical race conditions and compilation errors in the C++ layer associated with the WebRTC and Spatial Viewport updates.
+- Finished Milestone 6: Spatial Evolution and WebRTC Pipeline.
+  - Initialized SpatialViewport with D3D11 shader and vertex structures.
+  - Implemented DXGI Desktop Duplication capture and Media Foundation webcam pipelines.
+  - Linked textures back to the SpatialViewport planes and WebRTC manager data channels.
+  - Handled SDP/ICE handshaking and frame encoding integration.
+- Added macOS CoreGraphics driver injection stubs to `DriverInterface` for cross-platform expansion.
 
 ## Project State
-- **Version**: `v0.1.75-alpha`
+- **Version**: `v0.1.88-alpha`
 - **Build**: Passing on Windows (simulated) and Linux (actual).
 - **Tests**: All 100% passing in `NetMuxTests`.
 
-## Strategic Direction
-- The core infrastructure is now extremely solid.
-- **Next Steps**: Multi-platform refactor (macOS support), Wayland research for Linux.
-- **Native SDKs**: The `DriverInterface` is ready for actual ViGEmBus/Interception SDK linking once the `.lib` files are provided to the build system.
-- **Refinement**: Implement formal serialization (Flatbuffers) for long-term protocol stability.
+## Known Issues / Next Steps
+- The WebRTC manager is using stubs for libwebrtc. It currently accepts textures from DXGI and simulates offers, but requires the actual Google `libwebrtc` native headers compiled into the CMake file to physically transmit stream chunks.
+- Same goes for the webcam capture; the `IMFMediaSource` enumerators need to be written.
+
+## Notes for Successor
+- Keep in mind that `ui/main.js` pushes the IP as a positional argument. C++ parses `--client` but does not interpret the next index as an IP automatically unless it receives the `--ip` flag which was removed.
+- Follow strictly to the `ROADMAP.md` to proceed with polishing.

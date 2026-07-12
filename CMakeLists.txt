@@ -21,7 +21,6 @@ set(LIB_SOURCES
     src/NetworkManager.cpp
     src/OverlayEngine.cpp
     src/ConfigManager.cpp
-    src/ConfigGUI.cpp
     src/Timer.cpp
     src/NetMuxFramework.cpp
     src/SyncModule.cpp
@@ -38,6 +37,7 @@ set(LIB_SOURCES
     src/VideoEncoder.cpp
     src/VideoDecoder.cpp
     src/SpatialViewport.cpp
+    src/WebcamCapture.cpp
 )
 
 # Library
@@ -52,7 +52,7 @@ target_include_directories(NetMux PRIVATE include)
 # Windows specific libraries
 if(WIN32)
     add_definitions(-DNOMINMAX)
-    target_link_libraries(NetMuxLib user32 gdi32 d3d11 dxgi ws2_32 d3dcompiler bcrypt)
+    target_link_libraries(NetMuxLib user32 gdi32 d3d11 dxgi ws2_32 d3dcompiler bcrypt mfplat mfreadwrite mfuuid)
 
     if(ENABLE_INTERCEPTION)
         find_library(INTERCEPTION_LIB interception)

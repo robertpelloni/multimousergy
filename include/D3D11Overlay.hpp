@@ -38,6 +38,8 @@ private:
     unsigned char m_selR = 0, m_selG = 120, m_selB = 215;
 
 #ifdef _WIN32
+    ID3D11Device* GetDevice() { return m_device; }
+    ID3D11DeviceContext* GetContext() { return m_context; }
     void DrawSprite(int x, int y, unsigned char r, unsigned char g, unsigned char b);
 
     ID3D11Device* m_device;

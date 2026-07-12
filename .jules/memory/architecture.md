@@ -11,7 +11,7 @@ MultiMousergy is a highly advanced, decentralized multi-cursor system that allow
 
 ## 3. Hybrid Networking Protocol
 *   **UDP for Movement:** Utilizes lightweight, header-only UDP packets with delta compression for high-frequency cursor movement to ensure low bandwidth and ultra-low latency.
-*   **TCP for State & Data:** Reliable transport is used for auth, clicks, window focus synchronization, clipboard sharing, and file transfers. 
+*   **TCP for State & Data:** Reliable transport is used for auth, clicks, window focus synchronization, clipboard sharing, and file transfers.
 *   **Non-Blocking I/O:** `NetworkManager` is implemented as a state-driven machine using `select()` to avoid blocking the main thread or UI, heavily reducing CPU spin loops.
 
 ## 4. MasterStateSync & Distributed Coordination

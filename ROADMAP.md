@@ -40,7 +40,7 @@
 - [x] Authoritative Synchronization (Server-side position enforcement).
 - [x] UI & Network Stack Refactor (Robust connection handling).
 - [x] File Transfer Engine: Implement drag-and-drop file sharing via multi-part protocol.
-- [x] File Integrity: SHA-256 verification for shared data.
+- [x] File Integrity: SHA-256 verification for shared data, including chunking/reassembly logic and robust integrity checks.
 - [x] Connection Resilience: Auto-Reconnect and State Monitoring.
 - [x] Keyboard Sync: Full capture and injection support.
 - [x] UI Modernization: Tabbed interface and machine-info telemetry.
@@ -56,5 +56,7 @@
 - [x] 3D Composition Engine: D3D11-based spatial viewport basics.
 - [x] Boundary Animation: Smooth pan/zoom transitions via matrix interpolation.
 - [x] Webcam/Media Pipeline Skeletons (Windows Media Foundation).
+- [x] macOS CoreGraphics driver stubs for cross-platform expansion.
 - [ ] Complete H.264 Encoder/Decoder Implementation.
 - [ ] Complete WebRTC Native C++ Media Integration.
+- [ ] Integrated Video Chat: Synchronized webcam/audio streams.

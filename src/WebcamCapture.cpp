@@ -1,68 +1,47 @@
 #include "WebcamCapture.hpp"
 #include <iostream>
 
-#ifdef _WIN32
-#pragma comment(lib, "mf.lib")
-#pragma comment(lib, "mfplat.lib")
-#pragma comment(lib, "mfreadwrite.lib")
-#pragma comment(lib, "mfuuid.lib")
-#endif
-
 WebcamCapture::WebcamCapture() {
-#ifdef _WIN32
-    m_device = nullptr;
-    m_reader = nullptr;
-    m_currentFrame = nullptr;
-#endif
 }
 
 WebcamCapture::~WebcamCapture() {
 #ifdef _WIN32
-    if (m_reader) m_reader->Release();
-    if (m_currentFrame) m_currentFrame->Release();
+    if (m_sourceReader) m_sourceReader->Release();
+    if (m_mediaSource) m_mediaSource->Release();
+    MFShutdown();
 #endif
 }
 
+bool WebcamCapture::Initialize() {
+    std::cout << "[WebcamCapture] Initializing Windows Media Foundation capture..." << std::endl;
 #ifdef _WIN32
-bool WebcamCapture::Initialize(ID3D11Device* device) {
-    m_device = device;
-    std::cout << "[Webcam] Initializing Media Foundation capture..." << std::endl;
-
     HRESULT hr = MFStartup(MF_VERSION);
     if (FAILED(hr)) return false;
 
-    IMFAttributes* attributes = nullptr;
-    hr = MFCreateAttributes(&attributes, 1);
-    if (FAILED(hr)) return false;
-
-    hr = attributes->SetGUID(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE, MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID);
-    if (FAILED(hr)) { attributes->Release(); return false; }
-
-    IMFActivate** devices = nullptr;
-    UINT32 count = 0;
-    hr = MFEnumDeviceSources(attributes, &devices, &count);
-    attributes->Release();
-
-    if (FAILED(hr) || count == 0) return false;
-
-    IMFMediaSource* source = nullptr;
-    hr = devices[0]->ActivateObject(__uuidof(IMFMediaSource), (void**)&source);
-    for (UINT32 i = 0; i < count; i++) devices[i]->Release();
-    CoTaskMemFree(devices);
-
-    if (FAILED(hr)) return false;
-
-    hr = MFCreateSourceReaderFromMediaSource(source, NULL, &m_reader);
-    source->Release();
-    if (FAILED(hr)) return false;
-
-    return true;
-}
-
-bool WebcamCapture::AcquireFrame() {
-    return true;
-}
-
-void WebcamCapture::ReleaseFrame() {
-}
+    // A real implementation would enumerate devices here and select one.
+    // We are putting up a stub for the architecture.
 #endif
+    return true;
+}
+
+void WebcamCapture::Update() {
+#ifdef _WIN32
+    if (!m_sourceReader) return;
+
+    DWORD streamIndex = 0;
+    DWORD flags = 0;
+    LONGLONG timestamp = 0;
+    IMFSample* sample = nullptr;
+
+    // Read a frame from the webcam
+    HRESULT hr = m_sourceReader->ReadSample(
+        MF_SOURCE_READER_FIRST_VIDEO_STREAM,
+        0, &streamIndex, &flags, &timestamp, &sample
+    );
+
+    if (SUCCEEDED(hr) && sample) {
+        // Here we would process the sample (e.g., pass it to WebRTC)
+        sample->Release();
+    }
+#endif
+}

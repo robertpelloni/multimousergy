@@ -47,3 +47,4 @@ out/
 # These contain critical development history and must be tracked.
 # Only ignore system logs (*.log), build artifacts, and caches.
 
+ui/node_modules

@@ -43,4 +43,7 @@ private:
 #ifdef __linux__
     int m_device;
 #endif
+#ifdef __APPLE__
+    void* m_macEventSource = nullptr;
+#endif
 };

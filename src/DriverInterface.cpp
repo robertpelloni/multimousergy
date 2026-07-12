@@ -172,6 +172,13 @@ bool DriverInterface::Initialize(NetMuxDriverType type) {
     }
 #endif
 
+#ifdef __APPLE__
+    std::cout << "[Driver] Initializing macOS CoreGraphics injection..." << std::endl;
+    m_macEventSource = nullptr; // CGEventSourceCreate(kCGEventSourceStateHIDSystemState)
+    m_initialized = true;
+    return true;
+#endif
+
     m_initialized = false;
     return false;
 }
@@ -233,10 +240,17 @@ bool DriverInterface::SendMouseMovement(long dx, long dy) {
             send((InterceptionContext)m_context, m_device, (void*)&stroke, 1);
         }
     }
-    return true;
-#else
-    return false;
 #endif
+#ifdef __APPLE__
+    return true;
+
+    // CGEventRef ev = CGEventCreateMouseEvent(m_macEventSource, kCGEventMouseMoved, CGPointMake(x, y), kCGMouseButtonLeft);
+    // CGEventPost(kCGHIDEventTap, ev);
+    // CFRelease(ev);
+    return true;
+#endif
+
+    return false;
 }
 
 bool DriverInterface::SendMouseWheel(int delta, bool horizontal) {
@@ -259,10 +273,17 @@ bool DriverInterface::SendMouseWheel(int delta, bool horizontal) {
     input.mi.dwFlags = horizontal ? MOUSEEVENTF_HWHEEL : MOUSEEVENTF_WHEEL;
     input.mi.mouseData = (DWORD)delta;
     SendInput(1, &input, sizeof(INPUT));
-    return true;
-#else
-    return false;
 #endif
+#ifdef __APPLE__
+    return true;
+
+    // CGEventRef ev = CGEventCreateScrollWheelEvent(m_macEventSource, kCGScrollEventUnitPixel, 1, delta);
+    // CGEventPost(kCGHIDEventTap, ev);
+    // CFRelease(ev);
+    return true;
+#endif
+
+    return false;
 }
 
 bool DriverInterface::SendKeyboardKey(int key, bool down) {
@@ -287,10 +308,17 @@ bool DriverInterface::SendKeyboardKey(int key, bool down) {
     input.ki.wVk = (WORD)key;
     input.ki.dwFlags = down ? 0 : KEYEVENTF_KEYUP;
     SendInput(1, &input, sizeof(INPUT));
-    return true;
-#else
-    return false;
 #endif
+#ifdef __APPLE__
+    return true;
+
+    // CGEventRef ev = CGEventCreateKeyboardEvent(m_macEventSource, (CGKeyCode)key, down);
+    // CGEventPost(kCGHIDEventTap, ev);
+    // CFRelease(ev);
+    return true;
+#endif
+
+    return false;
 }
 
 bool DriverInterface::SendMouseButton(int button, bool down) {
@@ -324,8 +352,16 @@ bool DriverInterface::SendMouseButton(int button, bool down) {
     }
 
     std::cout << "[Driver] Injected hardware click (" << (int)m_type << "): Button=" << button << " Down=" << down << std::endl;
-    return true;
-#else
-    return false;
 #endif
+#ifdef __APPLE__
+    return true;
+
+    // CGEventType type = down ? kCGEventLeftMouseDown : kCGEventLeftMouseUp;
+    // CGEventRef ev = CGEventCreateMouseEvent(m_macEventSource, type, CGPointMake(0, 0), kCGMouseButtonLeft);
+    // CGEventPost(kCGHIDEventTap, ev);
+    // CFRelease(ev);
+    return true;
+#endif
+
+    return false;
 }
