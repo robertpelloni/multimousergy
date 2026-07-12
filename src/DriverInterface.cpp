@@ -9,7 +9,6 @@
 #endif
 
 #ifdef _WIN32
-#define NOMINMAX
 #include <windows.h>
 
 // Dynamic loading replaces static linking for driver SDKs

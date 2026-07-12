@@ -37,6 +37,7 @@ private:
     ID3D11DeviceContext* m_context;
     IDXGIOutputDuplication* m_deskDupl;
     ID3D11Texture2D* m_currentFrame;
+    LONGLONG m_lastFrameTime = 0;
 #elif defined(__linux__)
     Display* m_display;
     Window m_rootWindow;

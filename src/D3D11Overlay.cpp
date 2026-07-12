@@ -284,7 +284,7 @@ void D3D11Overlay::Render(const std::map<unsigned long long, RemoteCursorState>&
         m_context->Draw(4, i*4);
     }
 
-    m_swapChain->Present(1, 0);
+    m_swapChain->Present(0, 0);  // Non-blocking, no VSync wait
 }
 
 void D3D11Overlay::DrawSprite(int x, int y, unsigned char r, unsigned char g, unsigned char b) {

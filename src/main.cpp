@@ -16,6 +16,30 @@ int main(int argc, char* argv[]) {
     #ifdef _WIN32
     SetProcessDPIAware();
     #endif
+
+    // Show help on --help or -h
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--help" || arg == "-h") {
+            std::cout << "MultiMousergy v0.1.88-alpha - Cross-Network Multi-Cursor System\n\n"
+                      << "Usage: NetMux.exe [options]\n\n"
+                      << "  --server                  Run as server (default: client)\n"
+                      << "  --client <ip>             Connect to server at <ip>\n"
+                      << "  --port <n>                Use port <n> (default: 5555)\n"
+                      << "  --boundary-x <n>          Screen edge crossing coordinate X\n"
+                      << "  --boundary-y <n>          Screen edge crossing coordinate Y\n"
+                      << "  --left                    Cursor crosses to left monitor\n"
+                      << "  --right                   Cursor crosses to right monitor\n"
+                      << "  --d3d11                   Enable D3D11 spatial viewport & DXGI capture\n"
+                      << "  --headless                Suppress telemetry JSON on stdout\n"
+                      << "  --auto-connect            Auto-connect on startup\n"
+                      << "  --key <secret>            Pre-shared security key\n"
+                      << "  --help, -h                Show this help\n"
+                      << std::endl;
+            return 0;
+        }
+    }
+
     std::cout << "MultiMousergy starting..." << std::endl;
 
     ConfigManager configManager("netmux.cfg");
@@ -32,6 +56,9 @@ int main(int argc, char* argv[]) {
         else if (arg == "--boundary-y" && i + 1 < argc) settings.inputConfig.boundaryY = std::stoi(argv[++i]);
         else if (arg == "--left") settings.inputConfig.isLeft = true;
         else if (arg == "--right") settings.inputConfig.isLeft = false;
+        else if (arg == "--d3d11") settings.useD3D11 = true;
+        else if (arg == "--headless") settings.headless = true;
+        else if (arg == "--benchmark") settings.benchmarking = true;
         else if (arg == "--auto-connect") settings.autoConnect = true;
         else if ((arg == "--key" || arg == "-k") && i + 1 < argc) settings.securityKey = argv[++i];
     }

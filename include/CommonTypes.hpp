@@ -106,6 +106,8 @@ struct AppSettings {
     bool autoConnect = false;
     bool startMinimized = false;
     bool spatialMode = true;
+    bool headless = false;
+    bool benchmarking = false;
     std::string displayName = "";
     std::vector<std::string> recentServers;
 };

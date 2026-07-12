@@ -98,8 +98,21 @@ bool DesktopCapture::AcquireFrame() {
 
     DXGI_OUTDUPL_FRAME_INFO frameInfo;
     IDXGIResource* desktopResource = nullptr;
-    HRESULT hr = m_deskDupl->AcquireNextFrame(100, &frameInfo, &desktopResource);
+    // Non-blocking: timeout 0 to avoid stalling the main loop
+    HRESULT hr = m_deskDupl->AcquireNextFrame(0, &frameInfo, &desktopResource);
+    if (hr == DXGI_ERROR_WAIT_TIMEOUT) {
+        // No new frame available — reuse previous frame
+        return (m_currentFrame != nullptr);
+    }
     if (FAILED(hr)) return false;
+
+    // Skip duplicate frames (no change since last AcquireNextFrame)
+    if (frameInfo.LastPresentTime.QuadPart == m_lastFrameTime) {
+        m_deskDupl->ReleaseFrame();
+        desktopResource->Release();
+        return (m_currentFrame != nullptr);
+    }
+    m_lastFrameTime = frameInfo.LastPresentTime.QuadPart;
 
     if (m_currentFrame) m_currentFrame->Release();
     hr = desktopResource->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&m_currentFrame);

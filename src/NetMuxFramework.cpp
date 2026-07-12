@@ -15,7 +15,6 @@
 #include <chrono>
 
 #ifdef _WIN32
-#define NOMINMAX
 #include <windows.h>
 #else
 #include <unistd.h>
@@ -73,6 +72,13 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
         }
     }
 
+#ifdef _WIN32
+    // Set rendering backend before overlay initialization
+    if (m_settings.useD3D11 || m_settings.spatialMode) {
+        m_overlay.SetBackend(OverlayBackend::D3D11);
+    }
+#endif
+
     if (!m_overlay.Initialize()) {
         std::cerr << "Failed to initialize overlay components." << std::endl;
         return false;
@@ -83,12 +89,18 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
     }
 
 #ifdef _WIN32
-    if (m_settings.useD3D11) {
-        if (!m_spatialViewport.Initialize((ID3D11Device*)m_overlay.GetD3D11Device())) {
-            std::cerr << "[Warning] Failed to initialize Spatial Viewport." << std::endl;
-        }
-        if (!m_capture.Initialize((ID3D11Device*)m_overlay.GetD3D11Device(), (ID3D11DeviceContext*)m_overlay.GetD3D11Context())) {
-            std::cerr << "[Warning] Failed to initialize DXGI Desktop Duplication." << std::endl;
+    if (m_settings.useD3D11 || m_settings.spatialMode) {
+        ID3D11Device* d3dDevice = (ID3D11Device*)m_overlay.GetD3D11Device();
+        ID3D11DeviceContext* d3dContext = (ID3D11DeviceContext*)m_overlay.GetD3D11Context();
+        if (d3dDevice) {
+            if (!m_spatialViewport.Initialize(d3dDevice)) {
+                std::cerr << "[Warning] Failed to initialize Spatial Viewport." << std::endl;
+            }
+            if (!m_capture.Initialize(d3dDevice, d3dContext)) {
+                std::cerr << "[Warning] Failed to initialize DXGI Desktop Duplication." << std::endl;
+            }
+        } else {
+            std::cout << "[Info] D3D11 not available, using GDI overlay." << std::endl;
         }
     }
 #endif
@@ -129,6 +141,8 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
     // Default color
     m_overlay.SetColor(255, 0, 0);
     m_overlay.SetSelectionColor(m_settings.selectionColorR, m_settings.selectionColorG, m_settings.selectionColorB);
+
+    if (settings.benchmarking) m_benchmarking = true;
 
     m_running = true;
     return true;
@@ -201,15 +215,22 @@ void NetMuxFramework::Run() {
         }
         m_input.SetPeerConnected(hasExternalPeers);
 
-        // Output UI Telemetry to stdout (JSON format)
+        // Output UI Telemetry to stdout (JSON format) — only when headless/piped
         static double lastUIUpdate = 0;
-        if (m_loopTimer.ElapsedMilliseconds() - lastUIUpdate > 100.0) {
+        if (m_settings.headless && m_loopTimer.ElapsedMilliseconds() - lastUIUpdate > 100.0) {
             std::map<unsigned long long, PeerState> peers = m_sync.GetAllPeers();
             std::cout << "{\"type\":\"telemetry\",\"peers\":[";
             bool first = true;
             for (auto& p : peers) {
+                if (p.first == m_localId) continue; // Skip self
                 if (!first) std::cout << ",";
-                std::cout << "{\"id\":" << p.first << ",\"x\":" << p.second.x << ",\"y\":" << p.second.y << "}";
+                std::cout << "{\"id\":" << p.first
+                          << ",\"x\":" << p.second.x
+                          << ",\"y\":" << p.second.y
+                          << ",\"latency\":" << p.second.latency
+                          << ",\"isSelecting\":" << (p.second.isSelecting ? "true" : "false")
+                          << ",\"groupId\":" << p.second.groupId
+                          << "}";
                 first = false;
             }
             std::cout << "]}" << std::endl;
@@ -252,20 +273,20 @@ void NetMuxFramework::Run() {
             m_lastPerfLog = m_loopTimer.ElapsedMilliseconds();
         }
 
-        // Ultra-Smooth Rendering: Match monitor refresh or higher
-        if (m_renderTimer.ElapsedMilliseconds() > 7.0) {
+        // Ultra-Smooth Rendering: Match monitor refresh at 60fps
+        if (m_renderTimer.ElapsedMilliseconds() > 16.0) {
             std::map<unsigned long long, RemoteCursorState> overlayPeers;
             auto peers = m_sync.GetAllPeers();
             unsigned long long activeId = m_sync.GetActivePeer();
 
             for (auto const& [id, peer] : peers) {
+                // Skip self — we render our own cursor via the system cursor
+                if (id == m_localId) continue;
                 // Client-side filtering: Only show peers in our group
                 if (!m_settings.isServer && peer.groupId != m_settings.groupId) {
                     continue;
                 }
 
-                // ALWAYS render the peer on the overlay (even ourselves)
-                // This provides the "Mux" feel where everyone sees everyone's cursor shape/color.
                 overlayPeers[id] = { (int)peer.x, (int)peer.y, peer.colorR, peer.colorG, peer.colorB, peer.groupId, peer.isSelecting, peer.isConflictBlocked, (int)peer.selStartX, (int)peer.selStartY };
 
                 // Active cursor visual indicator (White for owner, original for others)
@@ -273,8 +294,10 @@ void NetMuxFramework::Run() {
                     overlayPeers[id].r = 255; overlayPeers[id].g = 255; overlayPeers[id].b = 255;
                 }
             }
-            m_overlay.SetActivePeer(activeId);
-            m_overlay.RenderPeers(overlayPeers);
+            if (!overlayPeers.empty()) {
+                m_overlay.SetActivePeer(activeId);
+                m_overlay.RenderPeers(overlayPeers);
+            }
             
 #ifdef _WIN32
             // Delegate spatial rendering to SpatialViewport if D3D11 is used

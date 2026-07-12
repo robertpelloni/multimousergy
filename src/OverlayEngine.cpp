@@ -4,7 +4,6 @@
 #include <algorithm>
 
 #ifdef _WIN32
-#define NOMINMAX
 #include <windows.h>
 
 LRESULT CALLBACK OverlayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -134,8 +133,6 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
 
 #ifdef _WIN32
     HWND hwnd = (HWND)m_hwnd;
-    // Keep overlay on top for all backends
-    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
     if (m_backend == OverlayBackend::D3D11 && m_d3dOverlay) {
         static_cast<D3D11Overlay*>(m_d3dOverlay)->Render(peers);
