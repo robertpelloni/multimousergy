@@ -39,7 +39,11 @@ enum class NetMuxPacketType {
     FileHeader,
     FileData,
     KeyboardEvent,
-    DeltaMovement
+    DeltaMovement,
+    WebRTCOffer,
+    WebRTCAnswer,
+    ICECandidate,
+    VideoFrame
 };
 
 struct Packet {
@@ -101,6 +105,7 @@ struct AppSettings {
     unsigned char peerColorB = 0;
     bool autoConnect = false;
     bool startMinimized = false;
+    bool spatialMode = true;
     std::string displayName = "";
     std::vector<std::string> recentServers;
 };

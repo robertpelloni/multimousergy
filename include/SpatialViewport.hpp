@@ -11,12 +11,15 @@ public:
     ~SpatialViewport();
 
 #ifdef _WIN32
-    bool Initialize(ID3D11Device* device);
-    void Update(float deltaTime, bool isCrossingBorder);
-    void Render(ID3D11DeviceContext* context);
+    bool Initialize(ID3D11Device* device, float aspectRatio = 16.0f / 9.0f);
+    void Update(float deltaTime, bool isCrossingBorder, float aspectRatio = -1.0f);
+    void Render(ID3D11DeviceContext* context, const std::map<unsigned long long, RemoteCursorState>& peers);
 
-    void SetLocalDesktopTexture(ID3D11ShaderResourceView* srv) { m_localSRV = srv; }
-    void SetRemoteDesktopTexture(ID3D11ShaderResourceView* srv) { m_remoteSRV = srv; }
+    void SetLocalDesktopTexture(ID3D11ShaderResourceView* srv);
+    void SetRemoteDesktopTexture(ID3D11ShaderResourceView* srv);
+    void SetLocalWebcamTexture(ID3D11ShaderResourceView* srv);
+    void SetCursorTexture(ID3D11ShaderResourceView* srv);
+    void SetRemoteWebcamTexture(ID3D11ShaderResourceView* srv);
 #else
     bool Initialize(void* device) { return false; }
     void Update(float deltaTime, bool isCrossingBorder) {}
@@ -33,12 +36,19 @@ private:
 
     ID3D11ShaderResourceView* m_localSRV;
     ID3D11ShaderResourceView* m_remoteSRV;
+    ID3D11ShaderResourceView* m_cursorSRV;
+    ID3D11ShaderResourceView* m_localWebcamSRV;
+    ID3D11ShaderResourceView* m_remoteWebcamSRV;
 
     ID3D11Buffer* m_vertexBuffer;
     ID3D11Buffer* m_constantBuffer;
     ID3D11VertexShader* m_vertexShader;
     ID3D11PixelShader* m_pixelShader;
     ID3D11InputLayout* m_inputLayout;
-    ID3D11SamplerState* m_samplerState;
+    ID3D11SamplerState* m_sampler;
+
+    struct ConstantBuffer {
+        DirectX::XMMATRIX worldViewProj;
+    };
 #endif
 };

@@ -31,7 +31,7 @@ DesktopCapture::~DesktopCapture() {
 #endif
 }
 
-bool DesktopCapture::Initialize() {
+bool DesktopCapture::Initialize(Display* display) {
 #ifdef _WIN32
     std::cout << "[DesktopCapture] Initializing DXGI Desktop Duplication..." << std::endl;
 

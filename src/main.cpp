@@ -10,7 +10,7 @@ int main(int argc, char* argv[]) {
     #ifdef _WIN32
     SetProcessDPIAware();
     #endif
-    std::cout << "NetMux starting..." << std::endl;
+    std::cout << "MultiMousergy starting..." << std::endl;
 
     ConfigManager configManager("netmux.cfg");
     AppSettings settings = { false, "127.0.0.1", 5555, {0, 0, false} };
