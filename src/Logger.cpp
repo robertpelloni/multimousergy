@@ -10,7 +10,7 @@ bool Logger::m_initialized = false;
 
 void Logger::Initialize() {
     if (!m_initialized) {
-        m_file.open("netmux.log", std::ios::app);
+        m_file.open("netmux.log", std::ios::trunc);  // Fresh log each run
         m_initialized = true;
     }
 }

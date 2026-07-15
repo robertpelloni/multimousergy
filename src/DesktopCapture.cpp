@@ -7,6 +7,7 @@ DesktopCapture::DesktopCapture() {
     m_context = nullptr;
     m_deskDupl = nullptr;
     m_currentFrame = nullptr;
+    m_lastFrameTime = 0;
 #else
     m_display = nullptr;
     m_rootWindow = 0;
@@ -19,6 +20,9 @@ DesktopCapture::DesktopCapture() {
 DesktopCapture::~DesktopCapture() {
 #ifdef _WIN32
     if (m_deskDupl) m_deskDupl->Release();
+    if (m_currentFrame) m_currentFrame->Release();
+    if (m_context) m_context->Release();
+    if (m_device) m_device->Release();
 #else
     if (m_currentImage) {
         XDestroyImage(m_currentImage);
@@ -66,8 +70,12 @@ bool DesktopCapture::Initialize(ID3D11Device* device, ID3D11DeviceContext* conte
 
     hr = dxgiOutput1->DuplicateOutput(m_device, &m_deskDupl);
     dxgiOutput1->Release();
-    if (FAILED(hr)) return false;
+    if (FAILED(hr)) {
+        std::cerr << "[DesktopCapture] DuplicateOutput failed: 0x" << std::hex << hr << std::dec << std::endl;
+        return false;
+    }
 
+    std::cout << "[DesktopCapture] DXGI Desktop Duplication ready." << std::endl;
     return true;
 #elif defined(__linux__)
 bool DesktopCapture::Initialize(Display* display) {
