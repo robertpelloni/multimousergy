@@ -12,7 +12,10 @@ public:
 
     bool SendMouseMovement(long dx, long dy);
     bool SendMouseButton(int button, bool down);
+    bool SendKeyboardKey(int key, bool down);
     bool SendMouseWheel(int delta, bool horizontal);
+
+    static bool IsDriverInstalled(NetMuxDriverType type);
 
 private:
     bool m_initialized;
@@ -30,5 +33,8 @@ private:
 #endif
 #ifdef __linux__
     int m_device;
+#endif
+#ifdef __APPLE__
+    void* m_macEventSource = nullptr;
 #endif
 };

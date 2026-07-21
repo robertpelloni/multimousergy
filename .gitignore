@@ -34,9 +34,17 @@ dist/
 out/
 
 # Agent cache artifacts
-.borg/
 .hypercode/
 .pi-lens/
-.tormentnexus/
 *.bak
 *~
+
+# IMPORTANT: Do NOT add any of the following to .gitignore
+# - Databases (*.db, *.sqlite, etc.)
+# - Session/conversation files (*-session.json, sessions/)
+# - .tormentnexus/ (AI sessions, memory, handoffs, db)
+# - .jules/ (Jules AI conversations and state)
+# These contain critical development history and must be tracked.
+# Only ignore system logs (*.log), build artifacts, and caches.
+
+ui/node_modules

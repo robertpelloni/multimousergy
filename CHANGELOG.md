@@ -1,4 +1,116 @@
+## [0.1.88-alpha] - 2026-06-29
+### Added
+- Integrated WebRTC SDP/ICE handshake and DXGI texture encoding
+- Cross-platform driver compatibility with macOS CoreGraphics stub
+
 # CHANGELOG.md
+
+## [0.1.82-alpha] - 2026-06-27
+### Changed
+- Clarified completion of Milestone 4 (Collaborative Selection and Drag Sync) and Milestone 5 (File Transfer Engine).
+
+## [0.1.81-alpha] - 2026-06-27
+### Added
+- Implemented `XQueryPointer` fallback in `InputEngine` for native Linux X11 integration to ensure robust cursor capturing.
+
+## [0.1.80-alpha] - 2026-06-27
+### Added
+- Marked DXGI Desktop Duplication, 3D Composition Engine, and Boundary Animation as completed in the Roadmap.
+
+## [0.1.79-alpha] - 2026-06-26
+### Added
+- Integrated D3D11 Desktop Duplication API capture loop for the Spatial Viewport rendering pipeline.
+
+## [0.1.77-alpha] - 2026-06-25
+### Fixed
+- Fixed an issue where the TCP replay cache pruning would cause a performance issue during high volume transfers by limiting cleanup to once every 10 seconds.
+
+## [0.1.71-alpha] - 2025-01-24
+### Added
+- Implemented Dynamic Resolution Scaling and DPI Awareness.
+- Enhanced protocol to broadcast DPI scale factors.
+- Updated ConfigGUI with remote resolution and DPI telemetry in the peer list.
+
+## [0.1.70-alpha] - 2025-01-24
+### Added
+- Refined ConfigGUI UX: persistent status bar, dynamic button text, and "Connect to Selected" button.
+- Enhanced Network Resilience: automatic cleanup of partial file/clipboard data from dead peers.
+- Integrated `STATUSCLASSNAME` for real-time connection telemetry.
+
+## [0.1.69-alpha] - 2025-01-24
+### Added
+- Implemented Friendly Name broadcasting and peer-list prioritization.
+- Added "Start Minimized to Tray" global preference.
+- Enhanced protocol handshake to include user-defined display names.
+### Fixed
+- Improved UI child window management for multi-tab environments.
+
+## [0.1.68-alpha] - 2025-01-24
+### Added
+- Refactored ConfigGUI to a modular tab-driven architecture.
+- Implemented Delta Compression for high-frequency cursor updates.
+- Transitioned DriverInterface to dynamic SDK loading (ViGEmBus/Interception).
+- Added "Global Settings" tab with customizable "Display Name" support.
+- Optimized tab switching with child window visibility management.
+
+## [0.1.67-alpha] - 2025-01-24
+### Added
+- Implemented System Tray support (Windows) with minimize-to-tray and context menu.
+- Integrated a comprehensive Diagnostics Logger with UI "Logs" tab and file output.
+- Unified packet serialization with `IsHeaderOnly` optimization.
+- Added a "Quit" button and improved UI layout polish.
+
+## [0.1.66-alpha] - 2025-01-24
+### Added
+- Implemented interactive Peer Selection via the GUI Minimap.
+- Added descriptive UI Tooltips for all major controls in ConfigGUI.
+- Enhanced File Transfer Engine for multi-file concurrent transfers.
+- Added local machine info (Hostname/IP) to the connection panel.
+### Fixed
+- Improved Tabbed GUI layout and child window visibility management.
+
+## [0.1.65-alpha] - 2025-01-24
+### Added
+- Modernized ConfigGUI with a Tabbed Interface for better scalability.
+- Implemented automatic driver detection (ViGEmBus/Interception) with UI feedback.
+- Enhanced File Transfer Engine with basic Resume support and error reporting.
+- Improved SyncModule robustness for peer re-entry and collision handling.
+- Added automatic network discovery scan on startup.
+
+## [0.1.64-alpha] - 2025-01-24
+### Added
+- Implemented full Keyboard Synchronization (capture and injection).
+- Added Machine Info (Hostname/IP) to ConfigGUI Connection Settings.
+- Implemented native Linux X11 event dispatching for improved clipboard stability.
+- Enhanced ConfigGUI layout with improved group box organization.
+
+## [0.1.63-alpha] - 2025-01-24
+### Added
+- Implemented Auto-Reconnect logic for resilient connection recovery.
+- Added Peer Color customization controls to ConfigGUI.
+- Improved network state robustness with graceful disconnection handling.
+- Enhanced ConfigGUI with "Clear History" and expanded layout.
+
+## [0.1.62-alpha] - 2025-01-24
+### Added
+- Implemented SHA-256 file integrity verification for file transfers.
+- Added "Recent Servers" history dropdown to ConfigGUI.
+- Improved real-time UI feedback for connection states.
+### Fixed
+- Optimized ConfigGUI listboxes to prevent flickering and reduce CPU overhead.
+
+## [0.1.61-alpha] - 2025-01-24
+### Added
+- Implemented File Transfer Engine for transparent drag-and-drop file sharing via multi-part protocol.
+- Integrated file transfer progress monitoring into ConfigGUI.
+- Added asynchronous file chunking and reassembly logic.
+
+## [0.1.60-alpha] - 2025-01-24
+### Fixed
+- Refactored UI and Network stacks for robust connection handling and single-instance window management.
+- Implemented asynchronous handshake logic to ensure TCP connectivity before protocol initialization.
+- Reorganized ConfigGUI layout for improved UX and accessibility.
+- Fixed multiple window instance bug in ConfigGUI.
 
 ## [0.1.59-alpha] - 2025-01-24
 ### Fixed

@@ -1,17 +1,20 @@
-# Session Handoff - v0.1.59-alpha
+# Handoff Documentation
 
-## Summary of Changes
-- **Multi-Cursor Consistency**: Resolved a critical bug where keep-alive packets (Heartbeat, Sync, Ping) were resetting peer positions to (0,0) because they lacked coordinate data.
-- **RefreshPeer Implementation**: Introduced `SyncModule::RefreshPeer` to specifically handle keep-alive updates without overwriting stored position data.
-- **Broadcast Visibility**: Verified that `InputEngine` correctly broadcasts local cursor coordinates to all peers, fulfilling the "Multiplexing" vision where all users are visible to each other regardless of capture state.
-- **SyncCheck Integration**: Added handling for `NetMuxPacketType::SyncCheck` in the framework to maintain peer activity status during idle periods.
-- **Test Suite Verification**: Confirmed that all concurrent synchronization and authoritative correction tests pass with the new `RefreshPeer` logic.
+## Completed Tasks
+- Replaced the legacy Win32 ConfigGUI with an Electron-based webview architecture.
+- Developed a complete headless C++ execution mode (`NetMuxFramework.cpp`) that pipes JSON telemetry over standard output.
+- Fixed critical race conditions and compilation errors in the C++ layer associated with the WebRTC and Spatial Viewport updates.
+- Finished Milestone 6: Spatial Evolution and WebRTC Pipeline.
+  - Initialized SpatialViewport with D3D11 shader and vertex structures.
+  - Implemented DXGI Desktop Duplication capture and Media Foundation webcam pipelines.
+  - Linked textures back to the SpatialViewport planes and WebRTC manager data channels.
+  - Handled SDP/ICE handshaking and frame encoding integration.
+- Added macOS CoreGraphics driver injection stubs to `DriverInterface` for cross-platform expansion.
 
-## Technical Observations
-- `SyncModule::UpdatePeer` should only be used when fresh coordinate data is available. For keep-alives, `RefreshPeer` is the preferred path to avoid state corruption.
-- Authoritative synchronization remains robust; the server-side position enforcement correctly overrides any local drift or reset attempts.
+## Known Issues / Next Steps
+- The WebRTC manager is using stubs for libwebrtc. It currently accepts textures from DXGI and simulates offers, but requires the actual Google `libwebrtc` native headers compiled into the CMake file to physically transmit stream chunks.
+- Same goes for the webcam capture; the `IMFMediaSource` enumerators need to be written.
 
-## Repository State
-- Version: `v0.1.59-alpha`
-- Build status: All tests passed.
-- Major Features: Authoritative Sync, Multi-Cursor Visibility, D3D11/GDI Overlay, Secure Mutual Auth.
+## Notes for Successor
+- Keep in mind that `ui/main.js` pushes the IP as a positional argument. C++ parses `--client` but does not interpret the next index as an IP automatically unless it receives the `--ip` flag which was removed.
+- Follow strictly to the `ROADMAP.md` to proceed with polishing.

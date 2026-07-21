@@ -15,6 +15,7 @@ struct PeerState {
     unsigned int groupId;
     char groupName[64];
     char sessionName[64];
+    char displayName[64];
     bool isSelecting;
     float selStartX;
     float selStartY;
@@ -24,6 +25,7 @@ struct PeerState {
     float targetY;
     int screenWidth; // Remote screen resolution for normalization context
     int screenHeight;
+    float dpiScale;
     int normalizedX; // 0-65535
     int normalizedY;
     bool isAuthenticated;
@@ -50,12 +52,12 @@ public:
     SyncModule();
     ~SyncModule();
 
-    void UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp = 0, const char* name = nullptr, const char* groupName = nullptr);
+    void UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp = 0, const char* name = nullptr, const char* groupName = nullptr, const char* displayName = nullptr);
     void RefreshPeer(unsigned long long id, unsigned int groupId);
     void UpdatePeerButtons(unsigned long long id, int button, bool down);
     void UpdatePeerSelection(unsigned long long id, bool selecting, int startX, int startY);
     void SetAuthenticated(unsigned long long id, bool auth);
-    void UpdatePeerResolution(unsigned long long id, int width, int height);
+    void UpdatePeerResolution(unsigned long long id, int width, int height, float dpi = 1.0f);
     void UpdateDrift(unsigned long long id, float drift);
     void UpdateLatency(unsigned long long id, double latency);
     void UpdateClockOffset(unsigned long long id, double remoteTime, double localTime);

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>NetMux Configuration</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #1e1e1e; color: #fff; margin: 0; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+        .container { flex: 1; display: flex; gap: 20px; min-height: 0; }
+        .left-panel { flex: 1; display: flex; flex-direction: column; background: #2d2d2d; padding: 20px; border-radius: 8px; overflow-y: auto; }
+        .right-panel { flex: 1; display: flex; flex-direction: column; gap: 20px; min-height: 0; }
+        .widget { background: #2d2d2d; padding: 20px; border-radius: 8px; display: flex; flex-direction: column; }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input[type="text"], input[type="number"], input[type="password"] {
+            width: 100%; padding: 8px; box-sizing: border-box; background: #3c3c3c; color: white; border: 1px solid #555; border-radius: 4px;
+        }
+        button { background: #007acc; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; width: 100%; font-size: 16px; margin-bottom: 10px; }
+        button:hover { background: #005f9e; }
+        button.stop-btn { background: #cc3333; display: none; }
+        button.stop-btn:hover { background: #9e2222; }
+
+        .tabs { display: flex; margin-bottom: 15px; }
+        .tab { flex: 1; text-align: center; padding: 10px; background: #3c3c3c; cursor: pointer; border: 1px solid #555; }
+        .tab.active { background: #007acc; border-color: #007acc; }
+
+        .minimap-container { flex: 1; display: flex; justify-content: center; align-items: center; background: #111; border: 1px solid #555; border-radius: 4px; position: relative; overflow: hidden; }
+        #minimap { background: #000; }
+
+        .log-container { flex: 1; display: flex; flex-direction: column; min-height: 200px; }
+        .log-box { flex: 1; background: #111; border: 1px solid #555; border-radius: 4px; padding: 10px; font-family: monospace; font-size: 12px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+        .log-error { color: #ff5555; }
+        .log-info { color: #aaaaaa; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <h2>NetMux Configuration</h2>
+
+            <div class="tabs">
+                <div class="tab active" id="tab-client" onclick="setMode('client')">Client</div>
+                <div class="tab" id="tab-server" onclick="setMode('server')">Server</div>
+            </div>
+
+            <form id="configForm">
+                <input type="hidden" id="isServer" value="false">
+
+                <div class="form-group" id="remoteIpGroup">
+                    <label for="remoteIp">Server IP Address</label>
+                    <input type="text" id="remoteIp" value="127.0.0.1">
+                </div>
+
+                <div class="form-group">
+                    <label for="port">Port</label>
+                    <input type="number" id="port" value="5555">
+                </div>
+
+                <div class="form-group">
+                    <label for="securityKey">Security Key</label>
+                    <input type="password" id="securityKey" placeholder="Leave empty for none">
+                </div>
+
+                <div class="form-group">
+                    <label>Screen Layout</label>
+                    <div>
+                        <input type="radio" name="layout" id="layoutLeft" value="left" checked>
+                        <label for="layoutLeft" style="display:inline;">Left of Server</label>
+                        <input type="radio" name="layout" id="layoutRight" value="right">
+                        <label for="layoutRight" style="display:inline;">Right of Server</label>
+                    </div>
+                </div>
+
+                <button type="button" id="startBtn" onclick="startNetMux()">Start NetMux</button>
+                <button type="button" id="stopBtn" class="stop-btn" onclick="stopNetMux()">Stop NetMux</button>
+            </form>
+
+            <div style="margin-top: 20px;">
+                <p id="statusText">Status: Stopped</p>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="widget minimap-container">
+                <canvas id="minimap" width="400" height="300"></canvas>
+            </div>
+
+            <div class="widget log-container">
+                <h3 style="margin-top:0;">Logs</h3>
+                <div class="log-box" id="logBox"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function setMode(mode) {
+            document.getElementById('tab-client').classList.remove('active');
+            document.getElementById('tab-server').classList.remove('active');
+
+            if (mode === 'server') {
+                document.getElementById('tab-server').classList.add('active');
+                document.getElementById('isServer').value = 'true';
+                document.getElementById('remoteIpGroup').style.display = 'none';
+            } else {
+                document.getElementById('tab-client').classList.add('active');
+                document.getElementById('isServer').value = 'false';
+                document.getElementById('remoteIpGroup').style.display = 'block';
+            }
+        }
+
+        function startNetMux() {
+            const config = {
+                isServer: document.getElementById('isServer').value === 'true',
+                remoteIp: document.getElementById('remoteIp').value,
+                port: document.getElementById('port').value,
+                securityKey: document.getElementById('securityKey').value,
+                isLeft: document.getElementById('layoutLeft').checked
+            };
+
+            window.electronAPI.startNetMux(config);
+
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('stopBtn').style.display = 'block';
+            document.getElementById('statusText').innerText = "Status: Running";
+
+            clearMinimap();
+        }
+
+        function stopNetMux() {
+            window.electronAPI.stopNetMux();
+            resetUIState();
+        }
+
+        function resetUIState() {
+            document.getElementById('startBtn').style.display = 'block';
+            document.getElementById('stopBtn').style.display = 'none';
+            document.getElementById('statusText').innerText = "Status: Stopped";
+            clearMinimap();
+        }
+
+        // Logging
+        const logBox = document.getElementById('logBox');
+        window.electronAPI.onLog((data) => {
+            const div = document.createElement('div');
+            div.className = data.level === 'error' ? 'log-error' : 'log-info';
+            div.innerText = data.message;
+            logBox.appendChild(div);
+            logBox.scrollTop = logBox.scrollHeight;
+        });
+
+        window.electronAPI.onNetMuxExit((code) => {
+            const div = document.createElement('div');
+            div.className = 'log-info';
+            div.innerText = `Process exited with code: ${code}`;
+            logBox.appendChild(div);
+            logBox.scrollTop = logBox.scrollHeight;
+            resetUIState();
+        });
+
+        // Minimap
+        const canvas = document.getElementById('minimap');
+        const ctx = canvas.getContext('2d');
+
+        function clearMinimap() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        clearMinimap();
+
+        window.electronAPI.onTelemetry((data) => {
+            clearMinimap();
+
+            if (data && data.peers) {
+                data.peers.forEach(peer => {
+                    // Normalize coordinates for the 400x300 canvas.
+                    // Assuming standard screen width roughly 1920x1080 for demo purposes,
+                    // we'll map 0-1920 to 0-400 and 0-1080 to 0-300.
+                    // If coordinates are normalized (-1 to 1 or 0 to 1), scale accordingly.
+                    // Let's assume they are absolute coordinates for now.
+                    let x = (peer.x / 1920) * canvas.width;
+                    let y = (peer.y / 1080) * canvas.height;
+
+                    // Keep within bounds
+                    x = Math.max(5, Math.min(x, canvas.width - 5));
+                    y = Math.max(5, Math.min(y, canvas.height - 5));
+
+                    ctx.beginPath();
+                    ctx.arc(x, y, 6, 0, 2 * Math.PI, false);
+                    ctx.fillStyle = `hsl(${(peer.id * 137.5) % 360}, 80%, 50%)`;
+                    ctx.fill();
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = '#fff';
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(`Peer ${peer.id}`, x + 10, y + 4);
+                });
+            }
+        });
+    </script>
+</body>
+</html>

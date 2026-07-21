@@ -26,11 +26,12 @@ void SyncModule::SetAuthenticated(unsigned long long id, bool auth) {
     }
 }
 
-void SyncModule::UpdatePeerResolution(unsigned long long id, int width, int height) {
+void SyncModule::UpdatePeerResolution(unsigned long long id, int width, int height, float dpi) {
     std::lock_guard<std::mutex> lock(m_mutex);
     PeerState& peer = m_peers[id];
     peer.screenWidth = width;
     peer.screenHeight = height;
+    peer.dpiScale = dpi;
 }
 
 void SyncModule::UpdateDrift(unsigned long long id, float drift) {
@@ -64,19 +65,26 @@ void SyncModule::UpdatePeerSelection(unsigned long long id, bool selecting, int 
     }
 }
 
-void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp, const char* name, const char* gname) {
+void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp, const char* name, const char* gname, const char* dname) {
     std::lock_guard<std::mutex> lock(m_mutex);
     bool isNew = (m_peers.find(id) == m_peers.end());
     PeerState& peer = m_peers[id];
     peer.id = id;
     peer.groupId = groupId;
     if (name) {
+        if (std::strcmp(peer.sessionName, name) != 0 && !isNew) {
+            std::cout << "[Sync] Peer " << id << " re-entered with new session: " << name << " (Prev: " << peer.sessionName << ")" << std::endl;
+        }
         strncpy(peer.sessionName, name, sizeof(peer.sessionName) - 1);
         peer.sessionName[sizeof(peer.sessionName) - 1] = '\0';
     }
     if (gname) {
         strncpy(peer.groupName, gname, sizeof(peer.groupName) - 1);
         peer.groupName[sizeof(peer.groupName) - 1] = '\0';
+    }
+    if (dname) {
+        strncpy(peer.displayName, dname, sizeof(peer.displayName) - 1);
+        peer.displayName[sizeof(peer.displayName) - 1] = '\0';
     }
 
     // Add to jitter buffer with current local timestamp

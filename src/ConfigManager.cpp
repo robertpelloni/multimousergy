@@ -43,6 +43,18 @@ bool ConfigManager::Load(AppSettings& settings) {
         else if (key == "sel_color_r") settings.selectionColorR = (unsigned char)std::stoi(val);
         else if (key == "sel_color_g") settings.selectionColorG = (unsigned char)std::stoi(val);
         else if (key == "sel_color_b") settings.selectionColorB = (unsigned char)std::stoi(val);
+        else if (key == "peer_color_r") settings.peerColorR = (unsigned char)std::stoi(val);
+        else if (key == "peer_color_g") settings.peerColorG = (unsigned char)std::stoi(val);
+        else if (key == "peer_color_b") settings.peerColorB = (unsigned char)std::stoi(val);
+        else if (key == "auto_connect") settings.autoConnect = (val == "1" || val == "true");
+        else if (key == "start_minimized") settings.startMinimized = (val == "1" || val == "true");
+        else if (key == "display_name") settings.displayName = val;
+        else if (key == "recent_servers") {
+            std::stringstream ss(val);
+            std::string ip;
+            settings.recentServers.clear();
+            while (std::getline(ss, ip, ',')) settings.recentServers.push_back(ip);
+        }
     }
 
     return true;
@@ -68,6 +80,18 @@ bool ConfigManager::Save(const AppSettings& settings) {
     file << "sel_color_r=" << (int)settings.selectionColorR << "\n";
     file << "sel_color_g=" << (int)settings.selectionColorG << "\n";
     file << "sel_color_b=" << (int)settings.selectionColorB << "\n";
+    file << "peer_color_r=" << (int)settings.peerColorR << "\n";
+    file << "peer_color_g=" << (int)settings.peerColorG << "\n";
+    file << "peer_color_b=" << (int)settings.peerColorB << "\n";
+    file << "auto_connect=" << (settings.autoConnect ? "true" : "false") << "\n";
+    file << "start_minimized=" << (settings.startMinimized ? "true" : "false") << "\n";
+    file << "display_name=" << settings.displayName << "\n";
+
+    file << "recent_servers=";
+    for (size_t i = 0; i < settings.recentServers.size(); ++i) {
+        file << settings.recentServers[i] << (i == settings.recentServers.size() - 1 ? "" : ",");
+    }
+    file << "\n";
 
     return true;
 }

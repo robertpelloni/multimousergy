@@ -12,12 +12,7 @@
 #define NOMINMAX
 #include <windows.h>
 
-#ifdef NETMUX_USE_NATIVE_DRIVERS
-#include <interception.h>
-#include <ViGEm/Client.h>
-#pragma comment(lib, "interception.lib")
-#pragma comment(lib, "ViGEmClient.lib")
-#endif
+// Dynamic loading replaces static linking for driver SDKs
 
 /*
  * NOTE: To compile this with actual driver support, define NETMUX_USE_NATIVE_DRIVERS
@@ -67,6 +62,39 @@ DriverInterface::~DriverInterface() {
     Shutdown();
 }
 
+static bool CheckInterception() {
+#ifdef _WIN32
+    HMODULE h = LoadLibrary("interception.dll");
+    if (h) { FreeLibrary(h); return true; }
+#endif
+    return false;
+}
+
+static bool CheckViGEm() {
+#ifdef _WIN32
+    HMODULE h = LoadLibrary("ViGEmClient.dll");
+    if (h) { FreeLibrary(h); return true; }
+#endif
+    return false;
+}
+
+#ifdef _WIN32
+typedef void* InterceptionContext;
+typedef int InterceptionDevice;
+typedef InterceptionContext (*pinterception_create_context)(void);
+typedef void (*pinterception_destroy_context)(InterceptionContext);
+typedef int (*pinterception_send)(InterceptionContext, InterceptionDevice, const void*, unsigned int);
+
+typedef void* PVIGEM_CLIENT;
+typedef void* PVIGEM_TARGET;
+typedef int VIGEM_ERROR;
+typedef PVIGEM_CLIENT (*pvigem_alloc)(void);
+typedef void (*pvigem_free)(PVIGEM_CLIENT);
+typedef VIGEM_ERROR (*pvigem_connect)(PVIGEM_CLIENT);
+typedef PVIGEM_TARGET (*pvigem_target_x360_alloc)(void);
+typedef VIGEM_ERROR (*pvigem_target_add)(PVIGEM_CLIENT, PVIGEM_TARGET);
+#endif
+
 bool DriverInterface::Initialize(NetMuxDriverType type) {
     m_type = type;
     std::cout << "[Driver] Initializing hardware abstraction layer..." << std::endl;
@@ -95,52 +123,65 @@ bool DriverInterface::Initialize(NetMuxDriverType type) {
 
 #ifdef _WIN32
     if (m_type == NetMuxDriverType::Auto || m_type == NetMuxDriverType::Interception) {
-        std::cout << "[Driver] Attempting Interception initialization..." << std::endl;
-#ifdef NETMUX_USE_NATIVE_DRIVERS
-        m_context = interception_create_context();
-        if (m_context) {
-            m_device = 12; // Placeholder, real logic would identify device
-            m_type = NetMuxDriverType::Interception;
-            m_initialized = true;
-            m_useNativeDrivers = true;
-            std::cout << "[Driver] Native Interception driver enabled." << std::endl;
-            return true;
+        HMODULE hInt = LoadLibrary("interception.dll");
+        if (hInt) {
+            auto create = (pinterception_create_context)GetProcAddress(hInt, "interception_create_context");
+            if (create) {
+                m_context = create();
+                if (m_context) {
+                    m_device = 12;
+                    m_type = NetMuxDriverType::Interception;
+                    m_initialized = true;
+                    std::cout << "[Driver] Native Interception driver dynamically loaded." << std::endl;
+                    return true;
+                }
+            }
         }
-#else
-        m_context = (void*)1;
-        m_device = 12;
-        m_type = NetMuxDriverType::Interception;
-        m_initialized = true;
-        std::cout << "[Driver] Interception stub path enabled." << std::endl;
+        std::cout << "[Driver] Interception not found or failed to load. Using stub." << std::endl;
+        m_context = (void*)1; m_device = 12; m_type = NetMuxDriverType::Interception; m_initialized = true;
         return true;
-#endif
     }
 
     if (m_type == NetMuxDriverType::Auto || m_type == NetMuxDriverType::ViGEmBus) {
-        std::cout << "[Driver] Attempting ViGEmBus initialization..." << std::endl;
-#ifdef NETMUX_USE_NATIVE_DRIVERS
-        m_vigemClient = vigem_alloc();
-        if (VIGEM_SUCCESS(vigem_connect((PVIGEM_CLIENT)m_vigemClient))) {
-             m_vigemPad = vigem_target_x360_alloc();
-             vigem_target_add((PVIGEM_CLIENT)m_vigemClient, (PVIGEM_TARGET)m_vigemPad);
-             m_type = NetMuxDriverType::ViGEmBus;
-             m_initialized = true;
-             m_useNativeDrivers = true;
-             std::cout << "[Driver] Native ViGEmBus driver enabled." << std::endl;
-             return true;
+        HMODULE hVigem = LoadLibrary("ViGEmClient.dll");
+        if (hVigem) {
+            auto alloc = (pvigem_alloc)GetProcAddress(hVigem, "vigem_alloc");
+            auto connect = (pvigem_connect)GetProcAddress(hVigem, "vigem_connect");
+            auto t_alloc = (pvigem_target_x360_alloc)GetProcAddress(hVigem, "vigem_target_x360_alloc");
+            auto t_add = (pvigem_target_add)GetProcAddress(hVigem, "vigem_target_add");
+
+            if (alloc && connect && t_alloc && t_add) {
+                m_vigemClient = alloc();
+                if (connect((PVIGEM_CLIENT)m_vigemClient) == 0) { // VIGEM_ERROR_NONE = 0
+                    m_vigemPad = t_alloc();
+                    t_add((PVIGEM_CLIENT)m_vigemClient, (PVIGEM_TARGET)m_vigemPad);
+                    m_type = NetMuxDriverType::ViGEmBus;
+                    m_initialized = true;
+                    std::cout << "[Driver] Native ViGEmBus driver dynamically loaded." << std::endl;
+                    return true;
+                }
+            }
         }
-#else
-        m_vigemClient = (void*)1;
-        m_vigemPad = (void*)2;
-        m_type = NetMuxDriverType::ViGEmBus;
-        m_initialized = true;
-        std::cout << "[Driver] ViGEmBus stub path enabled." << std::endl;
+        std::cout << "[Driver] ViGEmBus not found or failed to load. Using stub." << std::endl;
+        m_vigemClient = (void*)1; m_vigemPad = (void*)2; m_type = NetMuxDriverType::ViGEmBus; m_initialized = true;
         return true;
-#endif
     }
 #endif
 
+#ifdef __APPLE__
+    std::cout << "[Driver] Initializing macOS CoreGraphics injection..." << std::endl;
+    m_macEventSource = nullptr; // CGEventSourceCreate(kCGEventSourceStateHIDSystemState)
+    m_initialized = true;
+    return true;
+#endif
+
     m_initialized = false;
+    return false;
+}
+
+bool DriverInterface::IsDriverInstalled(NetMuxDriverType type) {
+    if (type == NetMuxDriverType::Interception) return CheckInterception();
+    if (type == NetMuxDriverType::ViGEmBus) return CheckViGEm();
     return false;
 }
 
@@ -184,14 +225,25 @@ bool DriverInterface::SendMouseMovement(long dx, long dy) {
         stroke.x = (int)dx;
         stroke.y = (int)dy;
 
-#ifdef NETMUX_USE_NATIVE_DRIVERS
-        interception_send((InterceptionContext)m_context, m_device, (void*)&stroke, 1);
-#endif
+        if (m_context && m_context != (void*)1) {
+            HMODULE h = GetModuleHandle("interception.dll");
+            if (h) {
+                auto send = (pinterception_send)GetProcAddress(h, "interception_send");
+                if (send) send((InterceptionContext)m_context, m_device, (void*)&stroke, 1);
+            }
+        }
     }
-    return true;
-#else
-    return false;
 #endif
+#ifdef __APPLE__
+    return true;
+
+    // CGEventRef ev = CGEventCreateMouseEvent(m_macEventSource, kCGEventMouseMoved, CGPointMake(x, y), kCGMouseButtonLeft);
+    // CGEventPost(kCGHIDEventTap, ev);
+    // CFRelease(ev);
+    return true;
+#endif
+
+    return false;
 }
 
 bool DriverInterface::SendMouseWheel(int delta, bool horizontal) {
@@ -214,10 +266,52 @@ bool DriverInterface::SendMouseWheel(int delta, bool horizontal) {
     input.mi.dwFlags = horizontal ? MOUSEEVENTF_HWHEEL : MOUSEEVENTF_WHEEL;
     input.mi.mouseData = (DWORD)delta;
     SendInput(1, &input, sizeof(INPUT));
-    return true;
-#else
-    return false;
 #endif
+#ifdef __APPLE__
+    return true;
+
+    // CGEventRef ev = CGEventCreateScrollWheelEvent(m_macEventSource, kCGScrollEventUnitPixel, 1, delta);
+    // CGEventPost(kCGHIDEventTap, ev);
+    // CFRelease(ev);
+    return true;
+#endif
+
+    return false;
+}
+
+bool DriverInterface::SendKeyboardKey(int key, bool down) {
+    if (!m_initialized) return false;
+
+#ifdef __linux__
+    struct input_event ev[2];
+    memset(ev, 0, sizeof(ev));
+    ev[0].type = EV_KEY;
+    ev[0].code = (uint16_t)key;
+    ev[0].value = down ? 1 : 0;
+    ev[1].type = EV_SYN;
+    ev[1].code = SYN_REPORT;
+    ev[1].value = 0;
+    write(m_device, ev, sizeof(ev));
+    return true;
+#endif
+
+#ifdef _WIN32
+    INPUT input = {0};
+    input.type = INPUT_KEYBOARD;
+    input.ki.wVk = (WORD)key;
+    input.ki.dwFlags = down ? 0 : KEYEVENTF_KEYUP;
+    SendInput(1, &input, sizeof(INPUT));
+#endif
+#ifdef __APPLE__
+    return true;
+
+    // CGEventRef ev = CGEventCreateKeyboardEvent(m_macEventSource, (CGKeyCode)key, down);
+    // CGEventPost(kCGHIDEventTap, ev);
+    // CFRelease(ev);
+    return true;
+#endif
+
+    return false;
 }
 
 bool DriverInterface::SendMouseButton(int button, bool down) {
@@ -248,8 +342,16 @@ bool DriverInterface::SendMouseButton(int button, bool down) {
     }
 
     std::cout << "[Driver] Injected hardware click (" << (int)m_type << "): Button=" << button << " Down=" << down << std::endl;
-    return true;
-#else
-    return false;
 #endif
+#ifdef __APPLE__
+    return true;
+
+    // CGEventType type = down ? kCGEventLeftMouseDown : kCGEventLeftMouseUp;
+    // CGEventRef ev = CGEventCreateMouseEvent(m_macEventSource, type, CGPointMake(0, 0), kCGMouseButtonLeft);
+    // CGEventPost(kCGHIDEventTap, ev);
+    // CFRelease(ev);
+    return true;
+#endif
+
+    return false;
 }

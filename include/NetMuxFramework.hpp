@@ -7,6 +7,10 @@
 #include "ClipboardModule.hpp"
 #include "ConfigManager.hpp"
 #include "AuthService.hpp"
+#include "FileTransferEngine.hpp"
+#include "WebRTCManager.hpp"
+#include "DesktopCapture.hpp"
+#include "SpatialViewport.hpp"
 #include "Timer.hpp"
 #include <map>
 #include <queue>
@@ -39,6 +43,7 @@ public:
     SyncModule& GetSyncModule() { return m_sync; }
     InputEngine& GetInputEngine() { return m_input; }
     NetworkManager& GetNetworkManager() { return m_network; }
+    FileTransferEngine& GetFileTransferEngine() { return m_fileTransfer; }
     bool IsRunning() const { return m_running; }
 
 #ifdef __linux__
@@ -54,6 +59,7 @@ private:
     void PerformLatencySync();
     void PerformDiscoveryBroadcast();
     void PerformClipboardSync();
+    void PerformFileTransfer();
     void PerformPeerCleanup();
 
     bool IsPeerTrusted(unsigned long long peerId, NetMuxPacketType type);
@@ -68,6 +74,10 @@ private:
     DriverInterface m_driver;
     OverlayEngine m_overlay;
     SyncModule m_sync;
+    FileTransferEngine m_fileTransfer;
+    WebRTCManager m_webrtc;
+    DesktopCapture m_capture;
+    SpatialViewport m_spatialViewport;
 #ifdef __linux__
     ClipboardModule m_clipboard{m_xDisplay};
 #else
@@ -99,6 +109,8 @@ private:
     std::mutex m_interactionMutex;
     AuthService m_authService;
     std::map<unsigned long long, unsigned int> m_lastSequence;
+    std::map<unsigned long long, std::map<unsigned int, double>> m_tcpReplayCache;
     double m_lastClipboardTimestamp = 0;
     std::map<unsigned long long, std::vector<char>> m_clipboardReassembly;
+    std::map<unsigned long long, std::pair<int, int>> m_lastMasterSyncPos;
 };

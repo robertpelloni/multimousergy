@@ -1,31 +1,31 @@
-** Summary of Architecture, Patterns, and Decisions**
+# MultiMousergy (formerly NetMux) - Project Architecture & Memory
 
-### 1. Core Architecture: The Two-Layer Input Model
-NetMux (v0.1.60-alpha) is built on a decoupled two-layer system designed to bypass the limitations of standard OS cursor management:
-*   **Capture Layer (`InputEngine`)**: Utilizes low-level Windows hooks (`WH_MOUSE_LL`) and Raw Input (`WM_INPUT`) to intercept hardware mouse data. It differentiates between multiple local physical devices and suppresses local cursor movement when the mouse crosses a defined boundary.
-*   **Injection Layer (`DriverInterface`)**: Communicates with virtual HID drivers (ViGEmBus or Interception) to inject remote mouse coordinates directly into the Windows input stream. This allows the remote machine to treat the inbound network mouse as a genuine, independent hardware device.
+## 1. Core Vision & Concept
+MultiMousergy is a highly advanced, decentralized multi-cursor system that allows independent PCs to share mouse and keyboard input across network boundaries. Unlike standard KVM tools, it does not hijack the remote user's cursor. Instead, it virtualizes hardware input to create a cohesive, shared spatial workspace where remote cursors exist independently alongside local ones.
 
-### 2. Networking Strategy: Hybrid Protocol & State Management
-The system employs a hybrid networking model to optimize for both speed and reliability:
-*   **Lightweight UDP**: Handles high-frequency real-time data such as `Movement`, `AbsoluteMovement`, and `SyncCheck`. It uses independent monotonic sequence counters for **Replay Protection** without blocking the reliable stream.
-*   **Reliable TCP**: Manages critical state transitions, clicks, clipboard synchronization, and handshakes.
-*   **Asynchronous Connection Model**: The `NetworkManager` implements a `ConnectionState` machine (Disconnected, Connecting, Connected, Error). This ensures that protocol-level handshakes are deferred until the TCP transport is fully established, preventing race conditions common in non-blocking socket environments.
+## 2. Decoupled Two-Layer Input Architecture
+*   **Capture Layer:** Intercepts physical input and suppresses boundary transitions locally. Uses low-level OS hooks (`WH_MOUSE_LL`, `WM_INPUT` on Windows; `XQueryPointer`, `evdev` on Linux).
+*   **Injection Layer:** Receives network data and bypasses OS cursor limits by writing coordinates directly to a Virtual HID Driver.
+    *   *Windows:* Employs dynamic SDK loading for ViGEmBus and Interception.
+    *   *Linux:* Injects via `uinput` and `evdev`.
 
-### 3. Synchronization & Authority Patterns
-*   **Authoritative Server Authority**: The server is the source of truth, periodically broadcasting `MasterStateSync` packets to all clients to correct local perception drift and enforce global cursor alignment.
-*   **Distributed Clock Sync**: Peers exchange heartbeats to calculate clock offsets, enabling **Timestamp-First Interaction Ownership**. This allows the system to resolve simultaneous click conflicts by honoring the peer with the earliest absolute timestamp.
-*   **Gesture Integrity**: The `SyncModule` enforces logic where focus ownership is denied to peers during active selection gestures, ensuring collaborative stability.
+## 3. Hybrid Networking Protocol
+*   **UDP for Movement:** Utilizes lightweight, header-only UDP packets with delta compression for high-frequency cursor movement to ensure low bandwidth and ultra-low latency.
+*   **TCP for State & Data:** Reliable transport is used for auth, clicks, window focus synchronization, clipboard sharing, and file transfers.
+*   **Non-Blocking I/O:** `NetworkManager` is implemented as a state-driven machine using `select()` to avoid blocking the main thread or UI, heavily reducing CPU spin loops.
 
-### 4. Visual & UI Systems
-*   **Hardware-Accelerated Rendering**: An `OverlayEngine` (Direct3D 11 or GDI+) paints secondary cursors directly on top of the OS. The D3D11 backend uses a 2.0x scaling factor for quad rendering to correctly map pixel dimensions to NDC space.
-*   **Integrated Telemetry UI**: `ConfigGUI` provides a persistent monitor window for live telemetry (RTT, E2E Latency, Drift), security logging, and **Automated Peer Discovery** via UDP broadcasting.
-*   **Single-Instance Management**: The UI stack enforces a single-window instance by verifying existing handles via `IsWindow()` before creating new ones, preventing resource bloat during framework re-initialization.
+## 4. MasterStateSync & Distributed Coordination
+*   **Authoritative Loop:** A server-side MasterStateSync normalizes coordinates across different screen geometries, DPI scaling variations, and refresh rates.
+*   **Timestamp-First Resolution:** Resolves input conflicts (e.g., simultaneous remote clicks) using distributed clock synchronization to maintain a unified jitter buffer and timeline.
 
-### 5. Security & Isolation Decisions
-*   **Mutual Authentication**: NetMux implements a SHA-256 Challenge-Response mechanism. Both client and server must verify each other using a shared security key before protocol initialization is completed.
-*   **Multi-Tenant Grouping**: Communication is isolated by `groupId`, allowing multiple independent groups of users to coexist on the same local network without cross-interaction.
+## 5. Security & High-Capacity Data
+*   **Authentication:** Mutual challenge-response authentication via constant-time SHA-256 verification.
+*   **Data Integrity:** Large payloads (like clipboard data and file transfers) use multi-part chunking with streaming SHA-256 integrity verification.
 
-### 6. Project Governance & Lifecycle
-The project follows a strict roadmap-driven development model:
-*   **Documentation Suite**: Maintenance of `VISION.md`, `ROADMAP.md`, `TODO.md`, and `MEMORY.md` is mandatory for architectural consistency.
-*   **Zero-Friction Handoff**: Every session concludes with a `HANDOFF.md` file, ensuring that successive models can immediately resume work with full context.
+## 6. Advanced Rendering & Spatial Viewport (In Progress)
+*   **Hardware Overlay:** A Direct3D 11 compositing engine (`OverlayEngine`/`D3D11Overlay`) manages hardware-accelerated cursor sprite rendering.
+*   **SpatialViewport:** A 3D environment initialized with `XMMATRIX` math that places local and remote desktop streams onto 3D planes. When cursors cross borders, the camera smoothly pans and zooms, giving a physical spatial layout to networked machines.
+
+## 7. Next-Generation Media Pipeline
+*   **WebRTC Integration:** Integrating WebRTC (SDP/ICE) for P2P data channels and A/V streams.
+*   **DXGI & Windows Media Foundation:** Implementing DXGI Desktop Duplication (`DesktopCapture`) and Media Foundation (`WebcamCapture`) pipelines to capture low-latency local frames, encode them, and stream them to remote spatial planes.

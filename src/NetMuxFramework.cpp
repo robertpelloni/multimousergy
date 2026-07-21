@@ -1,6 +1,6 @@
 #include "NetMuxFramework.hpp"
-#include "ConfigGUI.hpp"
 #include "AuthModule.hpp"
+#include "Logger.hpp"
 
 #ifdef __linux__
 #include <X11/Xlib.h>
@@ -47,29 +47,30 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
     m_settings = settings;
     m_network.SetIsServer(m_settings.isServer);
 
-    // Link SyncModule to GUI for minimap metadata
-    ConfigGUI::SetSyncModule(&m_sync);
-
     // Ensure SyncModule knows our local ID for filtering
     m_sync.UpdateLocalState(m_localId, m_settings.groupId, 0, 0, false, 0, 0);
 
     if (m_settings.isServer) {
         if (!m_network.StartServer(m_settings.port)) {
-            std::cerr << "Failed to start server on port " << m_settings.port << std::endl;
+            Logger::Log(LogLevel::Error, "Failed to start server on port " + std::to_string(m_settings.port));
             return false;
         }
+        Logger::Log(LogLevel::Info, "Server started on port " + std::to_string(m_settings.port));
     } else {
         if (!m_network.Connect(m_settings.remoteIp, m_settings.port)) {
-            std::cerr << "Failed to connect to " << m_settings.remoteIp << ":" << m_settings.port << std::endl;
+            Logger::Log(LogLevel::Error, "Failed to connect to " + m_settings.remoteIp + ":" + std::to_string(m_settings.port));
             return false;
         }
+        Logger::Log(LogLevel::Info, "Connecting to " + m_settings.remoteIp + ":" + std::to_string(m_settings.port));
 
-        // Handshake: Initial connection. Security key will be challenged by server.
-        Packet handshake = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Handshake, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
-        std::string meta = m_settings.sessionName + "|" + m_settings.groupName;
-        strncpy(handshake.payload, meta.c_str(), sizeof(handshake.payload) - 1);
-        handshake.payloadSize = (int)meta.size();
-        m_network.SendPacket(handshake);
+        // Handshake: Defer until TCP connection is confirmed in Run loop
+        if (m_network.GetTcpState() == ConnectionState::Connected) {
+            Packet handshake = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Handshake, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
+            std::string meta = m_settings.sessionName + "|" + m_settings.groupName + "|" + m_settings.displayName;
+            strncpy(handshake.payload, meta.c_str(), sizeof(handshake.payload) - 1);
+            handshake.payloadSize = (int)meta.size();
+            m_network.SendPacket(handshake);
+        }
     }
 
     if (!m_overlay.Initialize()) {
@@ -81,18 +82,47 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
         m_overlay.LoadCursorTheme(m_settings.cursorThemePath);
     }
 
+#ifdef _WIN32
+    if (m_settings.useD3D11) {
+        if (!m_spatialViewport.Initialize((ID3D11Device*)m_overlay.GetD3D11Device())) {
+            std::cerr << "[Warning] Failed to initialize Spatial Viewport." << std::endl;
+        }
+        if (!m_capture.Initialize()) {
+            std::cerr << "[Warning] Failed to initialize DXGI Desktop Duplication." << std::endl;
+        }
+    }
+#endif
+
+    if (!m_webrtc.Initialize()) {
+        std::cerr << "[Warning] WebRTC initialization failed. High-bandwidth media streams will be unavailable." << std::endl;
+    } else {
+        m_webrtc.AddVideoTrack();
+        m_webrtc.AddAudioTrack();
+        if (m_settings.isServer) {
+            m_webrtc.CreateOffer();
+        }
+    }
+
     if (!m_driver.Initialize(m_settings.driverType)) {
         std::cout << "[Warning] Virtual HID Driver not available. Using software fallback." << std::endl;
     }
 
-    // Broadcast initial resolution
+    // Broadcast initial resolution and DPI
     int sw = 1920;
     int sh = 1080;
+    float dpi = 1.0f;
 #ifdef _WIN32
     sw = GetSystemMetrics(SM_CXVIRTUALSCREEN);
     sh = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+
+    // Retrieve system DPI scale
+    HDC hdc = GetDC(NULL);
+    if (hdc) {
+        dpi = (float)GetDeviceCaps(hdc, LOGPIXELSX) / 96.0f;
+        ReleaseDC(NULL, hdc);
+    }
 #endif
-    Packet resPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::ResolutionUpdate, sw, sh, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+    Packet resPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::ResolutionUpdate, sw, sh, 0, false, false, 0, 0, 0, false, 0, 0, dpi, "", 0 };
     m_network.SendPacket(resPkt);
 
     // Default color
@@ -108,15 +138,29 @@ void NetMuxFramework::Run() {
     const int MAX_PEER_COUNT = 20;
     bool warningLogged = false;
 
+    ConnectionState lastTcpState = m_network.GetTcpState();
+
     while (m_running) {
         double dt = frameTimer.ElapsedMilliseconds();
         frameTimer.Reset();
+
+        ConnectionState currentTcpState = m_network.GetTcpState();
+        if (!m_settings.isServer && lastTcpState == ConnectionState::Connecting && currentTcpState == ConnectionState::Connected) {
+            std::cout << "[Framework] TCP Connected. Sending handshake..." << std::endl;
+            Packet handshake = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Handshake, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
+            std::string meta = m_settings.sessionName + "|" + m_settings.groupName + "|" + m_settings.displayName;
+            strncpy(handshake.payload, meta.c_str(), sizeof(handshake.payload) - 1);
+            handshake.payloadSize = (int)meta.size();
+            m_network.SendPacket(handshake);
+        }
+        lastTcpState = currentTcpState;
 
         PerformLatencySync();
         PerformDiscoveryBroadcast();
         PerformClipboardSync();
         PerformMasterStateSync();
         PerformSyncCheck();
+        PerformFileTransfer();
         PerformPeerCleanup();
 #ifdef __linux__
         ProcessX11Events();
@@ -126,6 +170,24 @@ void NetMuxFramework::Run() {
         ProcessInteractionQueue();
 
         m_sync.Step(dt);
+
+        // Update MultiMousergy Spatial Viewport
+        m_spatialViewport.Update((float)dt / 1000.0f, m_input.IsCaptured());
+
+#ifdef _WIN32
+        if (m_settings.useD3D11) {
+            if (m_capture.AcquireFrame()) {
+                // Pass the frame to the viewport, which will manage the SRV lifecycle
+                // to prevent memory leaks from creating SRVs every frame.
+                m_spatialViewport.UpdateLocalDesktopFrame(m_capture.GetCurrentFrameTexture(), (ID3D11Device*)m_overlay.GetD3D11Device());
+
+                // Pass the frame to WebRTC Manager for encoding
+                WebRTCManager::GetInstance()->EncodeLocalDesktopFrame(m_capture.GetCurrentFrameTexture());
+
+                m_capture.ReleaseFrame();
+            }
+        }
+#endif
 
         // Update input capture permission based on connectivity
         auto allPeers = m_sync.GetAllPeers();
@@ -138,11 +200,18 @@ void NetMuxFramework::Run() {
         }
         m_input.SetPeerConnected(hasExternalPeers);
 
-        // UI TICK: Keep the ConfigGUI updated during active sessions
+        // Output UI Telemetry to stdout (JSON format)
         static double lastUIUpdate = 0;
         if (m_loopTimer.ElapsedMilliseconds() - lastUIUpdate > 100.0) {
             std::map<unsigned long long, PeerState> peers = m_sync.GetAllPeers();
-            ConfigGUI::UpdateCursorMonitor(peers);
+            std::cout << "{\"type\":\"telemetry\",\"peers\":[";
+            bool first = true;
+            for (auto& p : peers) {
+                if (!first) std::cout << ",";
+                std::cout << "{\"id\":" << p.first << ",\"x\":" << p.second.x << ",\"y\":" << p.second.y << "}";
+                first = false;
+            }
+            std::cout << "]}" << std::endl;
             lastUIUpdate = m_loopTimer.ElapsedMilliseconds();
         }
 
@@ -206,8 +275,20 @@ void NetMuxFramework::Run() {
             m_overlay.SetActivePeer(activeId);
             m_overlay.RenderPeers(overlayPeers);
             
-            // Minimap logic: Show everyone
-            ConfigGUI::UpdateCursorMonitor(peers); 
+#ifdef _WIN32
+            // Delegate spatial rendering to SpatialViewport if D3D11 is used
+            if (m_settings.useD3D11 && m_overlay.GetD3D11Context() != nullptr) {
+                // Get local DPI scale
+                float localDpi = 1.0f;
+                HDC hdc = GetDC(NULL);
+                if (hdc) {
+                    localDpi = (float)GetDeviceCaps(hdc, LOGPIXELSX) / 96.0f;
+                    ReleaseDC(NULL, hdc);
+                }
+                m_spatialViewport.Render((ID3D11DeviceContext*)m_overlay.GetD3D11Context(), overlayPeers, localDpi);
+            }
+#endif
+
             m_renderTimer.Reset();
         }
 
@@ -219,8 +300,8 @@ void NetMuxFramework::UpdateSessionMetadata(const std::string& name, unsigned in
     m_settings.sessionName = name;
     m_settings.groupId = groupId;
 
-    Packet update = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::SessionUpdate, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
-    std::string meta = m_settings.sessionName + "|" + m_settings.groupName;
+    Packet update = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::SessionUpdate, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
+    std::string meta = m_settings.sessionName + "|" + m_settings.groupName + "|" + m_settings.displayName;
     strncpy(update.payload, meta.c_str(), sizeof(update.payload) - 1);
     update.payloadSize = (int)meta.size();
     m_network.SendPacket(update);
@@ -233,7 +314,7 @@ void NetMuxFramework::Shutdown() {
         m_running = false;
 
         // Broadcast disconnect to peers
-        Packet discPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Disconnect, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+        Packet discPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Disconnect, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
         m_network.SendPacket(discPkt);
 
         m_input.Shutdown();
@@ -260,7 +341,7 @@ void NetMuxFramework::ProcessInteractionQueue() {
 
                 // Rebroadcast focus update if owner changed
                 if (m_settings.isServer && previousOwner != event.peerId) {
-                    Packet focusPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::FocusUpdate, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+                    Packet focusPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::FocusUpdate, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
                     focusPkt.button = (int)event.peerId; // Reuse button field for peer ID
                     m_network.SendPacket(focusPkt);
                 }
@@ -302,7 +383,7 @@ bool NetMuxFramework::IsPeerTrusted(unsigned long long peerId, NetMuxPacketType 
     double now = m_loopTimer.ElapsedMilliseconds();
 
     if (now - lastChallengeTime[peerId] > 2000.0) {
-        Packet challenge = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::AuthChallenge, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+        Packet challenge = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::AuthChallenge, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
         challenge.x = m_authService.CreateChallenge(peerId);
         m_network.SendPacket(challenge);
         lastChallengeTime[peerId] = now;
@@ -322,18 +403,59 @@ void NetMuxFramework::ProcessIncomingPackets() {
 
         // Replay Protection
         bool isUdpPacket = (inPkt.type == NetMuxPacketType::Movement || inPkt.type == NetMuxPacketType::AbsoluteMovement ||
-                            inPkt.type == NetMuxPacketType::Heartbeat || inPkt.type == NetMuxPacketType::SyncCheck);
+                            inPkt.type == NetMuxPacketType::Heartbeat || inPkt.type == NetMuxPacketType::SyncCheck ||
+                            inPkt.type == NetMuxPacketType::DeltaMovement);
 
         if (isUdpPacket) {
-            if (m_lastSequence.count(peerId) && inPkt.sequenceNumber <= m_lastSequence[peerId]) {
-                continue;
+            if (m_lastSequence.count(peerId)) {
+                unsigned int lastSeq = m_lastSequence[peerId];
+                // Sequence wrap-around handling
+                // If sequence difference is negative and large, it's likely a wrap-around
+                int diff = (int)(inPkt.sequenceNumber - lastSeq);
+
+                // Allow sequence if it's strictly greater, OR if it wrapped around (e.g., diff < -0x7FFFFFFF)
+                if (diff <= 0 && diff > -100000) {
+                    continue; // Drop replayed or out-of-order old packet
+                }
             }
             m_lastSequence[peerId] = inPkt.sequenceNumber;
+        } else {
+            // TCP Replay Cache for strict exactly-once semantics
+            // Clean up old entries periodically, not every packet
+            double now = m_loopTimer.ElapsedMilliseconds();
+            static double lastCleanupTime = 0;
+            if (now - lastCleanupTime > 10000.0) { // Cleanup every 10 seconds
+                lastCleanupTime = now;
+                for (auto& [id, peerCache] : m_tcpReplayCache) {
+                    for (auto it = peerCache.begin(); it != peerCache.end();) {
+                        if (now - it->second > 60000.0) { // 60 seconds retention
+                            it = peerCache.erase(it);
+                        } else {
+                            ++it;
+                        }
+                    }
+                }
+            }
+            auto& cache = m_tcpReplayCache[peerId];
+            if (cache.count(inPkt.sequenceNumber)) {
+                std::cerr << "[Security] TCP Replay attack detected from peer " << peerId << " seq " << inPkt.sequenceNumber << std::endl;
+                continue; // Drop packet
+            }
+            cache[inPkt.sequenceNumber] = now;
         }
 
         if (inPkt.type == NetMuxPacketType::Movement) {
             if (IsPeerTrusted(peerId, inPkt.type)) {
                 m_driver.SendMouseMovement(inPkt.x, inPkt.y);
+                if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
+            }
+        } else if (inPkt.type == NetMuxPacketType::DeltaMovement) {
+            if (!IsPeerTrusted(peerId, inPkt.type)) continue;
+
+            PeerState oldPeer;
+            if (m_sync.GetPeerState(peerId, oldPeer)) {
+                m_sync.UpdatePeer(peerId, inPkt.groupId, oldPeer.normalizedX + inPkt.x, oldPeer.normalizedY + inPkt.y, inPkt.localTimestamp);
+                m_overlayDirty = true;
                 if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
             }
         } else if (inPkt.type == NetMuxPacketType::AbsoluteMovement) {
@@ -412,18 +534,23 @@ void NetMuxFramework::ProcessIncomingPackets() {
         } else if (inPkt.type == NetMuxPacketType::Handshake) {
             int size = std::min(inPkt.payloadSize, (int)sizeof(inPkt.payload));
             std::string meta(inPkt.payload, size);
-            size_t sep = meta.find('|');
-            std::string remoteName = (sep != std::string::npos) ? meta.substr(0, sep) : meta;
-            std::string remoteGroupName = (sep != std::string::npos) ? meta.substr(sep + 1) : "";
-            std::cout << "[Network] Handshake from peer: " << remoteName << " (ID: " << peerId << " Group: " << remoteGroupName << ")" << std::endl;
-            m_sync.UpdatePeer(peerId, inPkt.groupId, 0, 0, 0, remoteName.c_str(), remoteGroupName.c_str());
+            size_t sep1 = meta.find('|');
+            size_t sep2 = meta.find('|', sep1 + 1);
+
+            std::string remoteName = (sep1 != std::string::npos) ? meta.substr(0, sep1) : meta;
+            std::string remoteGroupName = (sep1 != std::string::npos && sep2 != std::string::npos) ? meta.substr(sep1 + 1, sep2 - sep1 - 1) :
+                                         (sep1 != std::string::npos ? meta.substr(sep1 + 1) : "");
+            std::string remoteDisplayName = (sep2 != std::string::npos) ? meta.substr(sep2 + 1) : "";
+
+            std::cout << "[Network] Handshake from peer: " << remoteName << " (" << remoteDisplayName << ") ID: " << peerId << " Group: " << remoteGroupName << std::endl;
+            m_sync.UpdatePeer(peerId, inPkt.groupId, 0, 0, 0, remoteName.c_str(), remoteGroupName.c_str(), remoteDisplayName.c_str());
             m_lastSequence[peerId] = inPkt.sequenceNumber;
-            Packet challenge = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::AuthChallenge, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+            Packet challenge = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::AuthChallenge, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
             challenge.x = m_authService.CreateChallenge(peerId);
             m_network.SendPacket(challenge);
             if (m_settings.isServer) {
-                Packet reply = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Handshake, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
-                std::string sMeta = m_settings.sessionName + "|" + m_settings.groupName;
+                Packet reply = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Handshake, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
+                std::string sMeta = m_settings.sessionName + "|" + m_settings.groupName + "|" + m_settings.displayName;
                 strncpy(reply.payload, sMeta.c_str(), sizeof(reply.payload) - 1);
                 reply.payloadSize = (int)sMeta.size();
                 m_network.SendPacket(reply);
@@ -432,7 +559,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
             int nonce = inPkt.x;
             unsigned char hash[32];
             AuthModule::GenerateResponse(nonce, m_settings.securityKey, hash);
-            Packet authPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::AuthResponse, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+            Packet authPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::AuthResponse, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
             memcpy(authPkt.payload, hash, 32);
             authPkt.payloadSize = 32;
             m_network.SendPacket(authPkt);
@@ -454,7 +581,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
             if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
         } else if (inPkt.type == NetMuxPacketType::ResolutionUpdate) {
             if (!IsPeerTrusted(peerId, inPkt.type)) continue;
-            m_sync.UpdatePeerResolution(peerId, inPkt.x, inPkt.y);
+            m_sync.UpdatePeerResolution(peerId, inPkt.x, inPkt.y, inPkt.dpiScale);
             if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
         } else if (inPkt.type == NetMuxPacketType::SelectionUpdate) {
             if (!IsPeerTrusted(peerId, inPkt.type)) continue;
@@ -462,7 +589,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
             if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
         } else if (inPkt.type == NetMuxPacketType::Ping) {
             m_sync.RefreshPeer(peerId, inPkt.groupId);
-            Packet pong = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Heartbeat, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+            Packet pong = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Heartbeat, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
             unsigned int now = (unsigned int)m_loopTimer.ElapsedMilliseconds();
             pong.x = (int)(now & 0xFFFF);
             pong.y = (int)((now >> 16) & 0xFFFF);
@@ -486,6 +613,21 @@ void NetMuxFramework::ProcessIncomingPackets() {
             if (!m_settings.isServer) {
                 m_sync.UpdatePeer(peerId, inPkt.groupId, inPkt.x, inPkt.y, inPkt.localTimestamp);
             }
+        } else if (inPkt.type == NetMuxPacketType::FileHeader) {
+            if (IsPeerTrusted(peerId, inPkt.type)) {
+                m_fileTransfer.HandleFileHeader(inPkt);
+                if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
+            }
+        } else if (inPkt.type == NetMuxPacketType::FileData) {
+            if (IsPeerTrusted(peerId, inPkt.type)) {
+                m_fileTransfer.HandleFileData(inPkt);
+                if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
+            }
+        } else if (inPkt.type == NetMuxPacketType::KeyboardEvent) {
+            if (IsPeerTrusted(peerId, inPkt.type)) {
+                m_driver.SendKeyboardKey(inPkt.button, inPkt.down);
+                if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
+            }
         }
     }
 }
@@ -496,7 +638,7 @@ void NetMuxFramework::PerformSyncCheck() {
     if (m_loopTimer.ElapsedMilliseconds() - lastSyncCheck > 500.0) {
         auto peers = m_sync.GetAllPeers();
         for (auto const& [id, peer] : peers) {
-            Packet checkPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::SyncCheck, peer.normalizedX, peer.normalizedY, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+            Packet checkPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::SyncCheck, peer.normalizedX, peer.normalizedY, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
             checkPkt.button = (int)id;
             m_network.SendPacket(checkPkt);
         }
@@ -510,8 +652,15 @@ void NetMuxFramework::PerformMasterStateSync() {
     if (m_loopTimer.ElapsedMilliseconds() - lastMasterSync > 100.0) {
         auto peers = m_sync.GetAllPeers();
         for (auto const& [id, peer] : peers) {
-            Packet masterPkt = { id, peer.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(), NetMuxPacketType::MasterStateSync, peer.normalizedX, peer.normalizedY, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
-            m_network.SendPacket(masterPkt);
+            // Optimization: Only broadcast master state if position has changed
+            if (m_lastMasterSyncPos.count(id) == 0 ||
+                m_lastMasterSyncPos[id].first != peer.normalizedX ||
+                m_lastMasterSyncPos[id].second != peer.normalizedY) {
+
+                Packet masterPkt = { id, peer.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(), NetMuxPacketType::MasterStateSync, peer.normalizedX, peer.normalizedY, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
+                m_network.SendPacket(masterPkt);
+                m_lastMasterSyncPos[id] = {peer.normalizedX, peer.normalizedY};
+            }
         }
         lastMasterSync = m_loopTimer.ElapsedMilliseconds();
     }
@@ -519,20 +668,20 @@ void NetMuxFramework::PerformMasterStateSync() {
 
 void NetMuxFramework::PerformLatencySync() {
     if (m_loopTimer.ElapsedMilliseconds() - m_lastSyncTime > 1000.0) {
-        Packet syncPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Sync, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+        Packet syncPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Sync, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
         m_network.SendPacket(syncPkt);
         m_syncTimer.Reset();
         m_lastSyncTime = m_loopTimer.ElapsedMilliseconds();
     }
     static double lastPing = 0;
     if (m_loopTimer.ElapsedMilliseconds() - lastPing > 2000.0) {
-        Packet pingPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Ping, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+        Packet pingPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Ping, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
         m_network.SendPacket(pingPkt);
         lastPing = m_loopTimer.ElapsedMilliseconds();
     }
     static double lastHeartbeat = 0;
     if (m_loopTimer.ElapsedMilliseconds() - lastHeartbeat > 100.0) {
-        Packet hbPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Heartbeat, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+        Packet hbPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Heartbeat, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
         unsigned int now = (unsigned int)m_loopTimer.ElapsedMilliseconds();
         hbPkt.x = (int)(now & 0xFFFF);
         hbPkt.y = (int)((now >> 16) & 0xFFFF);
@@ -555,14 +704,45 @@ void NetMuxFramework::PerformPeerCleanup() {
         std::vector<unsigned long long> pruned = m_sync.PruneInactivePeers(10000.0);
         for (auto id : pruned) {
             m_authService.ClearPeer(id);
+            m_fileTransfer.CleanupPeerTransfers(id);
+            m_clipboard.CleanupPeer(id);
+            m_clipboardReassembly.erase(id);
         }
         lastCleanup = m_loopTimer.ElapsedMilliseconds();
     }
 }
 
 #ifdef __linux__
-void NetMuxFramework::ProcessX11Events() {}
+void NetMuxFramework::ProcessX11Events() {
+    if (!m_xDisplay) return;
+    XEvent ev;
+    while (XPending((Display*)m_xDisplay)) {
+        XNextEvent((Display*)m_xDisplay, &ev);
+        m_clipboard.HandleX11Event(&ev);
+    }
+}
 #endif
+
+void NetMuxFramework::PerformFileTransfer() {
+    auto transfers = m_fileTransfer.GetActiveTransfers();
+    for (auto const& [id, status] : transfers) {
+        if (status.isOutgoing && !status.isComplete) {
+            Packet pkt = { m_localId, m_settings.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(), NetMuxPacketType::FileData, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
+
+            // Check if we need to send header first
+            if (!m_fileTransfer.IsHeaderSent(id)) {
+                if (m_fileTransfer.GetHeaderPacket(id, pkt)) {
+                    m_network.SendPacket(pkt);
+                    m_fileTransfer.SetHeaderSent(id, true);
+                }
+            } else {
+                if (m_fileTransfer.GetNextChunk(id, pkt)) {
+                    m_network.SendPacket(pkt);
+                }
+            }
+        }
+    }
+}
 
 void NetMuxFramework::PerformClipboardSync() {
     static double lastCheck = 0;
@@ -578,7 +758,7 @@ void NetMuxFramework::PerformClipboardSync() {
             size_t offset = i * CHUNK_SIZE;
             size_t remaining = text.size() - offset;
             size_t currentChunkSize = std::min(CHUNK_SIZE, remaining);
-            Packet pkt = { m_localId, m_settings.groupId, m_sequenceCounter++, now, NetMuxPacketType::ClipboardSync, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
+            Packet pkt = { m_localId, m_settings.groupId, m_sequenceCounter++, now, NetMuxPacketType::ClipboardSync, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
             pkt.chunkIndex = i;
             pkt.totalChunks = totalChunks;
             if (currentChunkSize > 0) memcpy(pkt.payload, text.c_str() + offset, currentChunkSize);

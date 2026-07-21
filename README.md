@@ -1,8 +1,10 @@
-# NetMux (PolyPointer)
+# MultiMousergy (formerly NetMux)
 
-NetMux is an open-source, decoupled, cross-network multi-cursor system for Windows 10. It allows two independent physical PCs to cross display boundaries with their local mouse hardware without stealing or hijacking the remote machine's native system cursor.
+MultiMousergy is a collaborative spatial desktop environment and cross-network multi-cursor system. It allows independent physical PCs to cross display boundaries with their local mouse hardware while merging desktop views in a seamless, 3D-composited spatial workspace with integrated video chat.
 
 ## Key Features
+- **Spatial Workspace**: A 3D-composited viewport that zooms and pans between local and remote desktops as you cross screen boundaries.
+- **Integrated Video Chat**: WebRTC-powered high-fps video and audio tracks synchronized with spatial cursor position.
 - **Independent Cursors**: The remote machine displays and processes the inbound network cursor as a distinct, second independent cursor instance.
 - **Authoritative Synchronization**: Implements a server-authoritative model via `MasterStateSync` to periodically correct local perception drift and ensure perfect alignment across all peers.
 - **Continuous Visibility**: Continuous local cursor broadcasting ensures all peers remain visible in real-time, regardless of active input capture state.
