@@ -37,5 +37,6 @@
 - [x] Unlimited Clipboard Capacity (Multi-part Chunking).
 - [x] Full D3D11 Custom Cursor Support.
 - [x] Native Linux X11 Integration (Clipboard & Cursor Position).
+- [x] Authoritative Synchronization (Server-side position enforcement).
 - [ ] File Transfer Engine: Implement drag-and-drop file sharing via multi-part protocol.
 - [ ] Native Vendor SDK linking for Drivers.

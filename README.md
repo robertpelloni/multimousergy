@@ -4,9 +4,11 @@ NetMux is an open-source, decoupled, cross-network multi-cursor system for Windo
 
 ## Key Features
 - **Independent Cursors**: The remote machine displays and processes the inbound network cursor as a distinct, second independent cursor instance.
-- **Hardware-Level Injection**: Utilizes virtual HID drivers (ViGEmBus/Interception) to bypass the native single-cursor Windows kernel constraint.
+- **Authoritative Synchronization**: Implements a server-authoritative model via `MasterStateSync` to periodically correct local perception drift and ensure perfect alignment across all peers.
+- **Continuous Visibility**: Continuous local cursor broadcasting ensures all peers remain visible in real-time, regardless of active input capture state.
+- **Hardware-Level Injection**: Utilizes virtual HID drivers (ViGEmBus/Interception on Windows, evdev on Linux) to bypass native single-cursor kernel constraints.
 - **Asynchronous Networking**: Lightweight UDP for real-time cursor tracking and TCP for reliable click/state synchronization.
-- **Transparent Overlay**: Custom hardware-accelerated overlay loop paints a secondary mouse cursor bitmap directly on top of the OS interface.
+- **Transparent Overlay**: Custom hardware-accelerated Direct3D 11 and GDI+ overlay loops paint secondary mouse cursors directly on top of the OS interface.
 - **Warp-Click-Restore**: Programmatic cycle to execute click behaviors on remote windows without losing local cursor context or focus.
 
 ## Architecture

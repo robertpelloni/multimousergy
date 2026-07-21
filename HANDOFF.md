@@ -1,21 +1,17 @@
-# Session Handoff - v0.1.57-alpha
+# Session Handoff - v0.1.59-alpha
 
 ## Summary of Changes
-- **Persistent X11 Connection**: Refactored `NetMuxFramework` to manage a single `Display*` connection on Linux, shared with `InputEngine` and `ClipboardModule`.
-- **Native Clipboard Writing**: Implemented `XSetSelectionOwner` and `SelectionRequest` event handling in `NetMuxFramework`. Linux machines can now serve clipboard data directly to other applications.
-- **Modernized Unicode**: Replaced deprecated `std::wstring_convert` with a manual UTF-8/UTF-16 converter in `ClipboardModule.cpp` for improved future-proofing and compiler cleanliness.
-- **Display Lifecycle**: Fixed potential leaks by ensuring `XCloseDisplay` and `XDestroyWindow` are called correctly in the framework destructor.
+- **Multi-Cursor Consistency**: Resolved a critical bug where keep-alive packets (Heartbeat, Sync, Ping) were resetting peer positions to (0,0) because they lacked coordinate data.
+- **RefreshPeer Implementation**: Introduced `SyncModule::RefreshPeer` to specifically handle keep-alive updates without overwriting stored position data.
+- **Broadcast Visibility**: Verified that `InputEngine` correctly broadcasts local cursor coordinates to all peers, fulfilling the "Multiplexing" vision where all users are visible to each other regardless of capture state.
+- **SyncCheck Integration**: Added handling for `NetMuxPacketType::SyncCheck` in the framework to maintain peer activity status during idle periods.
+- **Test Suite Verification**: Confirmed that all concurrent synchronization and authoritative correction tests pass with the new `RefreshPeer` logic.
 
 ## Technical Observations
-- The manual UTF-8 converter supports up to 3-byte sequences (BMP), which covers most common characters including basic emojis and international text.
-- X11 event processing is integrated into the main non-blocking loop via `XPending` and `XNextEvent`.
-
-## Next Steps
-- Implement full `FileTransferEngine` logic, leveraging the existing 4KB chunking infrastructure.
-- Extend manual Unicode converter to support 4-byte UTF-8 sequences (full emoji/ext-plane support).
-- Research Wayland clipboard serving alternatives (e.g., via `wl-clipboard` or native protocols).
+- `SyncModule::UpdatePeer` should only be used when fresh coordinate data is available. For keep-alives, `RefreshPeer` is the preferred path to avoid state corruption.
+- Authoritative synchronization remains robust; the server-side position enforcement correctly overrides any local drift or reset attempts.
 
 ## Repository State
-- Version: `v0.1.57-alpha`
-- Build status: Passing (X11 event loop verified)
-- Git: Pushed to origin.
+- Version: `v0.1.59-alpha`
+- Build status: All tests passed.
+- Major Features: Authoritative Sync, Multi-Cursor Visibility, D3D11/GDI Overlay, Secure Mutual Auth.

@@ -79,6 +79,8 @@ bool OverlayEngine::Initialize() {
     }
 
     // Use a color key for transparency (e.g., black is transparent)
+    // Note: SyncModule ensures no peer cursor uses pure black (RGB 0,0,0)
+    // to prevent them from becoming transparent.
     SetLayeredWindowAttributes((HWND)m_hwnd, RGB(0, 0, 0), 0, LWA_COLORKEY);
     ShowWindow((HWND)m_hwnd, SW_SHOW);
 
@@ -131,21 +133,24 @@ void OverlayEngine::RenderPeers(const std::map<unsigned long long, RemoteCursorS
     if (!m_active) return;
 
 #ifdef _WIN32
+    HWND hwnd = (HWND)m_hwnd;
+    // Keep overlay on top for all backends
+    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
     if (m_backend == OverlayBackend::D3D11 && m_d3dOverlay) {
         static_cast<D3D11Overlay*>(m_d3dOverlay)->Render(peers);
         return;
     }
 
-    HWND hwnd = (HWND)m_hwnd;
     HDC hdcMem = (HDC)m_hdcMem;
     HDC hdcScreen = GetDC(NULL);
-
-    // Keep overlay on top
-    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
     // Clear with transparent color (black + color key)
     RECT rect = { 0, 0, m_screenWidth, m_screenHeight };
     FillRect(hdcMem, &rect, (HBRUSH)m_hBrush);
+
+    // Filter peers to only those in our group if we are a client
+    // (NetMuxFramework already does this for us before calling RenderPeers)
 
     for (auto const& [id, peer] : peers) {
         int rx = peer.x - m_screenX;

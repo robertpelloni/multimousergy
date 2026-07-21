@@ -128,12 +128,15 @@ void NetMuxFramework::Run() {
         m_sync.Step(dt);
 
         // Update input capture permission based on connectivity
-        if (m_settings.isServer) {
-            m_input.SetPeerConnected(m_network.GetClientCount() > 0);
-        } else {
-            // Client is "connected" if we have any peers being tracked by sync (the server)
-            m_input.SetPeerConnected(!m_sync.GetAllPeers().empty());
+        auto allPeers = m_sync.GetAllPeers();
+        bool hasExternalPeers = false;
+        for (auto const& [id, p] : allPeers) {
+            if (id != m_localId) {
+                hasExternalPeers = true;
+                break;
+            }
         }
+        m_input.SetPeerConnected(hasExternalPeers);
 
         // UI TICK: Keep the ConfigGUI updated during active sessions
         static double lastUIUpdate = 0;
@@ -186,6 +189,11 @@ void NetMuxFramework::Run() {
             unsigned long long activeId = m_sync.GetActivePeer();
 
             for (auto const& [id, peer] : peers) {
+                // Client-side filtering: Only show peers in our group
+                if (!m_settings.isServer && peer.groupId != m_settings.groupId) {
+                    continue;
+                }
+
                 // ALWAYS render the peer on the overlay (even ourselves)
                 // This provides the "Mux" feel where everyone sees everyone's cursor shape/color.
                 overlayPeers[id] = { (int)peer.x, (int)peer.y, peer.colorR, peer.colorG, peer.colorB, peer.groupId, peer.isSelecting, peer.isConflictBlocked, (int)peer.selStartX, (int)peer.selStartY };
@@ -365,7 +373,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
                 if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
             }
         } else if (inPkt.type == NetMuxPacketType::Sync) {
-            m_sync.UpdatePeer(peerId, inPkt.groupId, 0, 0, 0); // Keep alive
+            m_sync.RefreshPeer(peerId, inPkt.groupId); // Keep alive
             if (m_settings.isServer) {
                 m_network.SendPacket(inPkt);
             } else {
@@ -374,7 +382,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
             }
         } else if (inPkt.type == NetMuxPacketType::Heartbeat) {
             if (!IsPeerTrusted(peerId, inPkt.type)) continue;
-            m_sync.UpdatePeer(peerId, inPkt.groupId, 0, 0, 0); // Keep alive
+            m_sync.RefreshPeer(peerId, inPkt.groupId); // Keep alive
 
             if (m_settings.isServer) {
                 m_network.SendPacket(inPkt);
@@ -442,7 +450,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
             if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
         } else if (inPkt.type == NetMuxPacketType::SessionUpdate) {
             if (!IsPeerTrusted(peerId, inPkt.type)) continue;
-            m_sync.UpdatePeer(peerId, inPkt.groupId, 0, 0, 0); // Refresh
+            m_sync.RefreshPeer(peerId, inPkt.groupId); // Refresh
             if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
         } else if (inPkt.type == NetMuxPacketType::ResolutionUpdate) {
             if (!IsPeerTrusted(peerId, inPkt.type)) continue;
@@ -453,7 +461,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
             m_sync.UpdatePeerSelection(peerId, inPkt.isSelecting, inPkt.selectionStartX, inPkt.selectionStartY);
             if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
         } else if (inPkt.type == NetMuxPacketType::Ping) {
-            m_sync.UpdatePeer(peerId, inPkt.groupId, 0, 0, 0);
+            m_sync.RefreshPeer(peerId, inPkt.groupId);
             Packet pong = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::Heartbeat, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, "", 0 };
             unsigned int now = (unsigned int)m_loopTimer.ElapsedMilliseconds();
             pong.x = (int)(now & 0xFFFF);
@@ -466,6 +474,17 @@ void NetMuxFramework::ProcessIncomingPackets() {
             if (IsPeerTrusted(peerId, inPkt.type)) {
                 m_driver.SendMouseWheel(inPkt.wheelDelta, inPkt.isHorizontalWheel);
                 if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
+            }
+        } else if (inPkt.type == NetMuxPacketType::SyncCheck) {
+            if (m_settings.isServer) {
+                // If we receive a sync check, we should potentially rebroadcast or reply with MasterStateSync
+                // but for now we just refresh the peer's timeout.
+                m_sync.RefreshPeer(peerId, inPkt.groupId);
+            }
+        } else if (inPkt.type == NetMuxPacketType::MasterStateSync) {
+            // Server Authority: Update local perception of remote peer
+            if (!m_settings.isServer) {
+                m_sync.UpdatePeer(peerId, inPkt.groupId, inPkt.x, inPkt.y, inPkt.localTimestamp);
             }
         }
     }

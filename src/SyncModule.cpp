@@ -66,6 +66,7 @@ void SyncModule::UpdatePeerSelection(unsigned long long id, bool selecting, int 
 
 void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp, const char* name, const char* gname) {
     std::lock_guard<std::mutex> lock(m_mutex);
+    bool isNew = (m_peers.find(id) == m_peers.end());
     PeerState& peer = m_peers[id];
     peer.id = id;
     peer.groupId = groupId;
@@ -133,6 +134,10 @@ void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int nor
     peer.targetX = newTargetX;
     peer.targetY = newTargetY;
 
+    if (isNew) {
+        std::cout << "[Sync] New peer joined: " << id << (name ? " (" : "") << (name ? name : "") << (name ? ")" : "") << std::endl;
+    }
+
     peer.lastSeen = timestamp;
     peer.isConflictBlocked = false; // Reset block status on movement
     // By default, new peers are not authenticated
@@ -154,9 +159,20 @@ void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int nor
 
     // Assign a default color based on ID if not set
     if (peer.colorR == 0 && peer.colorG == 0 && peer.colorB == 0) {
-        peer.colorR = (unsigned char)((id * 50) % 255);
-        peer.colorG = (unsigned char)((id * 80) % 255);
-        peer.colorB = (unsigned char)((id * 110) % 255);
+        peer.colorR = (unsigned char)(((id * 50) % 200) + 55);
+        peer.colorG = (unsigned char)(((id * 80) % 200) + 55);
+        peer.colorB = (unsigned char)(((id * 110) % 200) + 55);
+    }
+}
+
+void SyncModule::RefreshPeer(unsigned long long id, unsigned int groupId) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_peers.count(id)) {
+        m_peers[id].lastSeen = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - s_syncStartTime).count();
+        m_peers[id].isStalled = false;
+    } else {
+        // If they don't exist, we can't really "refresh" them with a valid position.
+        // We'll let the next AbsoluteMovement create them.
     }
 }
 
@@ -196,6 +212,7 @@ std::vector<unsigned long long> SyncModule::PruneInactivePeers(double timeoutMs)
 
     for (auto it = m_peers.begin(); it != m_peers.end(); ) {
         if (it->first != m_localId && (currentMs - it->second.lastSeen) > timeoutMs) {
+            std::cout << "[Sync] Pruning inactive peer: " << it->first << " (" << it->second.sessionName << ")" << std::endl;
             pruned.push_back(it->first);
             if (m_activePeerId == it->first) m_activePeerId = 0;
             it = m_peers.erase(it);
@@ -208,7 +225,10 @@ std::vector<unsigned long long> SyncModule::PruneInactivePeers(double timeoutMs)
 
 void SyncModule::RemovePeer(unsigned long long id) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    m_peers.erase(id);
+    if (m_peers.count(id)) {
+        std::cout << "[Sync] Removing peer: " << id << " (" << m_peers[id].sessionName << ")" << std::endl;
+        m_peers.erase(id);
+    }
     if (m_activePeerId == id) m_activePeerId = 0;
 }
 

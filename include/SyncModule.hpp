@@ -51,6 +51,7 @@ public:
     ~SyncModule();
 
     void UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp = 0, const char* name = nullptr, const char* groupName = nullptr);
+    void RefreshPeer(unsigned long long id, unsigned int groupId);
     void UpdatePeerButtons(unsigned long long id, int button, bool down);
     void UpdatePeerSelection(unsigned long long id, bool selecting, int startX, int startY);
     void SetAuthenticated(unsigned long long id, bool auth);
