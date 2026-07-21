@@ -48,3 +48,5 @@ out/
 # Only ignore system logs (*.log), build artifacts, and caches.
 
 ui/node_modules
+BENCHMARK_RESULTS.csv
+*.log

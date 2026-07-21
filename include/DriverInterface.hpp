@@ -30,7 +30,16 @@ private:
     int m_device;    // Virtual mouse device ID
     void* m_vigemClient; // ViGEm client handle
     void* m_vigemPad;    // ViGEm target handle
+
+    // Function pointer cache
+    void* m_hInterception = nullptr;
+    void* m_hViGEm = nullptr;
+    void* m_interception_send = nullptr;
+    void* m_interception_destroy_context = nullptr;
+
+    void* m_vigem_target_x360_update = nullptr;
 #endif
+
 #ifdef __linux__
     int m_device;
 #endif

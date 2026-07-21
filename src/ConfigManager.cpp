@@ -49,6 +49,9 @@ bool ConfigManager::Load(AppSettings& settings) {
         else if (key == "auto_connect") settings.autoConnect = (val == "1" || val == "true");
         else if (key == "start_minimized") settings.startMinimized = (val == "1" || val == "true");
         else if (key == "display_name") settings.displayName = val;
+        else if (key == "use_d3d11") settings.useD3D11 = (val == "1" || val == "true");
+        else if (key == "spatial_mode") settings.spatialMode = (val == "1" || val == "true");
+        else if (key == "headless") settings.headless = (val == "1" || val == "true");
         else if (key == "recent_servers") {
             std::stringstream ss(val);
             std::string ip;
@@ -86,6 +89,9 @@ bool ConfigManager::Save(const AppSettings& settings) {
     file << "auto_connect=" << (settings.autoConnect ? "true" : "false") << "\n";
     file << "start_minimized=" << (settings.startMinimized ? "true" : "false") << "\n";
     file << "display_name=" << settings.displayName << "\n";
+    file << "use_d3d11=" << (settings.useD3D11 ? "true" : "false") << "\n";
+    file << "spatial_mode=" << (settings.spatialMode ? "true" : "false") << "\n";
+    file << "headless=" << (settings.headless ? "true" : "false") << "\n";
 
     file << "recent_servers=";
     for (size_t i = 0; i < settings.recentServers.size(); ++i) {

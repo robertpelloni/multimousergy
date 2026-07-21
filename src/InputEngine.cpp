@@ -3,7 +3,6 @@
 #include <chrono>
 
 #ifdef _WIN32
-#define NOMINMAX
 #include <windows.h>
 static InputEngine* s_instance = nullptr;
 #endif

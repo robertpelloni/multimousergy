@@ -39,20 +39,24 @@
 - [x] Native Linux X11 Integration (Clipboard & Cursor Position).
 - [x] Authoritative Synchronization (Server-side position enforcement).
 - [x] UI & Network Stack Refactor (Robust connection handling).
- - [x] File Transfer Engine: Implement drag-and-drop file sharing via multi-part protocol.
- - [x] File Integrity: SHA-256 verification for shared data, including chunking/reassembly logic and robust integrity checks.
- - [x] Connection Resilience: Auto-Reconnect and State Monitoring.
- - [x] Keyboard Sync: Full capture and injection support.
- - [x] UI Modernization: Tabbed interface and machine-info telemetry.
- - [x] Global Preferences: Friendly names and background startup.
- - [x] Interactive Monitoring: Minimap selection and UI tooltips.
- - [x] Diagnostics & Tray: Integrated logging and background operation.
- - [x] Bandwidth Optimization: Delta compression for cursor movement.
- - [x] Native Vendor SDK: Dynamic linking and runtime detection.
+- [x] File Transfer Engine: Implement drag-and-drop file sharing via multi-part protocol.
+- [x] File Integrity: SHA-256 verification for shared data, including chunking/reassembly logic and robust integrity checks.
+- [x] Connection Resilience: Auto-Reconnect and State Monitoring.
+- [x] Keyboard Sync: Full capture and injection support.
+- [x] UI Modernization: Tabbed interface and machine-info telemetry.
+- [x] Global Preferences: Friendly names and background startup.
+- [x] Interactive Monitoring: Minimap selection and UI tooltips.
+- [x] Diagnostics & Tray: Integrated logging and background operation.
+- [x] Bandwidth Optimization: Delta compression for cursor movement.
+- [x] Native Vendor SDK: Dynamic linking and runtime detection.
 
-## Milestone 6: MultiMousergy Spatial Evolution (PLANNED)
-- [ ] WebRTC Integration: Native C++ Data & Media pipelines.
-- [x] DXGI Desktop Duplication: Low-latency frame capture.
-- [x] 3D Composition Engine: D3D11-based spatial viewport.
-- [x] Boundary Animation: Smooth pan/zoom transitions between desktops.
+## Milestone 6: MultiMousergy Spatial Evolution (IN PROGRESS)
+- [x] WebRTC Signaling Structural Path (SDP/ICE).
+- [x] DXGI Desktop Duplication Skeleton (Windows) and X11 Frame Capture (Linux).
+- [x] 3D Composition Engine: D3D11-based spatial viewport basics.
+- [x] Boundary Animation: Smooth pan/zoom transitions via matrix interpolation.
+- [x] Webcam/Media Pipeline Skeletons (Windows Media Foundation).
+- [x] macOS CoreGraphics driver stubs for cross-platform expansion.
+- [ ] Complete H.264 Encoder/Decoder Implementation.
+- [ ] Complete WebRTC Native C++ Media Integration.
 - [ ] Integrated Video Chat: Synchronized webcam/audio streams.

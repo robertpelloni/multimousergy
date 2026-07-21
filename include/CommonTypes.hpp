@@ -29,6 +29,7 @@ enum class NetMuxPacketType {
     Ping,
     InputEvent,
     ResolutionUpdate,
+    WebRTCSignaling,
     AuthChallenge,
     AuthResponse,
     SyncCheck,
@@ -38,7 +39,11 @@ enum class NetMuxPacketType {
     FileHeader,
     FileData,
     KeyboardEvent,
-    DeltaMovement
+    DeltaMovement,
+    WebRTCOffer,
+    WebRTCAnswer,
+    ICECandidate,
+    VideoFrame
 };
 
 struct Packet {
@@ -100,6 +105,9 @@ struct AppSettings {
     unsigned char peerColorB = 0;
     bool autoConnect = false;
     bool startMinimized = false;
+    bool spatialMode = true;
+    bool headless = false;
+    bool benchmarking = false;
     std::string displayName = "";
     std::vector<std::string> recentServers;
 };

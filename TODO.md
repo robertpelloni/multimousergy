@@ -8,7 +8,7 @@
 - [x] Implement SHA-256 Challenge-Response Authentication.
 - [x] Implement Real-Time Sync Guard (Drift Detection & Correction).
 - [x] Implement Collaborative Selection Synchronization.
-- [x] Integrated Persistent Monitoring UI (ConfigGUI).
+- [x] Integrated Persistent Monitoring UI (ConfigGUI -> now Electron-based webview in ui/).
 - [x] Implement "Custom Cursor Themes" (BMP Loading).
 - [x] Implement Multi-Monitor DPI Awareness (SetProcessDPIAware).
 - [x] Implement Linux input capture via `evdev`.
@@ -30,4 +30,15 @@
  - [x] Implement Delta Compression and Dynamic Driver Loading.
 - [x] Refactor UI and Network stacks for robust connection handling.
 - [x] Implement Resolution-Aware Scaling and DPI metadata broadcasting.
+- [x] Establish architectural skeletons for Media Pipeline (MF/WebRTC).
 - [ ] Refactor Network Protocol to use formal serialization (Protobuf/Flatbuffers).
+- [x] Implement DXGI Desktop Duplication and X11 Frame Capture for Spatial Viewport.
+- [x] Implement D3D11-based spatial viewport prototype.
+- [x] Implement smooth pan/zoom boundary animations for the Spatial Viewport.
+- [x] WebRTC Integration: Setup Native C++ Data & Media pipeline scaffolding and signaling integration.
+- [x] Implement WebRTC Media Pipeline scaffolding for synchronized webcam/audio streams.
+- [x] Replace Win32 ConfigGUI with Electron-based webview architecture (headless C++ mode with JSON telemetry).
+- [x] Implement macOS CoreGraphics driver stubs for cross-platform expansion.
+- [ ] Complete libwebrtc native library integration (currently using stubs).
+- [ ] Implement IMFMediaSource enumerators for webcam capture.
+- [ ] Complete H.264 encoder/decoder implementation.

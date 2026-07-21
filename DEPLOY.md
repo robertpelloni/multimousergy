@@ -13,5 +13,6 @@
 
 ## Running
 1. Run `NetMux.exe` on both PCs.
-2. Configure IP addresses and screen boundaries in the UI/Config file.
-3. Ensure firewall allows UDP/TCP traffic on the designated port (default: 5555).
+2. Optionally launch the Electron UI from `ui/` with `npm start` for graphical configuration.
+3. Configure IP addresses and screen boundaries via the Electron UI or `netmux.cfg`.
+4. Ensure firewall allows UDP/TCP traffic on the designated port (default: 5555).

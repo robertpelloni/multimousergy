@@ -3,7 +3,6 @@
 #include "OverlayEngine.hpp"
 
 #ifdef _WIN32
-#define NOMINMAX
 #include <windows.h>
 #include <d3d11.h>
 #include <dxgi.h>
@@ -27,13 +26,17 @@ public:
     void UpdateCursorTexture(void* hBitmap);
     void Shutdown();
 
+#ifdef _WIN32
+    ID3D11Device* GetDevice() { return m_device; }
+    ID3D11DeviceContext* GetContext() { return m_context; }
+    ID3D11ShaderResourceView* GetCursorSRV() { return m_textureView; }
+#endif
+
 private:
     unsigned long long m_activePeerId = 0;
     unsigned char m_selR = 0, m_selG = 120, m_selB = 215;
 
 #ifdef _WIN32
-    ID3D11Device* GetDevice() { return m_device; }
-    ID3D11DeviceContext* GetContext() { return m_context; }
     void DrawSprite(int x, int y, unsigned char r, unsigned char g, unsigned char b);
 
     ID3D11Device* m_device;

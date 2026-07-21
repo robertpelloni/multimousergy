@@ -12,16 +12,11 @@ public:
                sizeof(unsigned int) +       // sequenceNumber
                sizeof(double) +             // localTimestamp
                sizeof(int32_t) +            // type
-               sizeof(int) * 3 +            // x, y, button
-               sizeof(uint8_t) * 2 +        // down, isSelecting
-               sizeof(int) * 2 +            // selectionStartX, selectionStartY
-               sizeof(int) +                // wheelDelta
-               sizeof(uint8_t) +            // isHorizontalWheel
-               sizeof(int) * 2 +            // chunkIndex, totalChunks
-               sizeof(float);               // dpiScale
+               sizeof(int) * 2 +            // x, y
+               sizeof(int) * 3;             // data1, data2, data3 (Union storage)
     }
 
-    static constexpr size_t HEADER_SIZE = 8 + 4 + 4 + 8 + 4 + 4 + 4 + 4 + 1 + 1 + 4 + 4 + 4 + 1 + 4 + 4 + 4;
+    static constexpr size_t HEADER_SIZE = 8 + 4 + 4 + 8 + 4 + 4 + 4 + 4 + 4 + 4;
 
     // Serializes a Packet struct into a byte buffer.
     // If headerOnly is true, only fields up to 'payload' are serialized.
