@@ -6,6 +6,7 @@ class AuthModule {
 public:
     // Computes SHA-256 hash of data. outHash must be at least 32 bytes.
     static bool ComputeSHA256(const std::string& data, unsigned char* outHash);
+    static bool ComputeFileSHA256(const std::string& filePath, unsigned char* outHash);
 
     // Converts a 32-byte hash to a hex string
     static std::string HashToHex(const unsigned char* hash);

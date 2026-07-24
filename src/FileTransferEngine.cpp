@@ -208,14 +208,8 @@ void FileTransferEngine::SetHeaderSent(unsigned long long transferId, bool sent)
 }
 
 std::string FileTransferEngine::CalculateHash(const std::string& path) {
-    std::ifstream file(path, std::ios::binary);
-    if (!file.is_open()) return "";
-
-    std::vector<char> buffer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    std::string data(buffer.begin(), buffer.end());
-
     unsigned char hash[32];
-    if (AuthModule::ComputeSHA256(data, hash)) {
+    if (AuthModule::ComputeFileSHA256(path, hash)) {
         return AuthModule::HashToHex(hash);
     }
     return "";

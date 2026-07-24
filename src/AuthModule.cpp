@@ -11,6 +11,7 @@
 #pragma comment(lib, "bcrypt.lib")
 #else
 #include <openssl/sha.h>
+#include <openssl/evp.h>
 #endif
 
 bool AuthModule::ComputeSHA256(const std::string& data, unsigned char* outHash) {
@@ -64,6 +65,103 @@ bool AuthModule::ComputeSHA256(const std::string& data, unsigned char* outHash) 
     return true;
 #else
     SHA256((const unsigned char*)data.c_str(), data.length(), outHash);
+    return true;
+#endif
+}
+
+
+#include <fstream>
+#include <vector>
+
+bool AuthModule::ComputeFileSHA256(const std::string& filePath, unsigned char* outHash) {
+    std::ifstream file(filePath, std::ios::binary);
+    if (!file.is_open()) return false;
+
+#ifdef _WIN32
+    BCRYPT_ALG_HANDLE hAlg = NULL;
+    BCRYPT_HASH_HANDLE hHash = NULL;
+    DWORD cbData = 0, cbHash = 0, cbHashObject = 0;
+    PBYTE pbHashObject = NULL;
+
+    if (BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_SHA256_ALGORITHM, NULL, 0) < 0) return false;
+
+    if (BCryptGetProperty(hAlg, BCRYPT_HASH_LENGTH, (PBYTE)&cbHash, sizeof(DWORD), &cbData, 0) < 0) {
+        BCryptCloseAlgorithmProvider(hAlg, 0);
+        return false;
+    }
+
+    if (BCryptGetProperty(hAlg, BCRYPT_OBJECT_LENGTH, (PBYTE)&cbHashObject, sizeof(DWORD), &cbData, 0) < 0) {
+        BCryptCloseAlgorithmProvider(hAlg, 0);
+        return false;
+    }
+
+    pbHashObject = (PBYTE)HeapAlloc(GetProcessHeap(), 0, cbHashObject);
+    if (NULL == pbHashObject) {
+        BCryptCloseAlgorithmProvider(hAlg, 0);
+        return false;
+    }
+
+    if (BCryptCreateHash(hAlg, &hHash, pbHashObject, cbHashObject, NULL, 0, 0) < 0) {
+        HeapFree(GetProcessHeap(), 0, pbHashObject);
+        BCryptCloseAlgorithmProvider(hAlg, 0);
+        return false;
+    }
+
+    const size_t bufferSize = 8192;
+    std::vector<char> buffer(bufferSize);
+    while (file.good()) {
+        file.read(buffer.data(), bufferSize);
+        std::streamsize bytesRead = file.gcount();
+        if (bytesRead > 0) {
+            if (BCryptHashData(hHash, (PBYTE)buffer.data(), (ULONG)bytesRead, 0) < 0) {
+                BCryptDestroyHash(hHash);
+                HeapFree(GetProcessHeap(), 0, pbHashObject);
+                BCryptCloseAlgorithmProvider(hAlg, 0);
+                return false;
+            }
+        }
+    }
+
+    if (BCryptFinishHash(hHash, outHash, 32, 0) < 0) {
+        BCryptDestroyHash(hHash);
+        HeapFree(GetProcessHeap(), 0, pbHashObject);
+        BCryptCloseAlgorithmProvider(hAlg, 0);
+        return false;
+    }
+
+    BCryptDestroyHash(hHash);
+    HeapFree(GetProcessHeap(), 0, pbHashObject);
+    BCryptCloseAlgorithmProvider(hAlg, 0);
+    return true;
+#else
+    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+    if (ctx == nullptr) return false;
+
+    if (EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr) != 1) {
+        EVP_MD_CTX_free(ctx);
+        return false;
+    }
+
+    const size_t bufferSize = 8192;
+    std::vector<char> buffer(bufferSize);
+    while (file.good()) {
+        file.read(buffer.data(), bufferSize);
+        std::streamsize bytesRead = file.gcount();
+        if (bytesRead > 0) {
+            if (EVP_DigestUpdate(ctx, buffer.data(), bytesRead) != 1) {
+                EVP_MD_CTX_free(ctx);
+                return false;
+            }
+        }
+    }
+
+    unsigned int len = 0;
+    if (EVP_DigestFinal_ex(ctx, outHash, &len) != 1) {
+        EVP_MD_CTX_free(ctx);
+        return false;
+    }
+
+    EVP_MD_CTX_free(ctx);
     return true;
 #endif
 }

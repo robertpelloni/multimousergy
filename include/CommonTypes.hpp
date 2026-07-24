@@ -29,7 +29,6 @@ enum class NetMuxPacketType {
     Ping,
     InputEvent,
     ResolutionUpdate,
-    WebRTCSignaling,
     AuthChallenge,
     AuthResponse,
     SyncCheck,

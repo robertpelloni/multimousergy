@@ -97,7 +97,6 @@ private:
     double m_lastSyncTime;
     double m_lastPerfLog;
     bool m_overlayDirty;
-    bool m_webrtcInitialized;
 
     struct InteractionEvent {
         unsigned long long peerId;
