@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--help" || arg == "-h") {
-            std::cout << "MultiMousergy v0.1.88-alpha - Cross-Network Multi-Cursor System\n\n"
+            std::cout << "MultiMousergy v0.1.89-alpha - Cross-Network Multi-Cursor System\n\n"
                       << "Usage: NetMux.exe [options]\n\n"
                       << "  --server                  Run as server (default: client)\n"
                       << "  --client <ip>             Connect to server at <ip>\n"
