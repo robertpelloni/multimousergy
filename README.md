@@ -3,6 +3,7 @@
 MultiMousergy is a collaborative spatial desktop environment and cross-network multi-cursor system. It allows independent physical PCs to cross display boundaries with their local mouse hardware while merging desktop views in a seamless, 3D-composited spatial workspace with integrated video chat.
 
 ## Key Features
+
 - **Spatial Workspace**: A 3D-composited viewport that zooms and pans between local and remote desktops as you cross screen boundaries.
 - **Integrated Video Chat**: WebRTC-powered high-fps video and audio tracks synchronized with spatial cursor position.
 - **Independent Cursors**: The remote machine displays and processes the inbound network cursor as a distinct, second independent cursor instance.
@@ -14,19 +15,24 @@ MultiMousergy is a collaborative spatial desktop environment and cross-network m
 - **Warp-Click-Restore**: Programmatic cycle to execute click behaviors on remote windows without losing local cursor context or focus.
 
 ## Architecture
+
 NetMux operates on a two-layer system:
+
 1. **Controller Service**: Intercepts local hardware mouse movement via `WH_MOUSE_LL` and `Raw Input` (WM_INPUT).
 2. **Virtual Bus Link**: Feeds coordinates to a Virtual HID Driver on the remote machine, ensuring Windows sees it as genuine hardware activity.
 
 ## Getting Started
 
 ### Prerequisites
+
 - Windows 10 or later.
 - [ViGEmBus Driver](https://github.com/ViGEm/ViGEmBus) installed on target machines.
 - Visual Studio 2022 (for building).
 
 ### Building
+
 You can use the provided `build.bat` or CMake:
+
 ```bash
 mkdir build
 cd build
@@ -35,23 +41,28 @@ cmake --build . --config Release
 ```
 
 ### Usage
+
 Run `NetMux.exe` on both computers.
 
 **On the Server PC:**
+
 ```bash
 NetMux.exe --server --port 5555 --boundary-x 1919 --left
 ```
 
 **On the Client PC:**
+
 ```bash
 NetMux.exe --client <Server_IP> --port 5555 --boundary-x 0
 ```
 
 ## Documentation
+
 - [VISION.md](VISION.md): Project goals and core pillars.
 - [ROADMAP.md](ROADMAP.md): Major milestones and structural plans.
 - [MEMORY.md](MEMORY.md): Architectural observations and design preferences.
 - [DEPLOY.md](DEPLOY.md): Detailed deployment and environment setup instructions.
 
 ## License
+
 MIT License. See [LICENSE](LICENSE) for details.
