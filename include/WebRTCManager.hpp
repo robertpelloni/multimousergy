@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <functional>
+#include <cstdint>
 #include "webrtc_mock.hpp"
 
 #ifdef _WIN32
