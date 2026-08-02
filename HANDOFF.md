@@ -77,8 +77,23 @@ All remote feature branches have been fully merged into `main` (verified 0 unmer
 - H.264 encoder/decoder implementations are skeleton-only.
 - `ui/main.js` pushes IP as positional arg; C++ parses `--client` but not `--ip` (removed) — keep in mind when wiring CLI.
 
+## Verification Pass (2026-08-01)
+
+### Status: All Clear — No Action Required
+
+- **multimousergy main** == `origin/main` == `b04828c` (fully synced, 0 unpushed commits)
+- All 4 remote branches verified merged (0 unmerged commits each)
+- Working tree clean, no stashes
+- Version references consistent at `v0.1.89-alpha` across all files
+- **Build**: MSVC 19.51 + Ninja — 37/37 targets compiled successfully
+- **Tests**: `NetMuxTests` — All tests passed!
+- Parent workspace: `fb9eef31a7` synced with origin/upstream (zero drift)
+- 107 robertpelloni-owned submodules: no unpushed commits, no unmerged AI-style feature branches
+- Only remaining remote branches (geiss, veilid_reddit_facebook) are destructive deletions — correctly skipped
+
 ## Notes for Successor
 
 - Follow `ROADMAP.md` Milestone 6 to continue: complete H.264 encoder/decoder, WebRTC native integration, integrated video chat.
 - `netmux.cfg` regenerated with all config keys — verify values before deployments.
 - The `netmux-initial-architecture` branch remains the remote HEAD but is fully contained in main; consider switching GitHub default branch to `main` when convenient.
+- Use `build/rebuild.bat` for MSVC+Ninja builds (MSBuild generator has compiler detection issues in non-interactive shells).
