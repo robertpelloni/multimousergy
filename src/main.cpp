@@ -8,9 +8,11 @@
 #include <iostream>
 #include <algorithm>
 #include "NetMuxFramework.hpp"
+#include "SystemTray.hpp"
 
 #include <thread>
 #include <chrono>
+#include <atomic>
 
 int main(int argc, char* argv[]) {
     #ifdef _WIN32
@@ -21,7 +23,7 @@ int main(int argc, char* argv[]) {
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--help" || arg == "-h") {
-            std::cout << "MultiMousergy v0.1.89-alpha - Cross-Network Multi-Cursor System\n\n"
+            std::cout << "MultiMousergy v0.1.90-alpha - Cross-Network Multi-Cursor System\n\n"
                       << "Usage: NetMux.exe [options]\n\n"
                       << "  --server                  Run as server (default: client)\n"
                       << "  --client <ip>             Connect to server at <ip>\n"
@@ -78,19 +80,49 @@ int main(int argc, char* argv[]) {
 
     framework.SetCursorColor(settings.peerColorR, settings.peerColorG, settings.peerColorB);
 
+#ifdef _WIN32
+    // Initialize system tray icon
+    SystemTray tray;
+    std::atomic<bool> trayExitRequested{false};
+    {
+        std::string mode = settings.isServer ? "Server" : "Client";
+        std::string tooltip = "MultiMousergy - " + mode + " (v0.1.90-alpha)";
+        tray.Initialize(GetModuleHandle(nullptr), tooltip, [&]() {
+            std::cout << "[Tray] Exit requested." << std::endl;
+            trayExitRequested.store(true);
+        });
+    }
+#endif
+
     std::thread frameworkThread([&]() {
         framework.Run();
     });
 
-    #ifdef _WIN32
+#ifdef _WIN32
+    // Track last tooltip update to avoid spamming Shell_NotifyIcon
+    auto lastTipUpdate = std::chrono::steady_clock::now();
     MSG msg;
-    while (framework.IsRunning()) {
+    while (framework.IsRunning() && !trayExitRequested.load()) {
+        // Pump tray messages
+        tray.PumpMessages();
+
         if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
             if (msg.message == WM_QUIT) break;
         } else {
             framework.GetInputEngine().Update();
+
+            // Update tray tooltip every 2 seconds
+            auto now = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::seconds>(now - lastTipUpdate).count() >= 2) {
+                lastTipUpdate = now;
+                auto peerCount = framework.GetSyncModule().GetAllPeers().size();
+                std::string mode = settings.isServer ? "Server" : "Client";
+                std::string tip = "MultiMousergy - " + mode + "\nPeers: " + std::to_string(peerCount);
+                tray.SetTooltip(tip);
+            }
+
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
@@ -103,6 +135,10 @@ int main(int argc, char* argv[]) {
 
     framework.Shutdown();
     if (frameworkThread.joinable()) frameworkThread.join();
+
+#ifdef _WIN32
+    tray.Shutdown();
+#endif
 
     return 0;
 }

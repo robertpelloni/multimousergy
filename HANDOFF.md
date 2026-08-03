@@ -64,11 +64,26 @@ All remote feature branches have been fully merged into `main` (verified 0 unmer
 
 ## Project State
 
-- **Version**: `v0.1.89-alpha`
-- **main** == `origin/main` == `8f630a7` (fully pushed)
-- **Build**: Pending verification (see below)
-- **Tests**: `NetMuxTests` target defined with 12+ test files
+- **Version**: `v0.1.90-alpha`
+- **main** == `origin/main` (fully pushed)
+- **Build**: MSVC 19.51 + Ninja — 38/38 targets, all tests pass
 - Working tree clean
+
+## System Tray Feature (v0.1.90-alpha)
+
+### New: System Tray Icon with Mouse Cursor
+
+- **Icon**: Programmatically-drawn 16×16 cyan arrow cursor icon using GDI (no external .ico resource needed)
+- **Context menu** (right-click):
+  - "Show Stats" — shows balloon with version info
+  - "Toggle Overlay" — placeholder for overlay visibility toggle
+  - "About MultiMousergy" — shows project URL balloon
+  - "Exit" — cleanly shuts down the framework and removes tray icon
+- **Tooltip**: Shows "MultiMousergy - Server/Client" with live peer count (updates every 2 seconds)
+- **Double-click**: Shows version balloon notification
+- **Architecture**: Hidden message-only window (`HWND_MESSAGE`) receives tray callbacks; SystemTray class owns the lifecycle
+- **Files added**: `include/SystemTray.hpp`, `src/SystemTray.cpp`
+- **CMakeLists.txt**: Added `src/SystemTray.cpp` to LIB_SOURCES, linked `shell32`
 
 ## Known Issues / Next Steps
 
