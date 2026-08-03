@@ -1,4 +1,4 @@
-# NetMux Memory - v0.1.89-alpha
+# NetMux Memory - v0.1.90-alpha
 
 ## UI and Network Stack Refactor
 
@@ -17,6 +17,7 @@ The UI and Network stacks were significantly refactored to resolve race conditio
 - **UX State Synchronization**: Dynamic UI elements (like button text or status bars) should be driven by the core `ConnectionState` machine to ensure visual feedback matches internal logic.
 
 ## Merge Resolution Architectural Lessons
+
 - The UI/Network stack refactor safely isolates the `NetMuxFramework` from the raw connection handlers.
 - The `NetworkManager` effectively prevents interleaving by buffering on a per-client basis. Integrating new network flows like WebRTC SDPs into the existing `NetworkManager::SendPacket` pipelines requires careful `std::min` clamping of `payloadSize` against the `payload` buffer (e.g. `sizeof(payload) - 1`) to prevent OOB reads by remote peers parsing strings out of standard statically-sized packet packets.
 - The `FileTransferEngine` can be reliably simulated in tests without relying on `NetworkManager` by generating mock `NetMuxPacketType::FileHeader` and `FileData` packets, passing them directly to a local receiver instance, and asserting on `isComplete` and `lastError` enums for SHA-256 verification and chunk reassembly.

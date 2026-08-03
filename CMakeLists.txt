@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(NetMux VERSION 0.1.89 LANGUAGES CXX)
+project(NetMux VERSION 0.1.90 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -38,6 +38,7 @@ set(LIB_SOURCES
     src/VideoDecoder.cpp
     src/SpatialViewport.cpp
     src/WebcamCapture.cpp
+    src/SystemTray.cpp
 )
 
 # Library
@@ -52,7 +53,7 @@ target_include_directories(NetMux PRIVATE include)
 # Windows specific libraries
 if(WIN32)
     add_definitions(-DNOMINMAX)
-    target_link_libraries(NetMuxLib user32 gdi32 d3d11 dxgi ws2_32 d3dcompiler bcrypt mfplat mfreadwrite mfuuid)
+    target_link_libraries(NetMuxLib user32 gdi32 d3d11 dxgi ws2_32 d3dcompiler bcrypt mfplat mfreadwrite mfuuid shell32)
 
     if(ENABLE_INTERCEPTION)
         find_library(INTERCEPTION_LIB interception)

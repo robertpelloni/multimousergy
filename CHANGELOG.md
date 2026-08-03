@@ -1,3 +1,14 @@
+## [0.1.90-alpha] - 2026-08-03
+
+### Added
+
+- System tray icon with programmatically-drawn cyan mouse cursor
+- Right-click context menu: Show Stats, Toggle Overlay, About, Exit
+- Hover tooltip shows mode (Server/Client) and live peer count (updates every 2s)
+- Double-click tray icon shows version balloon notification
+- Tray exit request cleanly shuts down the framework
+- `shell32` linked for Shell_NotifyIcon API
+
 ## [0.1.89-alpha] - 2026-07-15
 
 ### Added
