@@ -22,87 +22,82 @@ SystemTray::~SystemTray() {
 }
 
 HICON SystemTray::CreateMouseCursorIcon() {
-    // Create a 16x16 mouse cursor icon programmatically
-    // We draw an arrow cursor with a hand-like appearance
+    // Draw a 16x16 mouse cursor icon using GDI + CreateIconIndirect
     const int w = 16, h = 16;
 
-    // Create a monochrome bitmap for the icon (AND mask)
-    HBITMAP hAndMask = CreateBitmap(w, h, 1, 1, nullptr);
-    // Create an RGBA bitmap for the icon (XOR mask / color)
-    HDC hdcScreen = GetDC(nullptr);
+    HDC hdcScreen = GetDC(NULL);
     HDC hdcColor = CreateCompatibleDC(hdcScreen);
-    HDC hdcMask  = CreateCompatibleDC(hdcScreen);
+    HDC hdcMask = CreateCompatibleDC(hdcScreen);
 
-    BITMAPINFO bi = {};
-    bi.bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
-    bi.bmiHeader.biWidth       = w;
-    bi.bmiHeader.biHeight      = -h; // top-down
-    bi.bmiHeader.biPlanes      = 1;
-    bi.bmiHeader.biBitCount    = 32;
-    bi.bmiHeader.biCompression = BI_RGB;
-    void* pBits = nullptr;
-    HBITMAP hColor = CreateDIBSection(hdcColor, &bi, DIB_RGB_COLORS, &pBits, nullptr, 0);
+    // Color bitmap (32-bit BGRA)
+    BITMAPINFO bmi = {};
+    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bmi.bmiHeader.biWidth = w;
+    bmi.bmiHeader.biHeight = -h; // top-down
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+    void* pColorBits = NULL;
+    HBITMAP hColor = CreateDIBSection(hdcColor, &bmi, DIB_RGB_COLORS, &pColorBits, NULL, 0);
 
-    HBITMAP hOldColor = (HBITMAP)SelectObject(hdcColor, hColor);
-    HBITMAP hOldMask  = (HBITMAP)SelectObject(hdcMask, hAndMask);
+    // AND mask (1bpp monochrome)
+    HBITMAP hMask = CreateBitmap(w, h, 1, 1, NULL);
 
-    // Draw the AND mask (white = visible, black = transparent)
-    RECT rc = { 0, 0, w, h };
-    FillRect(hdcMask, &rc, (HBRUSH)GetStockObject(WHITE_BRUSH));
+    HBITMAP hOldC = (HBITMAP)SelectObject(hdcColor, hColor);
+    HBITMAP hOldM = (HBITMAP)SelectObject(hdcMask, hMask);
 
-    // Fill XOR layer with cyan (the icon color)
-    HBRUSH hCyanBrush = CreateSolidBrush(RGB(0, 200, 255));
-    FillRect(hdcColor, &rc, hCyanBrush);
-    DeleteObject(hCyanBrush);
+    // AND mask: all zeros = all pixels come from XOR mask
+    RECT rc = {0, 0, w, h};
+    FillRect(hdcMask, &rc, (HBRUSH)GetStockObject(BLACK_BRUSH));
 
-    // Draw a dark arrow on top
-    HPEN hDarkPen = CreatePen(PS_SOLID, 1, RGB(20, 40, 80));
-    HPEN hOldPen = (HPEN)SelectObject(hdcColor, hDarkPen);
+    // Fill with cyan background
+    HBRUSH hCyan = CreateSolidBrush(RGB(0, 180, 230));
+    FillRect(hdcColor, &rc, hCyan);
+    DeleteObject(hCyan);
 
-    // Arrow body
-    POINT arrow[] = {
-        { 3,  1 },   // tip
-        { 3,  12 },  // down
-        { 6,  9 },   // right inner
-        { 9,  13 },  // right tail
-        { 11, 12 },  // right tail end
-        { 8,  8 },   // right outer
-        { 12, 8 },   // right horizontal
-    };
-    Polygon(hdcColor, arrow, 7);
+    // Draw mouse cursor shape (dark blue outline, white fill)
+    // Body: rounded rectangle
+    HBRUSH hBody = CreateSolidBrush(RGB(40, 60, 120));
+    HPEN hOutline = CreatePen(PS_SOLID, 1, RGB(20, 30, 60));
+    HPEN hOldP = (HPEN)SelectObject(hdcColor, hOutline);
+    HBRUSH hOldB = (HBRUSH)SelectObject(hdcColor, hBody);
+    RoundRect(hdcColor, 4, 2, 12, 14, 4, 4);
 
-    // Arrow outline (dark border for clarity)
-    HPEN hOutlinePen = CreatePen(PS_SOLID, 1, RGB(10, 20, 40));
-    SelectObject(hdcColor, hOutlinePen);
-    POINT outline[] = {
-        { 3,  1 },
-        { 3,  12 },
-        { 6,  9 },
-        { 9,  13 },
-        { 11, 12 },
-        { 8,  8 },
-        { 12, 8 },
-    };
-    Polyline(hdcColor, outline, 7);
+    // Divider line (separate left/right buttons)
+    HPEN hDiv = CreatePen(PS_SOLID, 1, RGB(20, 30, 60));
+    SelectObject(hdcColor, hDiv);
+    MoveToEx(hdcColor, 8, 2, NULL);
+    LineTo(hdcColor, 8, 8);
+    DeleteObject(hDiv);
 
-    SelectObject(hdcColor, hOldPen);
-    SelectObject(hdcColor, hOldColor);
-    SelectObject(hdcMask, hOldMask);
-    DeleteObject(hDarkPen);
-    DeleteObject(hOutlinePen);
+    // Scroll wheel (small rectangle)
+    HBRUSH hWheel = CreateSolidBrush(RGB(100, 140, 200));
+    SelectObject(hdcColor, hWheel);
+    Rectangle(hdcColor, 7, 3, 9, 7);
+    DeleteObject(hWheel);
+
+    // Restore and clean up GDI objects
+    SelectObject(hdcColor, hOldP);
+    SelectObject(hdcColor, hOldB);
+    DeleteObject(hBody);
+    DeleteObject(hOutline);
+    SelectObject(hdcColor, hOldC);
+    SelectObject(hdcMask, hOldM);
     DeleteDC(hdcColor);
     DeleteDC(hdcMask);
-    ReleaseDC(nullptr, hdcScreen);
+    ReleaseDC(NULL, hdcScreen);
 
     ICONINFO ii = {};
-    ii.fIcon    = TRUE;
-    ii.hbmMask  = hAndMask;
+    ii.fIcon = TRUE;
+    ii.hbmMask = hMask;
     ii.hbmColor = hColor;
     HICON hIcon = CreateIconIndirect(&ii);
-
-    DeleteObject(hAndMask);
+    DeleteObject(hMask);
     DeleteObject(hColor);
 
+    if (!hIcon) {
+        std::cerr << "[Tray] CreateIconIndirect failed: " << GetLastError() << std::endl;
+    }
     return hIcon;
 }
 
@@ -118,9 +113,12 @@ bool SystemTray::Initialize(HINSTANCE hInstance, const std::string& tooltip, std
     wc.lpszClassName  = "NetMuxTrayWnd";
     RegisterClassEx(&wc);
 
+    // Create a message-only window for tray messages.
     m_hwnd = CreateWindowEx(
-        0, "NetMuxTrayWnd", "NetMux Tray",
-        0, 0, 0, 0, 0,
+        0,
+        "NetMuxTrayWnd", "NetMux Tray",
+        0,
+        0, 0, 0, 0,
         HWND_MESSAGE, nullptr, hInstance, nullptr
     );
     if (!m_hwnd) {
@@ -131,15 +129,12 @@ bool SystemTray::Initialize(HINSTANCE hInstance, const std::string& tooltip, std
     // Store a pointer to this instance in the window's user data
     SetWindowLongPtr(m_hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
 
-    // Create the mouse cursor icon
     m_hIcon = CreateMouseCursorIcon();
     if (!m_hIcon) {
-        // Fallback: use the system arrow cursor
-        m_hIcon = (HICON)LoadImage(nullptr, IDC_ARROW, IMAGE_CURSOR, 16, 16, LR_DEFAULTCOLOR);
-        std::cerr << "[Tray] Custom icon failed, using system arrow." << std::endl;
+        std::cerr << "[Tray] Icon creation failed." << std::endl;
+        return false;
     }
 
-    // Set up the NOTIFYICONDATA structure
     m_nid.cbSize           = sizeof(NOTIFYICONDATAA);
     m_nid.hWnd             = m_hwnd;
     m_nid.uID              = 1;
@@ -148,8 +143,9 @@ bool SystemTray::Initialize(HINSTANCE hInstance, const std::string& tooltip, std
     m_nid.hIcon            = m_hIcon;
     strncpy_s(m_nid.szTip, sizeof(m_nid.szTip), tooltip.c_str(), _TRUNCATE);
 
+    Shell_NotifyIconA(NIM_DELETE, &m_nid);
     if (!Shell_NotifyIconA(NIM_ADD, &m_nid)) {
-        std::cerr << "[Tray] Shell_NotifyIcon(NIM_ADD) failed." << std::endl;
+        std::cerr << "[Tray] Shell_NotifyIcon(NIM_ADD) failed: " << GetLastError() << std::endl;
         return false;
     }
 
@@ -223,7 +219,7 @@ bool SystemTray::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
             case WM_LBUTTONDBLCLK:
                 // Double-click: show about
                 ShowBalloon("MultiMousergy",
-                    "Cross-Network Multi-Cursor System\nv0.1.89-alpha",
+                    "Cross-Network Multi-Cursor System\nv0.1.90-alpha",
                     3000);
                 return true;
         }
@@ -255,7 +251,7 @@ LRESULT CALLBACK SystemTray::TrayWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
         switch (LOWORD(wParam)) {
             case ID_TRAY_SHOW_STATS:
                 self->ShowBalloon("MultiMousergy Stats",
-                    "System is running.\nVersion: v0.1.89-alpha",
+                    "System is running.\nVersion: v0.1.90-alpha",
                     3000);
                 return 0;
             case ID_TRAY_TOGGLE_OVL:
