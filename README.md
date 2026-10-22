@@ -1,68 +1,56 @@
-# MultiMousergy (formerly NetMux)
+# MultiMousergy (NetMux)
 
-MultiMousergy is a collaborative spatial desktop environment and cross-network multi-cursor system. It allows independent physical PCs to cross display boundaries with their local mouse hardware while merging desktop views in a seamless, 3D-composited spatial workspace with integrated video chat.
+MultiMousergy — internally still **NetMux** (`CMakeLists.txt`:
+`project(NetMux VERSION 0.1.90)`) — is a Windows C++17 application for
+sharing one mouse across two networked PCs: move your cursor off the edge
+of one machine's display and it appears on the other machine as an
+independent second cursor, injected through virtual HID drivers, with a
+D3D11/GDI+ overlay drawing the remote cursor locally.
 
-## Key Features
+## What's implemented
 
-- **Spatial Workspace**: A 3D-composited viewport that zooms and pans between local and remote desktops as you cross screen boundaries.
-- **Integrated Video Chat**: WebRTC-powered high-fps video and audio tracks synchronized with spatial cursor position.
-- **Independent Cursors**: The remote machine displays and processes the inbound network cursor as a distinct, second independent cursor instance.
-- **Authoritative Synchronization**: Implements a server-authoritative model via `MasterStateSync` to periodically correct local perception drift and ensure perfect alignment across all peers.
-- **Continuous Visibility**: Continuous local cursor broadcasting ensures all peers remain visible in real-time, regardless of active input capture state.
-- **Hardware-Level Injection**: Utilizes virtual HID drivers (ViGEmBus/Interception on Windows, evdev on Linux) to bypass native single-cursor kernel constraints.
-- **Asynchronous Networking**: Lightweight UDP for real-time cursor tracking and TCP for reliable click/state synchronization.
-- **Transparent Overlay**: Custom hardware-accelerated Direct3D 11 and GDI+ overlay loops paint secondary mouse cursors directly on top of the OS interface.
-- **Warp-Click-Restore**: Programmatic cycle to execute click behaviors on remote windows without losing local cursor context or focus.
+Real code, ~150 KB of C++ under `src/`:
 
-## Architecture
+- `InputEngine.cpp` — low-level mouse hook / raw-input capture
+- `DriverInterface.cpp` — virtual HID injection (ViGEmBus / Interception
+  support exists but is **off by default** in CMake:
+  `ENABLE_VIGEM` / `ENABLE_INTERCEPTION` / `NETMUX_USE_NATIVE_DRIVERS`)
+- `NetworkManager.cpp` / `PacketSerializer.cpp` — UDP cursor tracking +
+  TCP state sync
+- `OverlayEngine.cpp` / `D3D11Overlay.cpp` — the remote-cursor overlay
+- `SyncModule.cpp` — server-authoritative state correction
+- `ClipboardModule.cpp`, `FileTransferEngine.cpp`, `ConfigManager.cpp`,
+  `SystemTray.cpp`, `DesktopCapture.cpp`
+- `SpatialViewport.cpp`, `VideoEncoder/Decoder.cpp`, `WebRTCManager.cpp`,
+  `WebcamCapture.cpp` — the spatial-workspace and video pieces; these are
+  the smallest files in the tree (WebRTCManager is ~2 KB) and are best
+  described as skeletal. The old README's feature list (3D-composited
+  spatial workspace, integrated high-fps WebRTC video chat) states the
+  design goal, not the shipped state.
 
-NetMux operates on a two-layer system:
+Config is via `netmux.cfg`; `build.bat` / `run_server.bat` /
+`run_client.bat` wrap the CMake build and launch. The `borg.db` /
+`hypernexus.db` files at the root are agent-harness session artifacts, not
+application data.
 
-1. **Controller Service**: Intercepts local hardware mouse movement via `WH_MOUSE_LL` and `Raw Input` (WM_INPUT).
-2. **Virtual Bus Link**: Feeds coordinates to a Virtual HID Driver on the remote machine, ensuring Windows sees it as genuine hardware activity.
+## Building and running
 
-## Getting Started
-
-### Prerequisites
-
-- Windows 10 or later.
-- [ViGEmBus Driver](https://github.com/ViGEm/ViGEmBus) installed on target machines.
-- Visual Studio 2022 (for building).
-
-### Building
-
-You can use the provided `build.bat` or CMake:
+Prerequisites: Windows 10+, Visual Studio 2022, and the ViGEmBus driver on
+target machines for virtual-HID injection.
 
 ```bash
-mkdir build
-cd build
+mkdir build && cd build
 cmake ..
 cmake --build . --config Release
 ```
 
-### Usage
-
-Run `NetMux.exe` on both computers.
-
-**On the Server PC:**
-
 ```bash
 NetMux.exe --server --port 5555 --boundary-x 1919 --left
-```
-
-**On the Client PC:**
-
-```bash
 NetMux.exe --client <Server_IP> --port 5555 --boundary-x 0
 ```
 
-## Documentation
+## Status
 
-- [VISION.md](VISION.md): Project goals and core pillars.
-- [ROADMAP.md](ROADMAP.md): Major milestones and structural plans.
-- [MEMORY.md](MEMORY.md): Architectural observations and design preferences.
-- [DEPLOY.md](DEPLOY.md): Detailed deployment and environment setup instructions.
-
-## License
-
-MIT License. See [LICENSE](LICENSE) for details.
+Prototype, v0.1.90. Created May 2026; latest commits are automated agent
+checkpoints (October 2026). MIT licensed (see `LICENSE`). Design docs:
+`VISION.md`, `ROADMAP.md`, `HANDOFF.md`.
