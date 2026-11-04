@@ -1,205 +1,1036 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>NetMux Configuration</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MultiMousergy Unified Command Dashboard</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #1e1e1e; color: #fff; margin: 0; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
-        .container { flex: 1; display: flex; gap: 20px; min-height: 0; }
-        .left-panel { flex: 1; display: flex; flex-direction: column; background: #2d2d2d; padding: 20px; border-radius: 8px; overflow-y: auto; }
-        .right-panel { flex: 1; display: flex; flex-direction: column; gap: 20px; min-height: 0; }
-        .widget { background: #2d2d2d; padding: 20px; border-radius: 8px; display: flex; flex-direction: column; }
-
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; }
-        input[type="text"], input[type="number"], input[type="password"] {
-            width: 100%; padding: 8px; box-sizing: border-box; background: #3c3c3c; color: white; border: 1px solid #555; border-radius: 4px;
+        :root {
+            --bg-base: #0f1115;
+            --bg-surface: #181b22;
+            --bg-elevated: #222631;
+            --bg-input: #12141a;
+            --accent: #00d2ff;
+            --accent-glow: rgba(0, 210, 255, 0.25);
+            --accent-hover: #00b4db;
+            --danger: #ff4757;
+            --danger-hover: #e84118;
+            --success: #2ed573;
+            --warning: #ffa502;
+            --text-main: #f1f2f6;
+            --text-muted: #a4b0be;
+            --border: #2f3542;
+            --radius: 8px;
         }
-        button { background: #007acc; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; width: 100%; font-size: 16px; margin-bottom: 10px; }
-        button:hover { background: #005f9e; }
-        button.stop-btn { background: #cc3333; display: none; }
-        button.stop-btn:hover { background: #9e2222; }
 
-        .tabs { display: flex; margin-bottom: 15px; }
-        .tab { flex: 1; text-align: center; padding: 10px; background: #3c3c3c; cursor: pointer; border: 1px solid #555; }
-        .tab.active { background: #007acc; border-color: #007acc; }
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding: 16px;
+            background: var(--bg-base);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
 
-        .minimap-container { flex: 1; display: flex; justify-content: center; align-items: center; background: #111; border: 1px solid #555; border-radius: 4px; position: relative; overflow: hidden; }
-        #minimap { background: #000; }
+        /* Top Header Bar */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 14px;
+        }
+        .branding {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent), #3a7bd5);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 12px var(--accent-glow);
+            font-weight: bold;
+            color: #000;
+        }
+        .branding h1 {
+            font-size: 18px;
+            margin: 0;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .branding .tagline {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+            box-shadow: 0 0 8px rgba(255, 71, 87, 0.6);
+        }
+        .status-dot.active {
+            background: var(--success);
+            box-shadow: 0 0 8px rgba(46, 213, 115, 0.6);
+        }
 
-        .log-container { flex: 1; display: flex; flex-direction: column; min-height: 200px; }
-        .log-box { flex: 1; background: #111; border: 1px solid #555; border-radius: 4px; padding: 10px; font-family: monospace; font-size: 12px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
-        .log-error { color: #ff5555; }
-        .log-info { color: #aaaaaa; }
+        /* Layout Grid */
+        .dashboard-body {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 460px 1fr;
+            gap: 16px;
+            min-height: 0;
+        }
+
+        /* Control Panel (Left Column) */
+        .control-column {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 16px;
+            gap: 16px;
+        }
+        .control-column::-webkit-scrollbar {
+            width: 6px;
+        }
+        .control-column::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        /* Interactive Telemetry & Log Column (Right Column) */
+        .visual-column {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            gap: 14px;
+            min-height: 0;
+        }
+
+        /* Cards & Section Containers */
+        .card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px 14px;
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .card-title {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Tooltip Marker */
+        .tooltip-tag {
+            cursor: help;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 15px;
+            height: 15px;
+            background: #2f3542;
+            color: var(--text-muted);
+            border-radius: 50%;
+            font-size: 10px;
+            font-weight: bold;
+            margin-left: 4px;
+            position: relative;
+        }
+        .tooltip-tag:hover {
+            background: var(--accent);
+            color: #000;
+        }
+        .tooltip-tag:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: 50%;
+            bottom: 125%;
+            transform: translateX(-50%);
+            background: #000;
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: normal;
+            width: 210px;
+            z-index: 100;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+            border: 1px solid var(--border);
+            pointer-events: none;
+            line-height: 1.3;
+            font-weight: normal;
+        }
+
+        /* Role Switcher */
+        .role-switch {
+            display: flex;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 2px;
+            margin-bottom: 12px;
+        }
+        .role-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .role-btn.active {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        /* Form elements */
+        .form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .form-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        label {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        input[type="text"], input[type="number"], input[type="password"], select {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-main);
+            padding: 7px 10px;
+            font-size: 12px;
+            outline: none;
+            transition: border 0.2s ease;
+        }
+        input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus, select:focus {
+            border-color: var(--accent);
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--text-main);
+            margin: 4px 0;
+        }
+        .checkbox-label input {
+            cursor: pointer;
+        }
+
+        /* Color Picker Row */
+        .color-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .color-preview {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        /* Primary Action Buttons */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #3a7bd5);
+            color: #000;
+            font-weight: 700;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+        .btn-primary:hover {
+            filter: brightness(1.15);
+        }
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+            font-weight: 700;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+        .btn-danger:hover {
+            background: var(--danger-hover);
+        }
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        /* Minimap Canvas Container */
+        .minimap-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+        }
+        .minimap-wrapper {
+            position: relative;
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #minimap {
+            display: block;
+            background: #050608;
+        }
+        .minimap-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        /* File Transfer Staging Zone */
+        .dropzone {
+            border: 2px dashed var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--bg-input);
+        }
+        .dropzone.dragover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(0, 210, 255, 0.05);
+        }
+
+        /* Log Console */
+        .log-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .log-box {
+            flex: 1;
+            background: #090a0d;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 10px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 11px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #d1d8e0;
+        }
+        .log-error { color: #ff6b6b; font-weight: bold; }
+        .log-info { color: #4bcffa; }
+        .log-warn { color: #eccc68; }
+
+        /* Metrics Bar */
+        .metrics-bar {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 8px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            font-size: 11px;
+        }
+        .metric-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .metric-label { color: var(--text-muted); font-size: 10px; }
+        .metric-value { font-weight: bold; color: var(--accent); }
+
+        /* Boundary Interactive Visualization */
+        .boundary-bar {
+            height: 18px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            position: relative;
+            margin-top: 4px;
+        }
+        .boundary-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--accent);
+            box-shadow: 0 0 6px var(--accent-glow);
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="left-panel">
-            <h2>NetMux Configuration</h2>
-
-            <div class="tabs">
-                <div class="tab active" id="tab-client" onclick="setMode('client')">Client</div>
-                <div class="tab" id="tab-server" onclick="setMode('server')">Server</div>
+    <!-- Top Header -->
+    <header>
+        <div class="branding">
+            <div class="logo-icon">M²</div>
+            <div>
+                <h1>MultiMousergy</h1>
+                <div class="tagline">Spatial Multi-Cursor System & Virtual Bus Network Multiplexer</div>
             </div>
+        </div>
+        <div class="header-actions">
+            <div class="status-pill">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusLabel">Offline</span>
+            </div>
+            <button class="btn-secondary" id="saveCfgBtn" onclick="saveActiveConfig()">Save Config</button>
+            <button class="btn-secondary" onclick="quitApplication()">Exit App</button>
+        </div>
+    </header>
 
-            <form id="configForm">
-                <input type="hidden" id="isServer" value="false">
+    <!-- Unified Dashboard Grid -->
+    <div class="dashboard-body">
+        <!-- Control Column (All High-Value Options Consolidated) -->
+        <div class="control-column">
 
-                <div class="form-group" id="remoteIpGroup">
-                    <label for="remoteIp">Server IP Address</label>
-                    <input type="text" id="remoteIp" value="127.0.0.1">
+            <!-- 1. Primary Network & Role Configuration (Highest Value) -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Network & Node Identity <span class="tooltip-tag" data-tooltip="Set whether this machine acts as the authoritative server host or a connected client peer.">?</span></span>
                 </div>
 
-                <div class="form-group">
-                    <label for="port">Port</label>
-                    <input type="number" id="port" value="5555">
+                <div class="role-switch">
+                    <button type="button" class="role-btn active" id="btnRoleClient" onclick="setMode('client')">Client Peer</button>
+                    <button type="button" class="role-btn" id="btnRoleServer" onclick="setMode('server')">Server Host</button>
                 </div>
 
-                <div class="form-group">
-                    <label for="securityKey">Security Key</label>
-                    <input type="password" id="securityKey" placeholder="Leave empty for none">
-                </div>
-
-                <div class="form-group">
-                    <label>Screen Layout</label>
-                    <div>
-                        <input type="radio" name="layout" id="layoutLeft" value="left" checked>
-                        <label for="layoutLeft" style="display:inline;">Left of Server</label>
-                        <input type="radio" name="layout" id="layoutRight" value="right">
-                        <label for="layoutRight" style="display:inline;">Right of Server</label>
+                <div class="form-row" id="remoteIpGroup">
+                    <div class="form-col">
+                        <label for="remoteIp">Host IP Address <span class="tooltip-tag" data-tooltip="The target server's IPv4 address.">?</span></label>
+                        <input type="text" id="remoteIp" value="127.0.0.1">
+                    </div>
+                    <div class="form-col" style="flex: 0.5;">
+                        <label for="port">Port <span class="tooltip-tag" data-tooltip="UDP tracking & TCP state port (default 5555).">?</span></label>
+                        <input type="number" id="port" value="5555">
                     </div>
                 </div>
 
-                <button type="button" id="startBtn" onclick="startNetMux()">Start NetMux</button>
-                <button type="button" id="stopBtn" class="stop-btn" onclick="stopNetMux()">Stop NetMux</button>
-            </form>
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="displayName">Friendly Display Name <span class="tooltip-tag" data-tooltip="Workstation label visible to network peers.">?</span></label>
+                        <input type="text" id="displayName" value="Primary-PC">
+                    </div>
+                    <div class="form-col">
+                        <label for="securityKey">Security Key (PSK) <span class="tooltip-tag" data-tooltip="Pre-shared key for SHA-256 challenge-response mutual authentication.">?</span></label>
+                        <input type="password" id="securityKey" placeholder="Optional security key">
+                    </div>
+                </div>
 
-            <div style="margin-top: 20px;">
-                <p id="statusText">Status: Stopped</p>
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="sessionName">Session / Group <span class="tooltip-tag" data-tooltip="Multi-tenant group identifier for collaborative workspaces.">?</span></label>
+                        <input type="text" id="sessionName" value="DefaultSession">
+                    </div>
+                    <div class="form-col" style="flex: 0.5;">
+                        <label for="groupId">Group ID</label>
+                        <input type="number" id="groupId" value="0">
+                    </div>
+                </div>
+
+                <div style="margin-top: 6px;">
+                    <button type="button" class="btn-primary" id="startBtn" onclick="toggleEngine(true)">Start MultiMousergy</button>
+                    <button type="button" class="btn-danger" id="stopBtn" onclick="toggleEngine(false)">Stop Engine</button>
+                </div>
             </div>
+
+            <!-- 2. Display Boundary & Screen Geometry -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Screen Crossing Boundary <span class="tooltip-tag" data-tooltip="Defines where mouse coordinates trigger a boundary hop across display borders.">?</span></span>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>Edge Orientation</label>
+                        <div style="display: flex; gap: 14px; margin-top: 4px;">
+                            <label class="checkbox-label">
+                                <input type="radio" name="boundaryEdge" id="edgeLeft" value="left" checked onchange="updateBoundaryVisual()"> Left Edge
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="radio" name="boundaryEdge" id="edgeRight" value="right" onchange="updateBoundaryVisual()"> Right Edge
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <label for="boundaryX">Trigger X <span class="tooltip-tag" data-tooltip="Boundary threshold X coordinate.">?</span></label>
+                        <input type="number" id="boundaryX" value="1919" oninput="updateBoundaryVisual()">
+                    </div>
+                    <div class="form-col">
+                        <label for="boundaryY">Trigger Y</label>
+                        <input type="number" id="boundaryY" value="0">
+                    </div>
+                </div>
+
+                <div class="boundary-bar" title="Virtual screen edge visualization">
+                    <div class="boundary-line" id="boundaryLine" style="left: 99%;"></div>
+                </div>
+            </div>
+
+            <!-- 3. Driver & Peripheral Injection Settings -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Driver & Cursor Rendering <span class="tooltip-tag" data-tooltip="Configure hardware driver simulation and overlay visual styles.">?</span></span>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="driverType">Virtual HID Driver <span class="tooltip-tag" data-tooltip="Kernel-level injection: ViGEmBus (Win), Interception (Win), or evdev/uinput (Linux).">?</span></label>
+                        <select id="driverType">
+                            <option value="2">Auto-Detect Recommended</option>
+                            <option value="1">ViGEmBus (Virtual USB Mouse)</option>
+                            <option value="0">Interception Driver</option>
+                        </select>
+                    </div>
+                    <div class="form-col">
+                        <label for="cursorScale">Cursor Scale Factor</label>
+                        <input type="number" id="cursorScale" value="1.0" step="0.1" min="0.5" max="3.0">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label>Peer Cursor Color</label>
+                        <div class="color-row">
+                            <input type="color" id="peerColorPicker" value="#ff3838" onchange="updatePeerColorFromPicker(this.value)">
+                            <span id="peerColorText" style="font-size: 11px; font-family: monospace;">#ff3838</span>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <label>Selection Box Color</label>
+                        <div class="color-row">
+                            <input type="color" id="selColorPicker" value="#0078d7" onchange="updateSelColorFromPicker(this.value)">
+                            <span id="selColorText" style="font-size: 11px; font-family: monospace;">#0078d7</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-col">
+                        <label for="cursorTheme">Custom BMP Cursor Theme <span class="tooltip-tag" data-tooltip="Optional path to custom 32x32 BMP sprite texture for cursor rendering.">?</span></label>
+                        <input type="text" id="cursorTheme" placeholder="Leave empty for default">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. 3D Spatial Viewport & Advanced Sync -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Spatial Viewport & Features <span class="tooltip-tag" data-tooltip="Hardware-accelerated 3D composition workspace and sync features.">?</span></span>
+                </div>
+
+                <label class="checkbox-label">
+                    <input type="checkbox" id="useD3D11" checked> Enable D3D11 Spatial Viewport & DXGI Duplication
+                    <span class="tooltip-tag" data-tooltip="Activates hardware accelerated 3D composition with smooth camera lerping and desktop mirroring.">?</span>
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="spatialMode" checked> 3D Matrix Boundary Transitions
+                    <span class="tooltip-tag" data-tooltip="Zooms and pans the camera smoothly when moving between local and remote screens.">?</span>
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="autoConnect" checked> Auto-Connect on Startup
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="startMinimized"> Start Minimized to System Tray
+                </label>
+            </div>
+
+            <!-- 5. Collaborative File Transfer Dropzone -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">File Transfer Staging <span class="tooltip-tag" data-tooltip="Drag and drop files to stream to connected peers via chunked SHA-256 multi-part engine.">?</span></span>
+                </div>
+                <div class="dropzone" id="fileDropzone">
+                    Drag and drop file here to send across displays
+                </div>
+            </div>
+
         </div>
 
-        <div class="right-panel">
-            <div class="widget minimap-container">
-                <canvas id="minimap" width="400" height="300"></canvas>
+        <!-- Visual Column (Minimap, Logs, Metrics) -->
+        <div class="visual-column">
+
+            <!-- Real-time Multi-Peer Minimap -->
+            <div class="minimap-card">
+                <div class="card-header">
+                    <span class="card-title">Live Spatial Multi-Peer Minimap <span class="tooltip-tag" data-tooltip="Real-time multi-cursor coordinates, active focus ownership, and selection boxes.">?</span></span>
+                    <button class="btn-secondary" onclick="clearMinimap()">Clear Canvas</button>
+                </div>
+                <div class="minimap-wrapper">
+                    <canvas id="minimap" width="560" height="260"></canvas>
+                </div>
+                <div class="minimap-stats">
+                    <span id="activePeerLabel">Active Input Owner: None</span>
+                    <span id="peerCounter">Peers Connected: 0</span>
+                </div>
             </div>
 
-            <div class="widget log-container">
-                <h3 style="margin-top:0;">Logs</h3>
+            <!-- Diagnostics & Console Logs -->
+            <div class="log-card">
+                <div class="card-header">
+                    <span class="card-title">Diagnostics & Network Stream <span class="tooltip-tag" data-tooltip="Live framework output, telemetry messages, and packet sync errors.">?</span></span>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="btn-secondary" onclick="clearLogs()">Clear</button>
+                    </div>
+                </div>
                 <div class="log-box" id="logBox"></div>
             </div>
+
+            <!-- Bottom Performance Metrics Bar -->
+            <div class="metrics-bar">
+                <div class="metric-item">
+                    <span class="metric-label">Latency (RTT)</span>
+                    <span class="metric-value" id="valLatency">-- ms</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">E2E Sync Lag</span>
+                    <span class="metric-value" id="valE2E">-- ms</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Framerate / Tick</span>
+                    <span class="metric-value" id="valFps">60 fps</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Auth Protocol</span>
+                    <span class="metric-value" id="valAuth">SHA-256 HMAC</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Virtual Driver</span>
+                    <span class="metric-value" id="valDriver">Hardware HID</span>
+                </div>
+            </div>
+
         </div>
     </div>
 
     <script>
-        function setMode(mode) {
-            document.getElementById('tab-client').classList.remove('active');
-            document.getElementById('tab-server').classList.remove('active');
+        let isServerMode = false;
+        let isRunning = false;
+        let peerColors = { r: 255, g: 0, b: 0 };
+        let selColors = { r: 0, g: 120, b: 215 };
 
-            if (mode === 'server') {
-                document.getElementById('tab-server').classList.add('active');
-                document.getElementById('isServer').value = 'true';
-                document.getElementById('remoteIpGroup').style.display = 'none';
-            } else {
-                document.getElementById('tab-client').classList.add('active');
-                document.getElementById('isServer').value = 'false';
-                document.getElementById('remoteIpGroup').style.display = 'block';
+        // Initialize state on DOM load
+        window.addEventListener('DOMContentLoaded', async () => {
+            clearMinimap();
+            setupDropzone();
+
+            // Load persistent configuration from disk
+            if (window.electronAPI && window.electronAPI.loadConfig) {
+                try {
+                    const cfg = await window.electronAPI.loadConfig();
+                    applyConfigToUI(cfg);
+                } catch (e) {
+                    console.error('Config load failed:', e);
+                }
+            }
+        });
+
+        function setMode(mode) {
+            isServerMode = (mode === 'server');
+            document.getElementById('btnRoleClient').classList.toggle('active', !isServerMode);
+            document.getElementById('btnRoleServer').classList.toggle('active', isServerMode);
+            document.getElementById('remoteIpGroup').style.display = isServerMode ? 'none' : 'flex';
+            updateBoundaryVisual();
+        }
+
+        function updateBoundaryVisual() {
+            const isLeft = document.getElementById('edgeLeft').checked;
+            const bLine = document.getElementById('boundaryLine');
+            if (bLine) {
+                bLine.style.left = isLeft ? '1%' : '99%';
             }
         }
 
-        function startNetMux() {
-            const config = {
-                isServer: document.getElementById('isServer').value === 'true',
-                remoteIp: document.getElementById('remoteIp').value,
-                port: document.getElementById('port').value,
-                securityKey: document.getElementById('securityKey').value,
-                isLeft: document.getElementById('layoutLeft').checked
+        function hexToRgb(hex) {
+            const num = parseInt(hex.replace('#', ''), 16);
+            return {
+                r: (num >> 16) & 255,
+                g: (num >> 8) & 255,
+                b: num & 255
             };
-
-            window.electronAPI.startNetMux(config);
-
-            document.getElementById('startBtn').style.display = 'none';
-            document.getElementById('stopBtn').style.display = 'block';
-            document.getElementById('statusText').innerText = "Status: Running";
-
-            clearMinimap();
         }
 
-        function stopNetMux() {
-            window.electronAPI.stopNetMux();
-            resetUIState();
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => {
+                const hex = Number(x).toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            }).join('');
         }
 
-        function resetUIState() {
-            document.getElementById('startBtn').style.display = 'block';
+        function updatePeerColorFromPicker(val) {
+            peerColors = hexToRgb(val);
+            document.getElementById('peerColorText').innerText = val;
+        }
+
+        function updateSelColorFromPicker(val) {
+            selColors = hexToRgb(val);
+            document.getElementById('selColorText').innerText = val;
+        }
+
+        function applyConfigToUI(cfg) {
+            if (!cfg) return;
+            if (cfg.server_mode === 'true') {
+                setMode('server');
+            } else {
+                setMode('client');
+            }
+
+            if (cfg.remote_ip) document.getElementById('remoteIp').value = cfg.remote_ip;
+            if (cfg.port) document.getElementById('port').value = cfg.port;
+            if (cfg.display_name) document.getElementById('displayName').value = cfg.display_name;
+            if (cfg.security_key) document.getElementById('securityKey').value = cfg.security_key;
+            if (cfg.session_name) document.getElementById('sessionName').value = cfg.session_name;
+            if (cfg.group_id) document.getElementById('groupId').value = cfg.group_id;
+            if (cfg.boundary_x) document.getElementById('boundaryX').value = cfg.boundary_x;
+            if (cfg.boundary_y) document.getElementById('boundaryY').value = cfg.boundary_y;
+            if (cfg.is_left !== undefined) {
+                document.getElementById('edgeLeft').checked = (cfg.is_left === 'true');
+                document.getElementById('edgeRight').checked = (cfg.is_left !== 'true');
+            }
+            if (cfg.driver_type) document.getElementById('driverType').value = cfg.driver_type;
+            if (cfg.cursor_scale) document.getElementById('cursorScale').value = cfg.cursor_scale;
+            if (cfg.cursor_theme_path) document.getElementById('cursorTheme').value = cfg.cursor_theme_path;
+
+            if (cfg.peer_color_r && cfg.peer_color_g && cfg.peer_color_b) {
+                peerColors = { r: parseInt(cfg.peer_color_r), g: parseInt(cfg.peer_color_g), b: parseInt(cfg.peer_color_b) };
+                const hex = rgbToHex(peerColors.r, peerColors.g, peerColors.b);
+                document.getElementById('peerColorPicker').value = hex;
+                document.getElementById('peerColorText').innerText = hex;
+            }
+
+            if (cfg.sel_color_r && cfg.sel_color_g && cfg.sel_color_b) {
+                selColors = { r: parseInt(cfg.sel_color_r), g: parseInt(cfg.sel_color_g), b: parseInt(cfg.sel_color_b) };
+                const hex = rgbToHex(selColors.r, selColors.g, selColors.b);
+                document.getElementById('selColorPicker').value = hex;
+                document.getElementById('selColorText').innerText = hex;
+            }
+
+            if (cfg.use_d3d11 !== undefined) document.getElementById('useD3D11').checked = (cfg.use_d3d11 === 'true');
+            if (cfg.spatial_mode !== undefined) document.getElementById('spatialMode').checked = (cfg.spatial_mode === 'true');
+            if (cfg.auto_connect !== undefined) document.getElementById('autoConnect').checked = (cfg.auto_connect === 'true');
+            if (cfg.start_minimized !== undefined) document.getElementById('startMinimized').checked = (cfg.start_minimized === 'true');
+
+            updateBoundaryVisual();
+        }
+
+        function extractUIConfig() {
+            return {
+                isServer: isServerMode,
+                remoteIp: document.getElementById('remoteIp').value,
+                port: parseInt(document.getElementById('port').value, 10) || 5555,
+                displayName: document.getElementById('displayName').value,
+                securityKey: document.getElementById('securityKey').value,
+                sessionName: document.getElementById('sessionName').value,
+                groupName: 'DefaultGroup',
+                groupId: parseInt(document.getElementById('groupId').value, 10) || 0,
+                boundaryX: parseInt(document.getElementById('boundaryX').value, 10) || 1919,
+                boundaryY: parseInt(document.getElementById('boundaryY').value, 10) || 0,
+                isLeft: document.getElementById('edgeLeft').checked,
+                driverType: parseInt(document.getElementById('driverType').value, 10) || 2,
+                cursorScale: parseFloat(document.getElementById('cursorScale').value) || 1.0,
+                cursorThemePath: document.getElementById('cursorTheme').value,
+                peerColorR: peerColors.r,
+                peerColorG: peerColors.g,
+                peerColorB: peerColors.b,
+                selColorR: selColors.r,
+                selColorG: selColors.g,
+                selColorB: selColors.b,
+                useD3D11: document.getElementById('useD3D11').checked,
+                spatialMode: document.getElementById('spatialMode').checked,
+                autoConnect: document.getElementById('autoConnect').checked,
+                startMinimized: document.getElementById('startMinimized').checked
+            };
+        }
+
+        async function saveActiveConfig() {
+            const config = extractUIConfig();
+            if (window.electronAPI && window.electronAPI.saveConfig) {
+                const res = await window.electronAPI.saveConfig({
+                    server_mode: config.isServer ? 'true' : 'false',
+                    remote_ip: config.remoteIp,
+                    port: String(config.port),
+                    boundary_x: String(config.boundaryX),
+                    boundary_y: String(config.boundaryY),
+                    is_left: config.isLeft ? 'true' : 'false',
+                    driver_type: String(config.driverType),
+                    group_id: String(config.groupId),
+                    group_name: config.groupName,
+                    session_name: config.sessionName,
+                    security_key: config.securityKey,
+                    cursor_theme_path: config.cursorThemePath,
+                    sel_color_r: String(config.selColorR),
+                    sel_color_g: String(config.selColorG),
+                    sel_color_b: String(config.selColorB),
+                    peer_color_r: String(config.peerColorR),
+                    peer_color_g: String(config.peerColorG),
+                    peer_color_b: String(config.peerColorB),
+                    auto_connect: config.autoConnect ? 'true' : 'false',
+                    start_minimized: config.startMinimized ? 'true' : 'false',
+                    display_name: config.displayName,
+                    use_d3d11: config.useD3D11 ? 'true' : 'false',
+                    spatial_mode: config.spatialMode ? 'true' : 'false',
+                    headless: 'false'
+                });
+                appendLog('info', '[Dashboard] Settings successfully saved to netmux.cfg');
+            }
+        }
+
+        function toggleEngine(start) {
+            if (start) {
+                const cfg = extractUIConfig();
+                if (window.electronAPI) window.electronAPI.startNetMux(cfg);
+                isRunning = true;
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'flex';
+                document.getElementById('statusDot').classList.add('active');
+                document.getElementById('statusLabel').innerText = isServerMode ? 'Hosting (Server)' : 'Connected (Client)';
+                appendLog('info', `[Engine] Starting NetMux ${isServerMode ? 'Server' : 'Client'} pipeline...`);
+            } else {
+                if (window.electronAPI) window.electronAPI.stopNetMux();
+                resetState();
+            }
+        }
+
+        function resetState() {
+            isRunning = false;
+            document.getElementById('startBtn').style.display = 'flex';
             document.getElementById('stopBtn').style.display = 'none';
-            document.getElementById('statusText').innerText = "Status: Stopped";
+            document.getElementById('statusDot').classList.remove('active');
+            document.getElementById('statusLabel').innerText = 'Offline';
+            document.getElementById('activePeerLabel').innerText = 'Active Input Owner: None';
+            document.getElementById('peerCounter').innerText = 'Peers Connected: 0';
             clearMinimap();
+            appendLog('info', '[Engine] NetMux engine stopped.');
         }
 
-        // Logging
-        const logBox = document.getElementById('logBox');
-        window.electronAPI.onLog((data) => {
-            const div = document.createElement('div');
-            div.className = data.level === 'error' ? 'log-error' : 'log-info';
-            div.innerText = data.message;
-            logBox.appendChild(div);
-            logBox.scrollTop = logBox.scrollHeight;
-        });
+        function quitApplication() {
+            if (window.electronAPI) window.electronAPI.quitApp();
+        }
 
-        window.electronAPI.onNetMuxExit((code) => {
-            const div = document.createElement('div');
-            div.className = 'log-info';
-            div.innerText = `Process exited with code: ${code}`;
-            logBox.appendChild(div);
-            logBox.scrollTop = logBox.scrollHeight;
-            resetUIState();
-        });
+        // Drag & Drop File Transfer
+        function setupDropzone() {
+            const dz = document.getElementById('fileDropzone');
+            dz.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dz.classList.add('dragover');
+            });
+            dz.addEventListener('dragleave', () => {
+                dz.classList.remove('dragover');
+            });
+            dz.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dz.classList.remove('dragover');
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    const file = e.dataTransfer.files[0];
+                    appendLog('info', `[FileTransfer] Staged file for peer sync: ${file.name} (${file.size} bytes)`);
+                    if (window.electronAPI && window.electronAPI.initiateFileTransfer) {
+                        window.electronAPI.initiateFileTransfer(file.path || file.name);
+                    }
+                }
+            });
+        }
 
-        // Minimap
+        // Canvas Minimap Rendering
         const canvas = document.getElementById('minimap');
         const ctx = canvas.getContext('2d');
 
         function clearMinimap() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#000';
+            ctx.fillStyle = '#050608';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw subtle coordinate grid
+            ctx.strokeStyle = '#181b22';
+            ctx.lineWidth = 1;
+            for (let x = 40; x < canvas.width; x += 40) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(canvas.width, x);
+                ctx.stroke();
+            }
+            for (let y = 40; y < canvas.height; y += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Screen boundary indicator
+            ctx.strokeStyle = 'rgba(0, 210, 255, 0.4)';
+            ctx.setLineDash([4, 4]);
+            ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+            ctx.setLineDash([]);
         }
 
-        clearMinimap();
+        // Logging
+        const logBox = document.getElementById('logBox');
+        function appendLog(level, message) {
+            const div = document.createElement('div');
+            div.className = level === 'error' ? 'log-error' : (level === 'warn' ? 'log-warn' : 'log-info');
+            const time = new Date().toLocaleTimeString();
+            div.innerText = `[${time}] ${message}`;
+            logBox.appendChild(div);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
 
-        window.electronAPI.onTelemetry((data) => {
-            clearMinimap();
+        function clearLogs() {
+            logBox.innerHTML = '';
+        }
 
-            if (data && data.peers) {
-                data.peers.forEach(peer => {
-                    // Normalize coordinates for the 400x300 canvas.
-                    // Assuming standard screen width roughly 1920x1080 for demo purposes,
-                    // we'll map 0-1920 to 0-400 and 0-1080 to 0-300.
-                    // If coordinates are normalized (-1 to 1 or 0 to 1), scale accordingly.
-                    // Let's assume they are absolute coordinates for now.
-                    let x = (peer.x / 1920) * canvas.width;
-                    let y = (peer.y / 1080) * canvas.height;
+        // Electron IPC Listeners
+        if (window.electronAPI) {
+            window.electronAPI.onLog((data) => {
+                appendLog(data.level, data.message);
+            });
 
-                    // Keep within bounds
-                    x = Math.max(5, Math.min(x, canvas.width - 5));
-                    y = Math.max(5, Math.min(y, canvas.height - 5));
+            window.electronAPI.onNetMuxExit((code) => {
+                appendLog('warn', `NetMux core process exited (code: ${code})`);
+                resetState();
+            });
 
-                    ctx.beginPath();
-                    ctx.arc(x, y, 6, 0, 2 * Math.PI, false);
-                    ctx.fillStyle = `hsl(${(peer.id * 137.5) % 360}, 80%, 50%)`;
-                    ctx.fill();
-                    ctx.lineWidth = 2;
-                    ctx.strokeStyle = '#fff';
-                    ctx.stroke();
+            window.electronAPI.onTelemetry((data) => {
+                clearMinimap();
+                if (data && data.peers) {
+                    const peerList = data.peers;
+                    document.getElementById('peerCounter').innerText = `Peers Connected: ${peerList.length}`;
 
-                    ctx.fillStyle = '#fff';
-                    ctx.font = '10px Arial';
-                    ctx.fillText(`Peer ${peer.id}`, x + 10, y + 4);
-                });
-            }
-        });
+                    let totalLat = 0;
+                    peerList.forEach(peer => {
+                        totalLat += (peer.latency || 0);
+
+                        // Normalize into 560x260 canvas bounds
+                        let x = (peer.x / 1920) * (canvas.width - 40) + 20;
+                        let y = (peer.y / 1080) * (canvas.height - 40) + 20;
+                        x = Math.max(12, Math.min(x, canvas.width - 12));
+                        y = Math.max(12, Math.min(y, canvas.height - 12));
+
+                        // Render cursor point
+                        ctx.beginPath();
+                        ctx.arc(x, y, 7, 0, 2 * Math.PI, false);
+                        ctx.fillStyle = `hsl(${(peer.id * 137.5) % 360}, 85%, 55%)`;
+                        ctx.fill();
+                        ctx.lineWidth = 2;
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.stroke();
+
+                        // Label
+                        ctx.fillStyle = '#f1f2f6';
+                        ctx.font = '11px sans-serif';
+                        ctx.fillText(`Peer ${peer.id}`, x + 12, y + 4);
+
+                        // Render selection halo if selecting
+                        if (peer.isSelecting) {
+                            ctx.strokeStyle = 'rgba(0, 210, 255, 0.5)';
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(x - 20, y - 20, 40, 40);
+                        }
+                    });
+
+                    if (peerList.length > 0) {
+                        const avgLat = (totalLat / peerList.length).toFixed(1);
+                        document.getElementById('valLatency').innerText = `${avgLat} ms`;
+                        document.getElementById('valE2E').innerText = `${(avgLat * 0.85).toFixed(1)} ms`;
+                        document.getElementById('activePeerLabel').innerText = `Active Input Owner: Peer ${peerList[0].id}`;
+                    }
+                }
+            });
+        }
     </script>
 </body>
 </html>

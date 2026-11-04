@@ -1,3 +1,15 @@
+## [0.1.91-alpha] - 2026-11-04
+
+### Added
+
+- Comprehensive unified single-page Command Dashboard redesign (`ui/index.html`, `ui/main.js`, `ui/preload.js`):
+  - Consolidated all controls, screens, boundary configuration, live minimap, diagnostics, file staging dropzone, and performance metrics onto one cohesive dashboard.
+  - Added descriptive labels and contextual tooltips `[?]` explaining all settings (network identity, virtual HID drivers, pre-shared key, 3D viewport, and boundary hops).
+  - Wired full two-way config persistence (`loadConfig` and `saveConfig` IPC) directly synchronizing with `netmux.cfg`.
+  - Added Electron native System Tray integration with menu actions (Show Dashboard, Stop NetMux Backend, and Quit MultiMousergy) with double-click window toggle.
+  - Added expanded CLI arguments in `src/main.cpp` (`--driver-type`, `--display-name`, `--session-name`, `--group-name`, `--group-id`, `--peer-color`, `--sel-color`, `--cursor-theme`, `--cursor-scale`, `--spatial`) for complete UI-to-backend parity.
+  - Organized and modernized build/run scripts under `scripts/` (`build.sh`, `run_server.sh`, `run_client.sh`, `build.bat`, `run_server.bat`, `run_client.bat`), archiving legacy files nondestructively.
+
 ## [0.1.90-alpha] - 2026-08-03
 
 ### Added

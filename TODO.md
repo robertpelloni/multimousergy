@@ -38,6 +38,9 @@
 - [x] WebRTC Integration: Setup Native C++ Data & Media pipeline scaffolding and signaling integration.
 - [x] Implement WebRTC Media Pipeline scaffolding for synchronized webcam/audio streams.
 - [x] Replace Win32 ConfigGUI with Electron-based webview architecture (headless C++ mode with JSON telemetry).
+- [x] Consolidate Electron frontend into a single-page unified command dashboard with comprehensive tooltips, persistent config sync, and tray controls.
+- [x] Full CLI synchronization in `src/main.cpp` for driver types, peer colors, group info, display names, and 3D spatial mode.
+- [x] Clean and modernize cross-platform build and run scripts in `scripts/`.
 - [x] Implement macOS CoreGraphics driver stubs for cross-platform expansion.
 - [ ] Complete libwebrtc native library integration (currently using stubs).
 - [ ] Implement IMFMediaSource enumerators for webcam capture.

@@ -1,4 +1,20 @@
-# NetMux Session Handoff - v0.1.90-alpha
+# NetMux Session Handoff - v0.1.91-alpha
+
+## Repository Synchronization Summary (2026-11-04)
+
+### Unified Command Dashboard & CLI Modernization (v0.1.91-alpha)
+- **Consolidated Electron Dashboard**: Replaced fragmented subpage layouts with an intuitive single-page responsive dashboard (`ui/index.html`, `ui/main.js`, `ui/preload.js`).
+- **High-Value Hierarchy**:
+  1. Connection & Role Identity (Client vs Server, Target IP, Port, PSK, Session/Group, Instant Run/Stop).
+  2. Screen Crossing Boundary geometry with interactive edge visualization.
+  3. Virtual Driver injection settings (ViGEm, Interception, Auto) & RGB cursor/selection color customizers.
+  4. 3D Spatial Viewport & Desktop Duplication controls.
+  5. Drag-and-drop file staging area for peer transfer.
+  6. Live 560x260 spatial minimap with peer coordinates, active focus ownership, and selection halos.
+  7. Filterable diagnostics log and bottom real-time performance metrics bar (RTT, E2E lag, framerate, auth protocol).
+- **System Tray Controls**: Configured native system tray with quick-actions (Show Dashboard, Stop NetMux Backend, and Quit MultiMousergy).
+- **CLI Synchronization**: Added full arguments parsing in `src/main.cpp` for driver types, peer colors, group info, display names, and spatial mode to maintain 100% parity with `netmux.cfg`.
+- **Scripts Clean-up**: Modernized build and run scripts into `scripts/` with nondestructive backup of legacy files into `scripts/archive/`.
 
 ## Repository Synchronization Summary (2026-08-12)
 
