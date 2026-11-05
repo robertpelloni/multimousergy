@@ -6,6 +6,7 @@
 #include <fstream>
 #include <mutex>
 #include <functional>
+#include <cstdint>
 
 enum class FileTransferError {
     None,

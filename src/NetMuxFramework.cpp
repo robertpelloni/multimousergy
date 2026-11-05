@@ -98,6 +98,8 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
             }
             if (!m_capture.Initialize(d3dDevice, d3dContext)) {
                 std::cerr << "[Warning] Failed to initialize DXGI Desktop Duplication." << std::endl;
+            } else {
+                std::cout << "[Info] D3D11 Spatial pipeline active (SpatialViewport + DXGI Capture)." << std::endl;
             }
         } else {
             std::cout << "[Info] D3D11 not available, using GDI overlay." << std::endl;
@@ -204,16 +206,21 @@ void NetMuxFramework::Run() {
         }
 #endif
 
-        // Update input capture permission based on connectivity
-        auto allPeers = m_sync.GetAllPeers();
-        bool hasExternalPeers = false;
-        for (auto const& [id, p] : allPeers) {
-            if (id != m_localId) {
-                hasExternalPeers = true;
-                break;
+        // Update input capture permission based on connectivity (cached, only check periodically)
+        static double lastPeerCheck = 0;
+        static bool s_hasExternalPeers = false;
+        if (m_loopTimer.ElapsedMilliseconds() - lastPeerCheck > 500.0) {
+            auto allPeers = m_sync.GetAllPeers();
+            s_hasExternalPeers = false;
+            for (auto const& [id, p] : allPeers) {
+                if (id != m_localId) {
+                    s_hasExternalPeers = true;
+                    break;
+                }
             }
+            m_input.SetPeerConnected(s_hasExternalPeers);
+            lastPeerCheck = m_loopTimer.ElapsedMilliseconds();
         }
-        m_input.SetPeerConnected(hasExternalPeers);
 
         // Output UI Telemetry to stdout (JSON format) — only when headless/piped
         static double lastUIUpdate = 0;
@@ -252,21 +259,24 @@ void NetMuxFramework::Run() {
             std::map<unsigned long long, PeerState> peers = m_sync.GetAllPeers();
             double avgLatency = 0;
             double avgE2ELatency = 0;
-            if (!peers.empty()) {
-                for (auto const& [id, s] : peers) {
-                    avgLatency += s.latency;
-                    avgE2ELatency += s.e2eLatency;
-                }
-                avgLatency /= peers.size();
-                avgE2ELatency /= peers.size();
+            int remoteCount = 0;
+            for (auto const& [id, s] : peers) {
+                if (id == m_localId) continue;
+                avgLatency += s.latency;
+                avgE2ELatency += s.e2eLatency;
+                remoteCount++;
+            }
+            if (remoteCount > 0) {
+                avgLatency /= remoteCount;
+                avgE2ELatency /= remoteCount;
             }
 
-            std::cout << "[Perf] Frame: " << dt << "ms | RTT: " << avgLatency << "ms | E2E: " << avgE2ELatency << "ms | Peers: " << peers.size() << std::endl;
+            std::cout << "[Perf] Frame: " << dt << "ms | RTT: " << avgLatency << "ms | E2E: " << avgE2ELatency << "ms | Peers: " << remoteCount << std::endl;
 
             if (m_benchmarking) {
                 std::ofstream benchFile("BENCHMARK_RESULTS.csv", std::ios::app);
                 if (benchFile.is_open()) {
-                    benchFile << m_loopTimer.ElapsedMilliseconds() << "," << dt << "," << avgLatency << "," << avgE2ELatency << "," << peers.size() << "\n";
+                    benchFile << m_loopTimer.ElapsedMilliseconds() << "," << dt << "," << avgLatency << "," << avgE2ELatency << "," << remoteCount << "\n";
                 }
             }
 
@@ -301,7 +311,7 @@ void NetMuxFramework::Run() {
             
 #ifdef _WIN32
             // Delegate spatial rendering to SpatialViewport if D3D11 is used
-            if (m_settings.useD3D11 && m_overlay.GetD3D11Context() != nullptr) {
+            if (m_settings.useD3D11 && m_overlay.GetD3D11Context() != nullptr && !overlayPeers.empty()) {
                 // Get local DPI scale
                 float localDpi = 1.0f;
                 HDC hdc = GetDC(NULL);
@@ -662,6 +672,7 @@ void NetMuxFramework::PerformSyncCheck() {
     if (m_loopTimer.ElapsedMilliseconds() - lastSyncCheck > 500.0) {
         auto peers = m_sync.GetAllPeers();
         for (auto const& [id, peer] : peers) {
+            if (id == m_localId) continue;
             Packet checkPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::SyncCheck, peer.normalizedX, peer.normalizedY, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
             checkPkt.button = (int)id;
             m_network.SendPacket(checkPkt);
@@ -676,6 +687,7 @@ void NetMuxFramework::PerformMasterStateSync() {
     if (m_loopTimer.ElapsedMilliseconds() - lastMasterSync > 100.0) {
         auto peers = m_sync.GetAllPeers();
         for (auto const& [id, peer] : peers) {
+            if (id == m_localId) continue; // Skip self
             // Optimization: Only broadcast master state if position has changed
             if (m_lastMasterSyncPos.count(id) == 0 ||
                 m_lastMasterSyncPos[id].first != peer.normalizedX ||
