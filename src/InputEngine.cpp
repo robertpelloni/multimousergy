@@ -189,13 +189,18 @@ void InputEngine::Update() {
             if (newVX != m_virtualX || newVY != m_virtualY) {
                 int dx = newVX - m_virtualX;
                 int dy = newVY - m_virtualY;
+
+                // Bandwidth Optimization: Filter zero-delta sub-pixel noise
+                if (dx == 0 && dy == 0) return;
+
                 m_virtualX = newVX;
                 m_virtualY = newVY;
 
                 if (m_isCaptured) m_accumulatedX += dx;
 
+                // Adaptive Delta Compression: Send 1 Absolute anchor per 25 Delta packets during continuous motion
                 static int linuxMoveCount = 0;
-                NetMuxPacketType moveType = (linuxMoveCount++ % 10 == 0) ? NetMuxPacketType::AbsoluteMovement : NetMuxPacketType::DeltaMovement;
+                NetMuxPacketType moveType = (linuxMoveCount++ % 25 == 0) ? NetMuxPacketType::AbsoluteMovement : NetMuxPacketType::DeltaMovement;
                 Packet pkt = { 0, 0, 0, 0.0, moveType, (moveType == NetMuxPacketType::DeltaMovement) ? dx : m_virtualX, (moveType == NetMuxPacketType::DeltaMovement) ? dy : m_virtualY, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
                 m_pendingPackets.push(pkt);
             }
@@ -239,13 +244,16 @@ void InputEngine::Update() {
     if (newVX != m_virtualX || newVY != m_virtualY) {
         int dx = newVX - m_virtualX;
         int dy = newVY - m_virtualY;
+
+        // Bandwidth Optimization: Filter zero-delta sub-pixel noise
+        if (dx == 0 && dy == 0) return;
+
         m_virtualX = newVX;
         m_virtualY = newVY;
 
-        // Use Delta Compression if movement is small enough to fit in a signed 16-bit int (which is always true for cursor delta)
-        // But for protocol simplicity, we always send as int and label it DeltaMovement
+        // Adaptive Delta Compression: Send 1 Absolute anchor per 25 Delta packets during continuous motion
         static int moveCount = 0;
-        NetMuxPacketType moveType = (moveCount++ % 10 == 0) ? NetMuxPacketType::AbsoluteMovement : NetMuxPacketType::DeltaMovement;
+        NetMuxPacketType moveType = (moveCount++ % 25 == 0) ? NetMuxPacketType::AbsoluteMovement : NetMuxPacketType::DeltaMovement;
 
         Packet pkt = { 0, 0, 0, 0.0, moveType, (moveType == NetMuxPacketType::DeltaMovement) ? dx : m_virtualX, (moveType == NetMuxPacketType::DeltaMovement) ? dy : m_virtualY, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
         m_pendingPackets.push(pkt);

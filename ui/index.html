@@ -973,7 +973,7 @@
             for (let x = 40; x < canvas.width; x += 40) {
                 ctx.beginPath();
                 ctx.moveTo(x, 0);
-                ctx.lineTo(canvas.width, x);
+                ctx.lineTo(x, canvas.height);
                 ctx.stroke();
             }
             for (let y = 40; y < canvas.height; y += 40) {
@@ -1047,6 +1047,22 @@
                         let y = (peer.y / 1080) * (canvas.height - 40) + 20;
                         x = Math.max(12, Math.min(x, canvas.width - 12));
                         y = Math.max(12, Math.min(y, canvas.height - 12));
+
+                        // Render Focus Halo Visual Feedback (Pulsing neon ring for active input owner)
+                        const isActivePeer = (peerList.length > 0 && peer.id === peerList[0].id);
+                        if (isActivePeer) {
+                            ctx.beginPath();
+                            ctx.arc(x, y, 14, 0, 2 * Math.PI, false);
+                            ctx.strokeStyle = 'rgba(0, 210, 255, 0.7)';
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+
+                            ctx.beginPath();
+                            ctx.arc(x, y, 18, 0, 2 * Math.PI, false);
+                            ctx.strokeStyle = 'rgba(0, 210, 255, 0.3)';
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+                        }
 
                         // Render cursor point
                         ctx.beginPath();

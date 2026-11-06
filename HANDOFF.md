@@ -1,6 +1,10 @@
-# NetMux Session Handoff - v0.1.92-alpha
+# NetMux Session Handoff - v0.1.93-alpha
 
 ## Repository Synchronization Summary (2026-11-04)
+
+### Focus Halo Polish & Bandwidth Optimization (v0.1.93-alpha)
+- **Focus Halo Visual Feedback**: Enhanced the active focus halo in both `D3D11Overlay.cpp` and `ui/index.html` with dual-layer electric cyan pulsing rings for intuitive visual input ownership identification.
+- **Bandwidth Optimization**: Implemented adaptive delta compression in `InputEngine.cpp` (sending 1 absolute anchor per 25 delta packets) and zero-delta sub-pixel noise filtering to significantly reduce network payload overhead.
 
 ### Interactive 3D Spatial Boundary Visualizer (v0.1.92-alpha)
 - **Spatial Viewport Edge Visualizer**: Created dynamic D3D11 boundary line geometry and pixel shader rendering neon cyan crossing borders between local and remote workspace planes in `SpatialViewport.cpp`.

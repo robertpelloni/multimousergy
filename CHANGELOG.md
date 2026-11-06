@@ -1,3 +1,14 @@
+## [0.1.93-alpha] - 2026-11-04
+
+### Added
+
+- Focus Halo Visual Feedback Refinement (`D3D11Overlay.cpp`, `ui/index.html`):
+  - Upgraded active peer cursor indicator in D3D11Overlay with dual-layer electric cyan animated focus halo ring.
+  - Added matching live focus halo pulse rings in the dashboard minimap canvas around the active input owner.
+- Bandwidth Optimization (`InputEngine.cpp`):
+  - Implemented adaptive delta compression throttling (1:25 absolute anchor ratio during continuous high-velocity motions).
+  - Added sub-pixel zero-delta redundant packet suppression to conserve network traffic.
+
 ## [0.1.92-alpha] - 2026-11-04
 
 ### Added
