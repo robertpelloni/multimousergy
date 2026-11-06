@@ -41,6 +41,7 @@
 - [x] Consolidate Electron frontend into a single-page unified command dashboard with comprehensive tooltips, persistent config sync, and tray controls.
 - [x] Full CLI synchronization in `src/main.cpp` for driver types, peer colors, group info, display names, and 3D spatial mode.
 - [x] Clean and modernize cross-platform build and run scripts in `scripts/`.
+- [x] Implement interactive screen edge boundary visualizer in SpatialViewport linked to netmux.cfg settings.
 - [x] Implement macOS CoreGraphics driver stubs for cross-platform expansion.
 - [ ] Complete libwebrtc native library integration (currently using stubs).
 - [ ] Implement IMFMediaSource enumerators for webcam capture.

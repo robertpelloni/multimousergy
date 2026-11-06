@@ -90,6 +90,7 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
 
 #ifdef _WIN32
     if (m_settings.useD3D11 || m_settings.spatialMode) {
+        m_spatialViewport.SetBoundaryConfig(m_settings.inputConfig.boundaryX, m_settings.inputConfig.boundaryY, m_settings.inputConfig.isLeft);
         ID3D11Device* d3dDevice = (ID3D11Device*)m_overlay.GetD3D11Device();
         ID3D11DeviceContext* d3dContext = (ID3D11DeviceContext*)m_overlay.GetD3D11Context();
         if (d3dDevice) {

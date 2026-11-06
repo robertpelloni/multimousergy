@@ -1,6 +1,11 @@
-# NetMux Session Handoff - v0.1.91-alpha
+# NetMux Session Handoff - v0.1.92-alpha
 
 ## Repository Synchronization Summary (2026-11-04)
+
+### Interactive 3D Spatial Boundary Visualizer (v0.1.92-alpha)
+- **Spatial Viewport Edge Visualizer**: Created dynamic D3D11 boundary line geometry and pixel shader rendering neon cyan crossing borders between local and remote workspace planes in `SpatialViewport.cpp`.
+- **Framework & Config Coupling**: Wired `SetBoundaryConfig` in `NetMuxFramework.cpp` to pass boundary thresholds and orientation (`boundaryX`, `boundaryY`, `isLeft`) directly from `netmux.cfg` to the viewport.
+- **Interactive UI Dragging**: Added interactive boundary drag listeners in `ui/index.html` allowing real-time dragging of crossing thresholds and immediate visual reflection on both the boundary bar and the 560x260 live minimap.
 
 ### Unified Command Dashboard & CLI Modernization (v0.1.91-alpha)
 - **Consolidated Electron Dashboard**: Replaced fragmented subpage layouts with an intuitive single-page responsive dashboard (`ui/index.html`, `ui/main.js`, `ui/preload.js`).

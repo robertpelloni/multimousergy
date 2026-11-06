@@ -1,3 +1,12 @@
+## [0.1.92-alpha] - 2026-11-04
+
+### Added
+
+- Interactive Screen Edge Boundary Visualizer in Spatial Viewport (`SpatialViewport.hpp`, `SpatialViewport.cpp`):
+  - Dynamic D3D11 boundary line geometry rendering directly between local and remote workspace planes with neon electric cyan highlight.
+  - Linked boundary configuration (`SetBoundaryConfig`, `GetBoundaryConfig`) directly between `NetMuxFramework` and `SpatialViewport`.
+  - Interactive boundary edge visualizer with real-time drag adjustments in both the configuration dashboard and live minimap (`ui/index.html`).
+
 ## [0.1.91-alpha] - 2026-11-04
 
 ### Added

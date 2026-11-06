@@ -56,6 +56,7 @@
 - [x] DXGI Desktop Duplication Skeleton (Windows) and X11 Frame Capture (Linux).
 - [x] 3D Composition Engine: D3D11-based spatial viewport basics.
 - [x] Boundary Animation: Smooth pan/zoom transitions via matrix interpolation.
+- [x] Interactive Spatial Viewport Boundaries: Screen edge boundary visualizer directly rendering in 3D space with real-time UI synchronization.
 - [x] Webcam/Media Pipeline Skeletons (Windows Media Foundation).
 - [x] macOS CoreGraphics driver stubs for cross-platform expansion.
 - [ ] Complete H.264 Encoder/Decoder Implementation.

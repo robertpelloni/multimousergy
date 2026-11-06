@@ -21,11 +21,31 @@ public:
     void SetLocalDesktopTexture(ID3D11ShaderResourceView* srv) { m_localSRV = srv; }
     void SetRemoteDesktopTexture(ID3D11ShaderResourceView* srv) { m_remoteSRV = srv; }
     void UpdateLocalDesktopFrame(ID3D11Texture2D* frame, ID3D11Device* device);
+    void SetBoundaryConfig(int boundaryX, int boundaryY, bool isLeft) {
+        m_boundaryX = boundaryX;
+        m_boundaryY = boundaryY;
+        m_isLeft = isLeft;
+    }
+    void GetBoundaryConfig(int& boundaryX, int& boundaryY, bool& isLeft) const {
+        boundaryX = m_boundaryX;
+        boundaryY = m_boundaryY;
+        isLeft = m_isLeft;
+    }
 #else
     bool Initialize(void* device) { return false; }
     void Update(float deltaTime, bool isCrossingBorder) {}
     void Render(void* context, const std::map<unsigned long long, RemoteCursorState>& peers, float localDpiScale) {}
     void UpdateLocalDesktopFrame(void* frame, void* device) {}
+    void SetBoundaryConfig(int boundaryX, int boundaryY, bool isLeft) {
+        m_boundaryX = boundaryX;
+        m_boundaryY = boundaryY;
+        m_isLeft = isLeft;
+    }
+    void GetBoundaryConfig(int& boundaryX, int& boundaryY, bool& isLeft) const {
+        boundaryX = m_boundaryX;
+        boundaryY = m_boundaryY;
+        isLeft = m_isLeft;
+    }
 #endif
 
 private:
@@ -55,5 +75,12 @@ private:
 
     ID3D11ShaderResourceView* m_localSRV;
     ID3D11ShaderResourceView* m_remoteSRV;
+
+    ID3D11Buffer* m_boundaryVertexBuffer = nullptr;
+    ID3D11PixelShader* m_boundaryPixelShader = nullptr;
 #endif
+
+    int m_boundaryX = 1919;
+    int m_boundaryY = 0;
+    bool m_isLeft = true;
 };

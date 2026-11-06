@@ -732,9 +732,41 @@
         function updateBoundaryVisual() {
             const isLeft = document.getElementById('edgeLeft').checked;
             const bLine = document.getElementById('boundaryLine');
+            const bxInput = document.getElementById('boundaryX');
+            let bx = parseInt(bxInput.value, 10) || (isLeft ? 0 : 1919);
+            let pct = Math.max(0, Math.min(100, (bx / 1920) * 100));
             if (bLine) {
-                bLine.style.left = isLeft ? '1%' : '99%';
+                bLine.style.left = pct + '%';
             }
+            clearMinimap();
+        }
+
+        // Interactive Boundary Bar Dragging
+        const boundaryBar = document.querySelector('.boundary-bar');
+        if (boundaryBar) {
+            let isDraggingBoundary = false;
+            const handleBoundaryMove = (e) => {
+                const rect = boundaryBar.getBoundingClientRect();
+                const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                const bx = Math.round(pos * 1920);
+                document.getElementById('boundaryX').value = bx;
+                if (bx < 960) {
+                    document.getElementById('edgeLeft').checked = true;
+                } else {
+                    document.getElementById('edgeRight').checked = true;
+                }
+                updateBoundaryVisual();
+            };
+            boundaryBar.addEventListener('mousedown', (e) => {
+                isDraggingBoundary = true;
+                handleBoundaryMove(e);
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (isDraggingBoundary) handleBoundaryMove(e);
+            });
+            window.addEventListener('mouseup', () => {
+                isDraggingBoundary = false;
+            });
         }
 
         function hexToRgb(hex) {
@@ -956,6 +988,22 @@
             ctx.setLineDash([4, 4]);
             ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
             ctx.setLineDash([]);
+
+            // Interactive 3D Spatial Boundary Threshold in Minimap
+            const isLeft = document.getElementById('edgeLeft') && document.getElementById('edgeLeft').checked;
+            const bx = parseInt(document.getElementById('boundaryX').value, 10) || (isLeft ? 0 : 1919);
+            const lineX = 10 + (bx / 1920) * (canvas.width - 20);
+
+            ctx.strokeStyle = '#00d2ff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(lineX, 10);
+            ctx.lineTo(lineX, canvas.height - 10);
+            ctx.stroke();
+
+            ctx.fillStyle = '#00d2ff';
+            ctx.font = '10px monospace';
+            ctx.fillText(`Boundary Edge (${isLeft ? 'L' : 'R'}) : X=${bx}`, Math.min(lineX + 5, canvas.width - 150), 22);
         }
 
         // Logging
