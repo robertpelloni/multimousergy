@@ -563,7 +563,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
                         m_lastClipboardTimestamp = remoteTimestamp;
                         buffer.clear();
                     }
-                    if (m_settings.isServer) m_network.SendPacket(inPkt);
+                    if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
                 }
             }
         } else if (inPkt.type == NetMuxPacketType::Handshake) {

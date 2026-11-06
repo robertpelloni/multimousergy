@@ -1,3 +1,10 @@
+## [0.1.95-alpha] - 2026-11-04
+
+### Added
+- Integrated `test_group_isolation()` unit test into `test_main.cpp` suite, verifying server group-aware packet filtering.
+- Group-Aware Clipboard Relay: Updated server clipboard forwarding in `NetMuxFramework.cpp` to use `SendPacketToGroup` instead of broadcast to ensure multi-team isolation.
+- Fixed boundary coordinate parsing in UI config extraction to safely accept 0 without defaulting to 1919.
+
 ## [0.1.94-alpha] - 2026-11-04
 
 ### Added

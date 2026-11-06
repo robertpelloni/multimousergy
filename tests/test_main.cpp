@@ -86,6 +86,7 @@ int main() {
     test_clipboard_module();
     test_authoritative_sync_consistency();
     test_multithreaded_sync_integrity();
+    test_group_isolation();
     test_sync_detailed_suite();
     test_file_transfer_engine();
     test_webcam_capture();

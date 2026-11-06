@@ -851,7 +851,7 @@
                 sessionName: document.getElementById('sessionName').value,
                 groupName: 'DefaultGroup',
                 groupId: parseInt(document.getElementById('groupId').value, 10) || 0,
-                boundaryX: parseInt(document.getElementById('boundaryX').value, 10) || 1919,
+                boundaryX: isNaN(parseInt(document.getElementById('boundaryX').value, 10)) ? 1919 : parseInt(document.getElementById('boundaryX').value, 10),
                 boundaryY: parseInt(document.getElementById('boundaryY').value, 10) || 0,
                 isLeft: document.getElementById('edgeLeft').checked,
                 driverType: parseInt(document.getElementById('driverType').value, 10) || 2,
@@ -991,7 +991,8 @@
 
             // Interactive 3D Spatial Boundary Threshold in Minimap
             const isLeft = document.getElementById('edgeLeft') && document.getElementById('edgeLeft').checked;
-            const bx = parseInt(document.getElementById('boundaryX').value, 10) || (isLeft ? 0 : 1919);
+            const parsedBx = parseInt(document.getElementById('boundaryX').value, 10);
+            const bx = isNaN(parsedBx) ? (isLeft ? 0 : 1919) : parsedBx;
             const lineX = 10 + (bx / 1920) * (canvas.width - 20);
 
             ctx.strokeStyle = '#00d2ff';
