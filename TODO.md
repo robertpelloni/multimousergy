@@ -44,5 +44,5 @@
 - [x] Implement interactive screen edge boundary visualizer in SpatialViewport linked to netmux.cfg settings.
 - [x] Implement macOS CoreGraphics driver stubs for cross-platform expansion.
 - [ ] Complete libwebrtc native library integration (currently using stubs).
-- [ ] Implement IMFMediaSource enumerators for webcam capture.
+- [x] Implement IMFMediaSource enumerators for webcam capture.
 - [ ] Complete H.264 encoder/decoder implementation.

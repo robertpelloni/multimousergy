@@ -1,3 +1,12 @@
+## [0.1.94-alpha] - 2026-11-04
+
+### Added
+
+- Hardware Webcam Capture Device Enumeration (`WebcamCapture.hpp`, `WebcamCapture.cpp`):
+  - Implemented Windows Media Foundation `IMFMediaSource` device enumeration via `MFEnumDeviceSources` with `MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID`.
+  - Added `WebcamDeviceInfo` metadata tracking device index, friendly names, and symbolic endpoint IDs.
+  - Added unit test `test_webcam_capture()` in `tests/test_main.cpp` validating device enumeration, activation, reading, and cleanup lifecycle across platforms.
+
 ## [0.1.93-alpha] - 2026-11-04
 
 ### Added

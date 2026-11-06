@@ -6,6 +6,7 @@
 #include "NetworkManager.hpp"
 #include "SyncModule.hpp"
 #include "ClipboardModule.hpp"
+#include "WebcamCapture.hpp"
 
 void test_concurrent_cursor_sync();
 void test_group_isolation();
@@ -27,6 +28,23 @@ void test_authoritative_sync_consistency();
 void test_multithreaded_sync_integrity();
 void test_sync_detailed_suite();
 void test_file_transfer_engine();
+
+void test_webcam_capture() {
+    std::cout << "Testing WebcamCapture device enumeration and lifecycle..." << std::endl;
+    WebcamCapture cap;
+    assert(!cap.IsCapturing());
+    auto devices = cap.EnumerateDevices();
+    assert(!devices.empty());
+    std::cout << "Discovered video capture device: " << devices[0].name << std::endl;
+    bool initOk = cap.Initialize(0);
+    assert(initOk);
+    assert(cap.IsCapturing());
+    assert(cap.GetCurrentDeviceInfo().index == 0);
+    cap.Update();
+    cap.Shutdown();
+    assert(!cap.IsCapturing());
+    std::cout << "WebcamCapture lifecycle test passed!" << std::endl;
+}
 
 void test_sync_module_interpolation() {
     std::cout << "Testing SyncModule interpolation..." << std::endl;
@@ -70,6 +88,7 @@ int main() {
     test_multithreaded_sync_integrity();
     test_sync_detailed_suite();
     test_file_transfer_engine();
+    test_webcam_capture();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }
