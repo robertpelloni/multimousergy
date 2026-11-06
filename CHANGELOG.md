@@ -1,3 +1,10 @@
+## [0.1.96-alpha] - 2026-11-04
+
+### Added
+- Collaborative Selection Bounding Box Rendering:
+  - Updated `NetMuxFramework.cpp` to stream `selStartX` and `selStartY` in JSON telemetry.
+  - Enhanced Electron live minimap in `ui/index.html` to render live selection bounding rectangles with dashed borders and fill while dragging.
+
 ## [0.1.95-alpha] - 2026-11-04
 
 ### Added

@@ -51,5 +51,5 @@ NetMux.exe --client <Server_IP> --port 5555 --boundary-x 0
 
 ## Status
 
-Prototype, v0.1.95-alpha. Created May 2026; latest commits include enhanced focus halo visual feedback, adaptive delta compression bandwidth optimization, interactive 3D spatial edge boundary visualizer, and consolidated unified Electron dashboard. MIT licensed (see `LICENSE`). Design docs:
+Prototype, v0.1.96-alpha. Created May 2026; latest commits include enhanced focus halo visual feedback, adaptive delta compression bandwidth optimization, interactive 3D spatial edge boundary visualizer, and consolidated unified Electron dashboard. MIT licensed (see `LICENSE`). Design docs:
 `VISION.md`, `ROADMAP.md`, `HANDOFF.md`.

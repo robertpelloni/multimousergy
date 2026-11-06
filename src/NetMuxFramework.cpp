@@ -237,6 +237,8 @@ void NetMuxFramework::Run() {
                           << ",\"y\":" << p.second.y
                           << ",\"latency\":" << p.second.latency
                           << ",\"isSelecting\":" << (p.second.isSelecting ? "true" : "false")
+                          << ",\"selStartX\":" << p.second.selStartX
+                          << ",\"selStartY\":" << p.second.selStartY
                           << ",\"groupId\":" << p.second.groupId
                           << "}";
                 first = false;
