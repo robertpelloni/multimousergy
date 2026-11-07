@@ -7,11 +7,21 @@
 #include "webrtc_mock.hpp"
 #include "VideoEncoder.hpp"
 #include "VideoDecoder.hpp"
+#include <map>
 
 #ifdef _WIN32
 struct ID3D11ShaderResourceView;
 struct ID3D11Texture2D;
 #endif
+
+struct PeerMediaStream {
+    unsigned long long peerId = 0;
+    std::vector<uint8_t> latestVideoPacket;
+    std::vector<uint8_t> latestAudioPacket;
+    double lastTimestamp = 0.0;
+    bool hasActiveVideo = false;
+    bool hasActiveAudio = false;
+};
 
 class WebRTCManager {
 public:
@@ -28,6 +38,11 @@ public:
     bool IsConnected() const;
     void SetConnected(bool connected);
     void Shutdown();
+
+    // Synchronized peer video & audio streaming (Video Chat)
+    void SyncPeerMediaStreams(unsigned long long peerId, const std::vector<uint8_t>& videoPacket, const std::vector<uint8_t>& audioPacket, double timestamp);
+    bool GetPeerMediaStream(unsigned long long peerId, PeerMediaStream& outStream) const;
+    void ClearPeerMediaStream(unsigned long long peerId);
 
     // Media track management
     void SendDesktopFrame(void* frameData);
@@ -74,6 +89,7 @@ private:
 
     VideoEncoder m_videoEncoder;
     VideoDecoder m_videoDecoder;
+    std::map<unsigned long long, PeerMediaStream> m_peerStreams;
 
     std::function<void(const std::string&)> m_signalingCallback;
     std::function<void(const std::vector<uint8_t>&)> m_videoFrameCallback;

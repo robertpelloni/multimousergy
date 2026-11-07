@@ -1,3 +1,11 @@
+## [0.1.105-alpha] - 2026-11-04
+
+### Added
+- Integrated Video Chat Media Stream Synchronization:
+  - Implemented `PeerMediaStream` struct and synchronized stream management in `WebRTCManager` (`SyncPeerMediaStreams`, `GetPeerMediaStream`, `ClearPeerMediaStream`) to coordinate video packets, spatial audio, and presentation timestamps.
+  - Added real-time Video Chat status badge to the live spatial minimap stats bar in the Electron Command Dashboard.
+  - Added unit test `test_integrated_video_chat_sync()` in `tests/test_main.cpp`.
+
 ## [0.1.104-alpha] - 2026-11-04
 
 ### Added

@@ -159,6 +159,34 @@ void test_webrtc_audio_pipeline() {
     std::cout << "WebRTCManager spatial audio pipeline test passed!" << std::endl;
 }
 
+void test_integrated_video_chat_sync() {
+    std::cout << "Testing Integrated Video Chat stream synchronizer..." << std::endl;
+    WebRTCManager rtc;
+    unsigned long long peerId = 888;
+
+    PeerMediaStream stream;
+    assert(!rtc.GetPeerMediaStream(peerId, stream));
+
+    std::vector<uint8_t> mockVideoPacket = { 0x00, 0x00, 0x00, 0x01, 0x67, 0x42, 0x00, 0x1E };
+    std::vector<uint8_t> mockAudioPacket = { 0xFF, 0xF1, 0x50, 0x80 };
+    double timestamp = 12345.67;
+
+    rtc.SyncPeerMediaStreams(peerId, mockVideoPacket, mockAudioPacket, timestamp);
+
+    assert(rtc.GetPeerMediaStream(peerId, stream));
+    assert(stream.peerId == peerId);
+    assert(stream.hasActiveVideo == true);
+    assert(stream.hasActiveAudio == true);
+    assert(stream.latestVideoPacket.size() == mockVideoPacket.size());
+    assert(stream.latestAudioPacket.size() == mockAudioPacket.size());
+    assert(stream.lastTimestamp == timestamp);
+
+    rtc.ClearPeerMediaStream(peerId);
+    assert(!rtc.GetPeerMediaStream(peerId, stream));
+
+    std::cout << "Integrated Video Chat stream synchronizer test passed!" << std::endl;
+}
+
 void test_sync_module_interpolation() {
     std::cout << "Testing SyncModule interpolation..." << std::endl;
     SyncModule sync;
@@ -368,6 +396,7 @@ int main() {
     test_video_codec_pipeline();
     test_webrtc_manager_pipeline();
     test_webrtc_audio_pipeline();
+    test_integrated_video_chat_sync();
     test_authoritative_drift_arbitration();
     test_multi_team_group_isolation();
     test_continuous_drag_selection_sync();

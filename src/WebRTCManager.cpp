@@ -115,6 +115,34 @@ void WebRTCManager::PushAudioFrame(const uint8_t* audioData, size_t size) {
     }
 }
 
+void WebRTCManager::SyncPeerMediaStreams(unsigned long long peerId, const std::vector<uint8_t>& videoPacket, const std::vector<uint8_t>& audioPacket, double timestamp) {
+    PeerMediaStream& stream = m_peerStreams[peerId];
+    stream.peerId = peerId;
+    stream.lastTimestamp = timestamp;
+
+    if (!videoPacket.empty()) {
+        stream.latestVideoPacket = videoPacket;
+        stream.hasActiveVideo = true;
+    }
+    if (!audioPacket.empty()) {
+        stream.latestAudioPacket = audioPacket;
+        stream.hasActiveAudio = true;
+    }
+}
+
+bool WebRTCManager::GetPeerMediaStream(unsigned long long peerId, PeerMediaStream& outStream) const {
+    auto it = m_peerStreams.find(peerId);
+    if (it != m_peerStreams.end()) {
+        outStream = it->second;
+        return true;
+    }
+    return false;
+}
+
+void WebRTCManager::ClearPeerMediaStream(unsigned long long peerId) {
+    m_peerStreams.erase(peerId);
+}
+
 bool WebRTCManager::IsConnected() const {
     return m_connected;
 }
