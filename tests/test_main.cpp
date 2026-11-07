@@ -140,6 +140,55 @@ void test_sync_module_interpolation() {
     assert(s.x > startX);
 }
 
+void test_authoritative_drift_arbitration() {
+    std::cout << "Testing Authoritative Synchronization and Drift Arbitration..." << std::endl;
+    SyncModule serverSync;
+    SyncModule clientSync;
+    unsigned long long clientId = 101;
+    unsigned int groupId = 1;
+
+    // Initialize peer position on both sides
+    serverSync.UpdatePeer(clientId, groupId, 30000, 30000);
+    clientSync.UpdatePeer(clientId, groupId, 30000, 30000);
+
+    PeerState clientState;
+    assert(clientSync.GetPeerState(clientId, clientState));
+    assert(clientState.normalizedX == 30000);
+
+    // Simulate client-side drift (e.g. packet loss or desync causes client to think it's at 33000)
+    int driftedClientX = 33000;
+    int driftedClientY = 30000;
+
+    // Server evaluates SyncCheck packet from client
+    PeerState serverState;
+    assert(serverSync.GetPeerState(clientId, serverState));
+    int dx = driftedClientX - serverState.normalizedX;
+    int dy = driftedClientY - serverState.normalizedY;
+    float drift = std::sqrt((float)(dx * dx + dy * dy));
+    assert(drift >= 3000.0f);
+
+    serverSync.UpdateDrift(clientId, drift);
+    serverSync.RecordAuthoritativeCorrection(clientId);
+
+    PeerState updatedServerState;
+    serverSync.GetPeerState(clientId, updatedServerState);
+    assert(updatedServerState.drift >= 3000.0f);
+    assert(updatedServerState.authoritativeCorrections == 1);
+
+    // Client receives MasterStateSync with server's authoritative coordinates
+    int authoritativeServerX = serverState.normalizedX;
+    int authoritativeServerY = serverState.normalizedY;
+    clientSync.UpdatePeer(clientId, groupId, authoritativeServerX, authoritativeServerY);
+    clientSync.RecordAuthoritativeCorrection(clientId);
+
+    PeerState reconciledClientState;
+    assert(clientSync.GetPeerState(clientId, reconciledClientState));
+    assert(reconciledClientState.normalizedX == 30000);
+    assert(reconciledClientState.authoritativeCorrections == 1);
+
+    std::cout << "Authoritative synchronization test passed!" << std::endl;
+}
+
 void test_config_manager() {
     std::cout << "Testing ConfigManager..." << std::endl;
     ConfigManager cm("test.cfg");
@@ -172,6 +221,7 @@ int main() {
     test_webcam_capture();
     test_video_codec_pipeline();
     test_webrtc_manager_pipeline();
+    test_authoritative_drift_arbitration();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

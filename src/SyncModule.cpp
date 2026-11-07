@@ -40,6 +40,13 @@ void SyncModule::UpdateDrift(unsigned long long id, float drift) {
     }
 }
 
+void SyncModule::RecordAuthoritativeCorrection(unsigned long long id) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_peers.count(id)) {
+        m_peers[id].authoritativeCorrections++;
+    }
+}
+
 void SyncModule::UpdatePeerButtons(unsigned long long id, int button, bool down) {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_peers.count(id)) {

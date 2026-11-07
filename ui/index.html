@@ -687,8 +687,8 @@
                     <span class="metric-value" id="valE2E">-- ms</span>
                 </div>
                 <div class="metric-item">
-                    <span class="metric-label">Framerate / Tick</span>
-                    <span class="metric-value" id="valFps">60 fps</span>
+                    <span class="metric-label">Sync Drift / Corrections</span>
+                    <span class="metric-value" id="valDrift">0.0 px / 0</span>
                 </div>
                 <div class="metric-item">
                     <span class="metric-label">Auth Protocol</span>
@@ -1107,6 +1107,14 @@
                         document.getElementById('valLatency').innerText = `${avgLat} ms`;
                         document.getElementById('valE2E').innerText = `${(avgLat * 0.85).toFixed(1)} ms`;
                         document.getElementById('activePeerLabel').innerText = `Active Input Owner: Peer ${peerList[0].id}`;
+
+                        const maxDrift = Math.max(...peerList.map(p => p.drift || 0)).toFixed(1);
+                        const totalCorrections = peerList.reduce((acc, p) => acc + (p.corrections || 0), 0);
+                        const driftEl = document.getElementById('valDrift');
+                        if (driftEl) {
+                            driftEl.innerText = `${maxDrift} px / ${totalCorrections}`;
+                            driftEl.style.color = maxDrift > 10.0 ? '#ff3838' : '#00d2ff';
+                        }
                     }
                 }
             });

@@ -1,3 +1,13 @@
+## [0.1.100-alpha] - 2026-11-04
+
+### Added
+- Authoritative Synchronization & Drift Arbitration:
+  - Server-side Euclidean coordinate drift tracking and arbitration during `SyncCheck` packet evaluations.
+  - Automatic `MasterStateSync` reconciliation when client coordinate discrepancy exceeds threshold (> 1500 units).
+  - Client-side coordinate snapping with drift calculation and correction counter tracking in `SyncModule`.
+  - Live sync drift and authoritative correction metrics added to headless JSON telemetry and the Command Dashboard performance metrics bar (`ui/index.html`).
+  - Added unit test `test_authoritative_drift_arbitration()` in `tests/test_main.cpp`.
+
 ## [0.1.99-alpha] - 2026-11-04
 
 ### Added

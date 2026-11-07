@@ -239,6 +239,8 @@ void NetMuxFramework::Run() {
                           << ",\"isSelecting\":" << (p.second.isSelecting ? "true" : "false")
                           << ",\"selStartX\":" << p.second.selStartX
                           << ",\"selStartY\":" << p.second.selStartY
+                          << ",\"drift\":" << p.second.drift
+                          << ",\"corrections\":" << p.second.authoritativeCorrections
                           << ",\"groupId\":" << p.second.groupId
                           << "}";
                 first = false;
@@ -641,14 +643,42 @@ void NetMuxFramework::ProcessIncomingPackets() {
             }
         } else if (inPkt.type == NetMuxPacketType::SyncCheck) {
             if (m_settings.isServer) {
-                // If we receive a sync check, we should potentially rebroadcast or reply with MasterStateSync
-                // but for now we just refresh the peer's timeout.
                 m_sync.RefreshPeer(peerId, inPkt.groupId);
+                PeerState serverPeer;
+                if (m_sync.GetPeerState(peerId, serverPeer)) {
+                    // Check coordinate drift between client perception and authoritative server state
+                    int dx = inPkt.x - serverPeer.normalizedX;
+                    int dy = inPkt.y - serverPeer.normalizedY;
+                    float driftDist = std::sqrt((float)(dx * dx + dy * dy));
+                    m_sync.UpdateDrift(peerId, driftDist);
+
+                    // If client coordinate has drifted beyond threshold (> 1500 units, ~2.3%),
+                    // authoritatively correct the client with MasterStateSync
+                    const float DRIFT_CORRECTION_THRESHOLD = 1500.0f;
+                    if (driftDist > DRIFT_CORRECTION_THRESHOLD) {
+                        Packet corrPkt = { peerId, serverPeer.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(),
+                                           NetMuxPacketType::MasterStateSync, serverPeer.normalizedX, serverPeer.normalizedY,
+                                           0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
+                        corrPkt.button = (int)driftDist;
+                        m_network.SendPacket(corrPkt);
+                        m_sync.RecordAuthoritativeCorrection(peerId);
+                        std::cout << "[SyncAuthority] Correcting peer " << peerId << " drift: " << driftDist << " units." << std::endl;
+                    }
+                }
             }
         } else if (inPkt.type == NetMuxPacketType::MasterStateSync) {
-            // Server Authority: Update local perception of remote peer
+            // Server Authority: Apply authoritative coordinate correction to remote peer
             if (!m_settings.isServer) {
+                PeerState localPeer;
+                if (m_sync.GetPeerState(peerId, localPeer)) {
+                    int dx = inPkt.x - localPeer.normalizedX;
+                    int dy = inPkt.y - localPeer.normalizedY;
+                    float appliedDrift = std::sqrt((float)(dx * dx + dy * dy));
+                    m_sync.UpdateDrift(peerId, appliedDrift);
+                }
                 m_sync.UpdatePeer(peerId, inPkt.groupId, inPkt.x, inPkt.y, inPkt.localTimestamp);
+                m_sync.RecordAuthoritativeCorrection(peerId);
+                m_overlayDirty = true;
             }
         } else if (inPkt.type == NetMuxPacketType::FileHeader) {
             if (IsPeerTrusted(peerId, inPkt.type)) {
