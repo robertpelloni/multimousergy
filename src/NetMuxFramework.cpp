@@ -378,11 +378,11 @@ void NetMuxFramework::ProcessInteractionQueue() {
                     m_input.PerformWarpClickRestore((int)peer.x, (int)peer.y, event.button, event.down);
                 }
 
-                // Rebroadcast focus update if owner changed
+                // Rebroadcast focus update if owner changed (isolated strictly to the peer's collaborative group)
                 if (m_settings.isServer && previousOwner != event.peerId) {
-                    Packet focusPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::FocusUpdate, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
+                    Packet focusPkt = { m_localId, peer.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::FocusUpdate, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
                     focusPkt.button = (int)event.peerId; // Reuse button field for peer ID
-                    m_network.SendPacket(focusPkt);
+                    m_network.SendPacketToGroup(focusPkt, peer.groupId);
                 }
             } else {
                 std::cout << "[Conflict] Peer " << event.peerId << " denied focus ownership." << std::endl;
@@ -727,7 +727,7 @@ void NetMuxFramework::PerformMasterStateSync() {
                 m_lastMasterSyncPos[id].second != peer.normalizedY) {
 
                 Packet masterPkt = { id, peer.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(), NetMuxPacketType::MasterStateSync, peer.normalizedX, peer.normalizedY, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
-                m_network.SendPacket(masterPkt);
+                m_network.SendPacketToGroup(masterPkt, peer.groupId);
                 m_lastMasterSyncPos[id] = {peer.normalizedX, peer.normalizedY};
             }
         }

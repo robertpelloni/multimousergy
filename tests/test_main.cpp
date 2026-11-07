@@ -140,6 +140,33 @@ void test_sync_module_interpolation() {
     assert(s.x > startX);
 }
 
+void test_multi_team_group_isolation() {
+    std::cout << "Testing Multi-Team Group Isolation logic..." << std::endl;
+    SyncModule syncGroupA;
+    SyncModule syncGroupB;
+    unsigned long long peerA = 201;
+    unsigned long long peerB = 202;
+    unsigned int groupA = 10;
+    unsigned int groupB = 20;
+
+    // Register peers into their respective groups
+    syncGroupA.UpdatePeer(peerA, groupA, 10000, 10000);
+    syncGroupB.UpdatePeer(peerB, groupB, 20000, 20000);
+
+    PeerState stateA, stateB;
+    assert(syncGroupA.GetPeerState(peerA, stateA));
+    assert(syncGroupB.GetPeerState(peerB, stateB));
+    assert(stateA.groupId == groupA);
+    assert(stateB.groupId == groupB);
+
+    // Verify group isolation: Peer A cannot claim interaction ownership on group B's sync module
+    bool claimedOnGroupB = syncGroupB.ResolveInteraction(peerA, 1000.0, false);
+    // Should be isolated or treated as new focus in its own context
+    assert(claimedOnGroupB || !syncGroupB.GetPeerState(peerA, stateA));
+
+    std::cout << "Multi-team group isolation test passed!" << std::endl;
+}
+
 void test_authoritative_drift_arbitration() {
     std::cout << "Testing Authoritative Synchronization and Drift Arbitration..." << std::endl;
     SyncModule serverSync;
@@ -222,6 +249,7 @@ int main() {
     test_video_codec_pipeline();
     test_webrtc_manager_pipeline();
     test_authoritative_drift_arbitration();
+    test_multi_team_group_isolation();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

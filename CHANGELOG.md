@@ -1,3 +1,11 @@
+## [0.1.101-alpha] - 2026-11-04
+
+### Added
+- Multi-Team Secure Isolation & Group Routing:
+  - Scoped server-side `FocusUpdate` and `MasterStateSync` rebroadcasts strictly to each peer's `groupId` via `SendPacketToGroup()`.
+  - Added dynamic active group isolation indicator badge on the Live Multi-Peer Minimap in `ui/index.html`.
+  - Added unit test `test_multi_team_group_isolation()` in `tests/test_main.cpp`.
+
 ## [0.1.100-alpha] - 2026-11-04
 
 ### Added
