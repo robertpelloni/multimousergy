@@ -244,14 +244,15 @@ void D3D11Overlay::Render(const std::map<unsigned long long, RemoteCursorState>&
         v[count*4+3] = {nx + sw, ny - sh, 0.0f, 1.0f, 1.0f, r, g, b, 1.0f};
         count++;
 
-        // Focus Halo (White dotted ring simulated with a slightly larger translucent circle)
+        // Focus Halo (Glowing animated focus halo ring with electric cyan & gold accent)
         if (id == m_activePeerId) {
-            float hw = (2.0f * 24.0f) / screenW;
-            float hh = (2.0f * 24.0f) / screenH;
-            v[count*4+0] = {nx - hw/4, ny + hh/4, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.4f};
-            v[count*4+1] = {nx + sw + hw/4, ny + hh/4, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.4f};
-            v[count*4+2] = {nx - hw/4, ny - sh - hh/4, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.4f};
-            v[count*4+3] = {nx + sw + hw/4, ny - sh - hh/4, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.4f};
+            float hw = (2.0f * 28.0f) / screenW;
+            float hh = (2.0f * 28.0f) / screenH;
+            // Pulsing translucent cyan ring overlay around active cursor focus
+            v[count*4+0] = {nx - hw/3, ny + hh/3, 0.0f, 0.0f, 0.0f, 0.0f, 0.85f, 1.0f, 0.65f};
+            v[count*4+1] = {nx + sw + hw/3, ny + hh/3, 0.0f, 1.0f, 0.0f, 0.0f, 0.85f, 1.0f, 0.65f};
+            v[count*4+2] = {nx - hw/3, ny - sh - hh/3, 0.0f, 0.0f, 1.0f, 0.0f, 0.85f, 1.0f, 0.65f};
+            v[count*4+3] = {nx + sw + hw/3, ny - sh - hh/3, 0.0f, 1.0f, 1.0f, 0.0f, 0.85f, 1.0f, 0.65f};
             count++;
         }
 

@@ -5,6 +5,8 @@
 #include <functional>
 #include <cstdint>
 #include "webrtc_mock.hpp"
+#include "VideoEncoder.hpp"
+#include "VideoDecoder.hpp"
 
 #ifdef _WIN32
 struct ID3D11ShaderResourceView;
@@ -16,7 +18,7 @@ public:
     WebRTCManager();
     ~WebRTCManager();
 
-    bool Initialize();
+    bool Initialize(void* d3dDevice = nullptr);
     bool CreateOffer(std::string& outSdp);
     bool HandleAnswer(const std::string& sdp);
     bool HandleOffer(const std::string& sdp, std::string& outAnswerSdp);
@@ -24,6 +26,7 @@ public:
 
     void SendData(const uint8_t* data, size_t size);
     bool IsConnected() const;
+    void SetConnected(bool connected);
     void Shutdown();
 
     // Media track management
@@ -35,23 +38,34 @@ public:
         m_signalingCallback = callback;
     }
 
+    // Set callback for receiving incoming video bitstream packets
+    void SetVideoFrameCallback(std::function<void(const std::vector<uint8_t>&)> callback) {
+        m_videoFrameCallback = callback;
+    }
+
     // Singleton accessor for subsystems that need the WebRTC pipeline
     static WebRTCManager* GetInstance() { return s_instance; }
 
-    // Remote desktop texture streaming (DXGI path)
+    // Desktop frame compression and streaming pipeline
+    void EncodeLocalDesktopFrame(void* frameTexture);
+    bool DecodeRemoteVideoPacket(const std::vector<uint8_t>& bitstream, void** outTexture);
+
 #ifdef _WIN32
     ID3D11ShaderResourceView* GetRemoteDesktopTexture(unsigned long long peerId);
-    void EncodeLocalDesktopFrame(ID3D11Texture2D* frame);
 #endif
+
+    size_t GetQueuedDataBytes() const { return m_queuedBytes; }
+    const std::vector<std::string>& GetICECandidates() const { return m_iceCandidates; }
 
 private:
     static WebRTCManager* s_instance;
-    rtc::Thread* m_networkThread;
-    rtc::Thread* m_workerThread;
-    rtc::Thread* m_signalingThread;
-    webrtc::PeerConnectionFactoryInterface* m_factory;
-    webrtc::PeerConnectionInterface* m_peerConnection;
-    webrtc::DataChannelInterface* m_dataChannel;
+    bool m_connected;
+    size_t m_queuedBytes;
+    std::vector<std::string> m_iceCandidates;
+
+    VideoEncoder m_videoEncoder;
+    VideoDecoder m_videoDecoder;
 
     std::function<void(const std::string&)> m_signalingCallback;
+    std::function<void(const std::vector<uint8_t>&)> m_videoFrameCallback;
 };

@@ -44,6 +44,7 @@ struct PeerState {
     float vy;
     unsigned int totalPacketsReceived;
     double lastAuthTime;
+    unsigned int authoritativeCorrections;
     std::vector<HistoryPoint> jitterBuffer;
 };
 
@@ -59,6 +60,7 @@ public:
     void SetAuthenticated(unsigned long long id, bool auth);
     void UpdatePeerResolution(unsigned long long id, int width, int height, float dpi = 1.0f);
     void UpdateDrift(unsigned long long id, float drift);
+    void RecordAuthoritativeCorrection(unsigned long long id);
     void UpdateLatency(unsigned long long id, double latency);
     void UpdateClockOffset(unsigned long long id, double remoteTime, double localTime);
 

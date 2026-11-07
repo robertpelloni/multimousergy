@@ -90,6 +90,7 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
 
 #ifdef _WIN32
     if (m_settings.useD3D11 || m_settings.spatialMode) {
+        m_spatialViewport.SetBoundaryConfig(m_settings.inputConfig.boundaryX, m_settings.inputConfig.boundaryY, m_settings.inputConfig.isLeft);
         ID3D11Device* d3dDevice = (ID3D11Device*)m_overlay.GetD3D11Device();
         ID3D11DeviceContext* d3dContext = (ID3D11DeviceContext*)m_overlay.GetD3D11Context();
         if (d3dDevice) {
@@ -236,6 +237,10 @@ void NetMuxFramework::Run() {
                           << ",\"y\":" << p.second.y
                           << ",\"latency\":" << p.second.latency
                           << ",\"isSelecting\":" << (p.second.isSelecting ? "true" : "false")
+                          << ",\"selStartX\":" << p.second.selStartX
+                          << ",\"selStartY\":" << p.second.selStartY
+                          << ",\"drift\":" << p.second.drift
+                          << ",\"corrections\":" << p.second.authoritativeCorrections
                           << ",\"groupId\":" << p.second.groupId
                           << "}";
                 first = false;
@@ -373,11 +378,11 @@ void NetMuxFramework::ProcessInteractionQueue() {
                     m_input.PerformWarpClickRestore((int)peer.x, (int)peer.y, event.button, event.down);
                 }
 
-                // Rebroadcast focus update if owner changed
+                // Rebroadcast focus update if owner changed (isolated strictly to the peer's collaborative group)
                 if (m_settings.isServer && previousOwner != event.peerId) {
-                    Packet focusPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::FocusUpdate, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
+                    Packet focusPkt = { m_localId, peer.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::FocusUpdate, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
                     focusPkt.button = (int)event.peerId; // Reuse button field for peer ID
-                    m_network.SendPacket(focusPkt);
+                    m_network.SendPacketToGroup(focusPkt, peer.groupId);
                 }
             } else {
                 std::cout << "[Conflict] Peer " << event.peerId << " denied focus ownership." << std::endl;
@@ -513,6 +518,9 @@ void NetMuxFramework::ProcessIncomingPackets() {
             long dy = (long)(ny - oldPeer.targetY);
 
             m_sync.UpdatePeer(peerId, inPkt.groupId, inPkt.x, inPkt.y, inPkt.localTimestamp);
+            if (inPkt.isSelecting) {
+                m_sync.UpdatePeerSelection(peerId, true, inPkt.selectionStartX, inPkt.selectionStartY);
+            }
             m_overlayDirty = true;
             
             if (peerId == m_sync.GetActivePeer()) {
@@ -562,7 +570,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
                         m_lastClipboardTimestamp = remoteTimestamp;
                         buffer.clear();
                     }
-                    if (m_settings.isServer) m_network.SendPacket(inPkt);
+                    if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
                 }
             }
         } else if (inPkt.type == NetMuxPacketType::Handshake) {
@@ -638,14 +646,42 @@ void NetMuxFramework::ProcessIncomingPackets() {
             }
         } else if (inPkt.type == NetMuxPacketType::SyncCheck) {
             if (m_settings.isServer) {
-                // If we receive a sync check, we should potentially rebroadcast or reply with MasterStateSync
-                // but for now we just refresh the peer's timeout.
                 m_sync.RefreshPeer(peerId, inPkt.groupId);
+                PeerState serverPeer;
+                if (m_sync.GetPeerState(peerId, serverPeer)) {
+                    // Check coordinate drift between client perception and authoritative server state
+                    int dx = inPkt.x - serverPeer.normalizedX;
+                    int dy = inPkt.y - serverPeer.normalizedY;
+                    float driftDist = std::sqrt((float)(dx * dx + dy * dy));
+                    m_sync.UpdateDrift(peerId, driftDist);
+
+                    // If client coordinate has drifted beyond threshold (> 1500 units, ~2.3%),
+                    // authoritatively correct the client with MasterStateSync
+                    const float DRIFT_CORRECTION_THRESHOLD = 1500.0f;
+                    if (driftDist > DRIFT_CORRECTION_THRESHOLD) {
+                        Packet corrPkt = { peerId, serverPeer.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(),
+                                           NetMuxPacketType::MasterStateSync, serverPeer.normalizedX, serverPeer.normalizedY,
+                                           0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
+                        corrPkt.button = (int)driftDist;
+                        m_network.SendPacket(corrPkt);
+                        m_sync.RecordAuthoritativeCorrection(peerId);
+                        std::cout << "[SyncAuthority] Correcting peer " << peerId << " drift: " << driftDist << " units." << std::endl;
+                    }
+                }
             }
         } else if (inPkt.type == NetMuxPacketType::MasterStateSync) {
-            // Server Authority: Update local perception of remote peer
+            // Server Authority: Apply authoritative coordinate correction to remote peer
             if (!m_settings.isServer) {
+                PeerState localPeer;
+                if (m_sync.GetPeerState(peerId, localPeer)) {
+                    int dx = inPkt.x - localPeer.normalizedX;
+                    int dy = inPkt.y - localPeer.normalizedY;
+                    float appliedDrift = std::sqrt((float)(dx * dx + dy * dy));
+                    m_sync.UpdateDrift(peerId, appliedDrift);
+                }
                 m_sync.UpdatePeer(peerId, inPkt.groupId, inPkt.x, inPkt.y, inPkt.localTimestamp);
+                m_sync.RecordAuthoritativeCorrection(peerId);
+                m_overlayDirty = true;
             }
         } else if (inPkt.type == NetMuxPacketType::FileHeader) {
             if (IsPeerTrusted(peerId, inPkt.type)) {
@@ -694,7 +730,7 @@ void NetMuxFramework::PerformMasterStateSync() {
                 m_lastMasterSyncPos[id].second != peer.normalizedY) {
 
                 Packet masterPkt = { id, peer.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(), NetMuxPacketType::MasterStateSync, peer.normalizedX, peer.normalizedY, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
-                m_network.SendPacket(masterPkt);
+                m_network.SendPacketToGroup(masterPkt, peer.groupId);
                 m_lastMasterSyncPos[id] = {peer.normalizedX, peer.normalizedY};
             }
         }

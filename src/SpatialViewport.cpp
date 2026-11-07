@@ -14,6 +14,8 @@ SpatialViewport::SpatialViewport()
 
 SpatialViewport::~SpatialViewport() {
 #ifdef _WIN32
+    if (m_boundaryPixelShader) m_boundaryPixelShader->Release();
+    if (m_boundaryVertexBuffer) m_boundaryVertexBuffer->Release();
     if (m_samplerState) m_samplerState->Release();
     if (m_constantBuffer) m_constantBuffer->Release();
     if (m_indexBuffer) m_indexBuffer->Release();
@@ -152,6 +154,45 @@ bool SpatialViewport::Initialize(ID3D11Device* device) {
         }
     }
 
+    // 5. Create Boundary Line Pixel Shader (Neon Cyan / Electric Blue highlight for interactive edge boundaries)
+    const char* boundaryPixelShaderSrc =
+        "struct PS_INPUT {"
+        "    float4 Pos : SV_POSITION;"
+        "    float2 Tex : TEXCOORD0;"
+        "};"
+        "float4 main(PS_INPUT input) : SV_Target {"
+        "    return float4(0.0f, 0.82f, 1.0f, 0.85f);"
+        "}";
+
+    ID3DBlob* boundaryPsBlob = nullptr;
+    hr = D3DCompile(boundaryPixelShaderSrc, strlen(boundaryPixelShaderSrc), nullptr, nullptr, nullptr, "main", "ps_4_0", 0, 0, &boundaryPsBlob, &errorBlob);
+    if (SUCCEEDED(hr)) {
+        device->CreatePixelShader(boundaryPsBlob->GetBufferPointer(), boundaryPsBlob->GetBufferSize(), nullptr, &m_boundaryPixelShader);
+        boundaryPsBlob->Release();
+    } else {
+        if (errorBlob) {
+            std::cerr << "[SpatialViewport] Boundary PS Error: " << (char*)errorBlob->GetBufferPointer() << std::endl;
+            errorBlob->Release();
+        }
+    }
+
+    // 6. Create Dynamic Vertex Buffer for Interactive Edge Boundary Line
+    Vertex boundaryVertices[] = {
+        { DirectX::XMFLOAT3(-1.0f,  1.0f, 0.0f), DirectX::XMFLOAT2(0.0f, 0.0f) },
+        { DirectX::XMFLOAT3(-0.96f, 1.0f, 0.0f), DirectX::XMFLOAT2(1.0f, 0.0f) },
+        { DirectX::XMFLOAT3(-1.0f, -1.0f, 0.0f), DirectX::XMFLOAT2(0.0f, 1.0f) },
+        { DirectX::XMFLOAT3(-0.96f,-1.0f, 0.0f), DirectX::XMFLOAT2(1.0f, 1.0f) }
+    };
+    D3D11_BUFFER_DESC boundaryDesc = {};
+    boundaryDesc.Usage = D3D11_USAGE_DYNAMIC;
+    boundaryDesc.ByteWidth = sizeof(Vertex) * 4;
+    boundaryDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    boundaryDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+    D3D11_SUBRESOURCE_DATA boundaryData = {};
+    boundaryData.pSysMem = boundaryVertices;
+    device->CreateBuffer(&boundaryDesc, &boundaryData, &m_boundaryVertexBuffer);
+
     return true;
 }
 
@@ -237,6 +278,30 @@ void SpatialViewport::Render(ID3D11DeviceContext* context, const std::map<unsign
         }
 
         planeIndex++;
+    }
+
+    // 3. Render Interactive Screen Edge Boundary Visualizer
+    if (m_boundaryVertexBuffer && m_boundaryPixelShader) {
+        // Update boundary vertices based on m_isLeft and m_boundaryX configuration
+        float edgeX = m_isLeft ? -1.0f : 1.0f;
+        float lineWidth = 0.04f;
+        float x1 = m_isLeft ? edgeX : (edgeX - lineWidth);
+        float x2 = m_isLeft ? (edgeX + lineWidth) : edgeX;
+
+        D3D11_MAPPED_SUBRESOURCE mappedBoundary;
+        if (SUCCEEDED(context->Map(m_boundaryVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedBoundary))) {
+            Vertex* v = (Vertex*)mappedBoundary.pData;
+            v[0] = { DirectX::XMFLOAT3(x1,  1.0f, 0.001f), DirectX::XMFLOAT2(0.0f, 0.0f) };
+            v[1] = { DirectX::XMFLOAT3(x2,  1.0f, 0.001f), DirectX::XMFLOAT2(1.0f, 0.0f) };
+            v[2] = { DirectX::XMFLOAT3(x1, -1.0f, 0.001f), DirectX::XMFLOAT2(0.0f, 1.0f) };
+            v[3] = { DirectX::XMFLOAT3(x2, -1.0f, 0.001f), DirectX::XMFLOAT2(1.0f, 1.0f) };
+            context->Unmap(m_boundaryVertexBuffer, 0);
+        }
+
+        // Draw boundary line overlay with glowing boundary shader
+        context->IASetVertexBuffers(0, 1, &m_boundaryVertexBuffer, &stride, &offset);
+        context->PSSetShader(m_boundaryPixelShader, nullptr, 0);
+        context->DrawIndexed(6, 0, 0);
     }
 }
 
