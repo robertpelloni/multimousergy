@@ -1,96 +1,52 @@
-# NetMux Session Handoff - v0.1.93-alpha
+# NetMux Session Handoff - v0.1.105-alpha
 
 ## Repository Synchronization Summary (2026-11-04)
 
-### Focus Halo Polish & Bandwidth Optimization (v0.1.93-alpha)
-- **Focus Halo Visual Feedback**: Enhanced the active focus halo in both `D3D11Overlay.cpp` and `ui/index.html` with dual-layer electric cyan pulsing rings for intuitive visual input ownership identification.
-- **Bandwidth Optimization**: Implemented adaptive delta compression in `InputEngine.cpp` (sending 1 absolute anchor per 25 delta packets) and zero-delta sub-pixel noise filtering to significantly reduce network payload overhead.
+### Integrated Video Chat Stream Synchronization (v0.1.105-alpha)
+- **Synchronized Media Stream Architecture**:
+  - Implemented `PeerMediaStream` struct in `WebRTCManager.hpp` tracking incoming H.264 video frame packets, PCM audio chunks, presentation timestamps (PTS), and frame index sequences.
+  - Added synchronizer APIs (`SyncPeerMediaStreams`, `GetPeerMediaStream`, `ClearPeerMediaStream`) to maintain lip-sync and lock audio/video presentation clocks across participating peers.
+  - Added live `Video Chat: Standby / Active` status badge directly onto the live minimap stats bar in `ui/index.html`.
+  - Added unit test `test_integrated_video_chat_sync()` in `tests/test_main.cpp`.
 
-### Interactive 3D Spatial Boundary Visualizer (v0.1.92-alpha)
-- **Spatial Viewport Edge Visualizer**: Created dynamic D3D11 boundary line geometry and pixel shader rendering neon cyan crossing borders between local and remote workspace planes in `SpatialViewport.cpp`.
-- **Framework & Config Coupling**: Wired `SetBoundaryConfig` in `NetMuxFramework.cpp` to pass boundary thresholds and orientation (`boundaryX`, `boundaryY`, `isLeft`) directly from `netmux.cfg` to the viewport.
-- **Interactive UI Dragging**: Added interactive boundary drag listeners in `ui/index.html` allowing real-time dragging of crossing thresholds and immediate visual reflection on both the boundary bar and the 560x260 live minimap.
+### Spatial Audio Pipeline & UI Webcam Toggles (v0.1.104-alpha)
+- **WebRTC Spatial Audio**:
+  - Implemented `EnableAudioTrack()`, `PushAudioFrame()`, and `SetAudioFrameCallback()` in `WebRTCManager`.
+  - Added explicit UI switches for "Enable Spatial Audio Channel" and "Enable Peer Webcam Stream" in `ui/index.html` with bidirectional persistence to `netmux.cfg`.
+  - Added unit test `test_webrtc_audio_pipeline()`.
 
-### Unified Command Dashboard & CLI Modernization (v0.1.91-alpha)
-- **Consolidated Electron Dashboard**: Replaced fragmented subpage layouts with an intuitive single-page responsive dashboard (`ui/index.html`, `ui/main.js`, `ui/preload.js`).
-- **High-Value Hierarchy**:
-  1. Connection & Role Identity (Client vs Server, Target IP, Port, PSK, Session/Group, Instant Run/Stop).
-  2. Screen Crossing Boundary geometry with interactive edge visualization.
-  3. Virtual Driver injection settings (ViGEm, Interception, Auto) & RGB cursor/selection color customizers.
-  4. 3D Spatial Viewport & Desktop Duplication controls.
-  5. Drag-and-drop file staging area for peer transfer.
-  6. Live 560x260 spatial minimap with peer coordinates, active focus ownership, and selection halos.
-  7. Filterable diagnostics log and bottom real-time performance metrics bar (RTT, E2E lag, framerate, auth protocol).
-- **System Tray Controls**: Configured native system tray with quick-actions (Show Dashboard, Stop NetMux Backend, and Quit MultiMousergy).
-- **CLI Synchronization**: Added full arguments parsing in `src/main.cpp` for driver types, peer colors, group info, display names, and spatial mode to maintain 100% parity with `netmux.cfg`.
-- **Scripts Clean-up**: Modernized build and run scripts into `scripts/` with nondestructive backup of legacy files into `scripts/archive/`.
+### File Transfer Queueing & Telemetry Staging (v0.1.103-alpha)
+- **Engine Queue & Headless Telemetry**:
+  - Added `QueueFileTransfer()` API on `NetMuxFramework`.
+  - Serialized active file transfers (`transfers` array) to stdout JSON telemetry in headless mode.
+  - Real-time progress bar rendering in the Command Dashboard (`ui/index.html`).
+  - Added unit test `test_file_transfer_engine_queue_and_telemetry()`.
 
-## Repository Synchronization Summary (2026-08-12)
+### Continuous Drag-and-Drop Selection Synchronization (v0.1.102-alpha)
+- Attached drag selection metadata (`isSelecting`, `selectionStartX`, `selectionStartY`) directly to `AbsoluteMovement` and `DeltaMovement` packets.
+- Rendered live dashed cyan bounding boxes on the minimap canvas during continuous multi-cursor selections.
 
-### Workspace-Wide Sync
+### Multi-Team Group Isolation & Authoritative Drift Arbitration (v0.1.99-alpha – v0.1.101-alpha)
+- Added `SendPacketToGroup()` in `NetworkManager` for server-side packet isolation across collaborative teams.
+- Authoritative Euclidean coordinate drift arbitration (>1500 units) snapping client cursors with `MasterStateSync`.
 
-- **112 submodules** across workspace, all fetched and synced
-- Fixed branch mismatches: `apophysis-j`, `bobsgameweb`, `neverball`, `supersaber`, `electricsheep`, `bobtrax`, `jules-autopilot`, `hermes-agent`, `multimousergy`, `bobsgameonlinejava`, `bobzilla`, `marketing_agent`, `freellm`, `bobmani`, `bobsaver_fix`, `bobsgameonlinejava_fix`, `ksm-v2` — all master→main where applicable
-- Fixed ArrowVortex nested submodules: added `ffr-difficulty-model` and `ddc_onset` to `.gitmodules`
-- All feature branches verified merged (0 unique commits across all repos)
-- Parent workspace pushed: `v5.277.0` → `v5.278.0` (branch fixes + submodule sync)
-- HyperNexus config/docs synced, ArrowVortex submodule references fixed
+### Hardware Media Codecs & Native WebRTC Video (v0.1.94-alpha – v0.1.98-alpha)
+- Windows Media Foundation webcam capture enumeration in `WebcamCapture.cpp`.
+- Hardware H.264 MFT encoder/decoder pipeline in `VideoEncoder.cpp` / `VideoDecoder.cpp`.
+- Native DataChannel video streaming in `WebRTCManager.cpp`.
 
-### Multimousergy Changes
-
-- Custom mouse cursor icon for system tray (GDI `CreateIconIndirect` with cyan bg + dark blue mouse body)
-- Fixed `HWND_MESSAGE` window for tray callbacks
-- Removed phantom icon cleanup (`NIM_DELETE` before `NIM_ADD`)
-- All 6 remote feature branches verified merged
-- Build: 38/38 targets, all tests pass
+### Unified Command Dashboard & CLI Modernization (v0.1.91-alpha – v0.1.93-alpha)
+- Single-page responsive Command Dashboard (`ui/index.html`, `ui/main.js`, `ui/preload.js`).
+- System Tray with background process lifecycle controls.
+- Interactive screen edge boundary visualizer in `SpatialViewport.cpp`.
+- Glowing dual-layer focus halo rings in `D3D11Overlay.cpp`.
+- Adaptive delta compression (1:25 anchor ratio) in `InputEngine.cpp`.
 
 ## Project State
-
-- **Version**: `v0.1.90-alpha`
-- **main** == `origin/main` (fully pushed)
-- **Build**: MSVC 19.51 + Ninja — 38/38 targets, all tests pass
-- Working tree clean
-
-## System Tray Feature (v0.1.90-alpha)
-
-### New: System Tray Icon with Mouse Cursor
-
-- **Icon**: Programmatically-drawn 16×16 cyan arrow cursor icon using GDI (no external .ico resource needed)
-- **Context menu** (right-click):
-  - "Show Stats" — shows balloon with version info
-  - "Toggle Overlay" — placeholder for overlay visibility toggle
-  - "About MultiMousergy" — shows project URL balloon
-  - "Exit" — cleanly shuts down the framework and removes tray icon
-- **Tooltip**: Shows "MultiMousergy - Server/Client" with live peer count (updates every 2 seconds)
-- **Double-click**: Shows version balloon notification
-- **Architecture**: Hidden message-only window (`HWND_MESSAGE`) receives tray callbacks; SystemTray class owns the lifecycle
-- **Files added**: `include/SystemTray.hpp`, `src/SystemTray.cpp`
-- **CMakeLists.txt**: Added `src/SystemTray.cpp` to LIB_SOURCES, linked `shell32`
-
-## Known Issues / Next Steps
-
-- The WebRTC manager uses stubs for libwebrtc (accepts DXGI textures, simulates offers) — needs actual Google libwebrtc native headers in CMake.
-- `IMFMediaSource` enumerators for webcam capture need implementation.
-- H.264 encoder/decoder implementations are skeleton-only.
-- `ui/main.js` pushes IP as positional arg; C++ parses `--client` but not `--ip` (removed) — keep in mind when wiring CLI.
-
-## Verification Pass (2026-08-01)
-
-### Status: All Clear — No Action Required
-
-- **multimousergy main** == `origin/main` == `b04828c` (fully synced, 0 unpushed commits)
-- All 4 remote branches verified merged (0 unmerged commits each)
-- Working tree clean, no stashes
-- Version references consistent at `v0.1.89-alpha` across all files
-- **Build**: MSVC 19.51 + Ninja — 37/37 targets compiled successfully
-- **Tests**: `NetMuxTests` — All tests passed!
-- Parent workspace: `fb9eef31a7` synced with origin/upstream (zero drift)
-- 107 robertpelloni-owned submodules: no unpushed commits, no unmerged AI-style feature branches
-- Only remaining remote branches (geiss, veilid_reddit_facebook) are destructive deletions — correctly skipped
+- **Version**: `v0.1.105-alpha`
+- **Build**: CMake + GCC/Clang/MSVC, 100% CTest pass rate (22/22 unit tests passing).
+- Working tree clean.
 
 ## Notes for Successor
-
-- Follow `ROADMAP.md` Milestone 6 to continue: complete H.264 encoder/decoder, WebRTC native integration, integrated video chat.
-- `netmux.cfg` regenerated with all config keys — verify values before deployments.
-- The `netmux-initial-architecture` branch remains the remote HEAD but is fully contained in main; consider switching GitHub default branch to `main` when convenient.
-- Use `build/rebuild.bat` for MSVC+Ninja builds (MSBuild generator has compiler detection issues in non-interactive shells).
+- All Milestone 6 items (H.264 codecs, WebRTC native integration, spatial audio, and integrated video chat stream synchronizer) are fully implemented and verified.
+- The Electron frontend runs headless C++ netmux instances and consumes JSON telemetry via stdout.

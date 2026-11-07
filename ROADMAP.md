@@ -60,5 +60,5 @@
 - [x] Webcam/Media Pipeline Skeletons (Windows Media Foundation).
 - [x] macOS CoreGraphics driver stubs for cross-platform expansion.
 - [x] Complete H.264 Encoder/Decoder Implementation.
-- [ ] Complete WebRTC Native C++ Media Integration.
-- [ ] Integrated Video Chat: Synchronized webcam/audio streams.
+- [x] Complete WebRTC Native C++ Media Integration.
+- [x] Integrated Video Chat: Synchronized webcam/audio streams.

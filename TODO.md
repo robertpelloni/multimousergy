@@ -43,6 +43,7 @@
 - [x] Clean and modernize cross-platform build and run scripts in `scripts/`.
 - [x] Implement interactive screen edge boundary visualizer in SpatialViewport linked to netmux.cfg settings.
 - [x] Implement macOS CoreGraphics driver stubs for cross-platform expansion.
-- [ ] Complete libwebrtc native library integration (currently using stubs).
+- [x] Complete libwebrtc native library integration (using libdatachannel).
 - [x] Implement IMFMediaSource enumerators for webcam capture.
 - [x] Complete H.264 encoder/decoder implementation.
+- [x] Implement peer media stream synchronization for integrated video chat.
