@@ -126,6 +126,39 @@ void test_webrtc_manager_pipeline() {
     std::cout << "WebRTCManager pipeline passed successfully!" << std::endl;
 }
 
+void test_webrtc_audio_pipeline() {
+    std::cout << "Testing WebRTCManager spatial audio pipeline..." << std::endl;
+    WebRTCManager rtc;
+    assert(!rtc.IsAudioTrackEnabled());
+
+    rtc.EnableAudioTrack(true);
+    assert(rtc.IsAudioTrackEnabled());
+
+    bool audioReceived = false;
+    std::vector<uint8_t> receivedFrame;
+    rtc.SetAudioFrameCallback([&audioReceived, &receivedFrame](const std::vector<uint8_t>& frame) {
+        audioReceived = true;
+        receivedFrame = frame;
+    });
+
+    // Mock PCM audio buffer (16-bit 48kHz mono sample chunk)
+    const uint8_t mockPcmAudio[] = { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 };
+    rtc.PushAudioFrame(mockPcmAudio, sizeof(mockPcmAudio));
+
+    assert(audioReceived);
+    assert(receivedFrame.size() == sizeof(mockPcmAudio));
+    assert(std::memcmp(receivedFrame.data(), mockPcmAudio, sizeof(mockPcmAudio)) == 0);
+
+    // Verify disabling audio suppresses pushing
+    rtc.EnableAudioTrack(false);
+    assert(!rtc.IsAudioTrackEnabled());
+    audioReceived = false;
+    rtc.PushAudioFrame(mockPcmAudio, sizeof(mockPcmAudio));
+    assert(!audioReceived);
+
+    std::cout << "WebRTCManager spatial audio pipeline test passed!" << std::endl;
+}
+
 void test_sync_module_interpolation() {
     std::cout << "Testing SyncModule interpolation..." << std::endl;
     SyncModule sync;
@@ -334,6 +367,7 @@ int main() {
     test_webcam_capture();
     test_video_codec_pipeline();
     test_webrtc_manager_pipeline();
+    test_webrtc_audio_pipeline();
     test_authoritative_drift_arbitration();
     test_multi_team_group_isolation();
     test_continuous_drag_selection_sync();

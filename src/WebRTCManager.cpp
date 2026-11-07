@@ -98,6 +98,21 @@ void WebRTCManager::AddVideoTrack() {
 
 void WebRTCManager::AddAudioTrack() {
     std::cout << "[WebRTC] Initializing spatial audio pipeline..." << std::endl;
+    m_audioEnabled = true;
+}
+
+void WebRTCManager::EnableAudioTrack(bool enable) {
+    m_audioEnabled = enable;
+    std::cout << "[WebRTC] Audio track " << (enable ? "enabled" : "disabled") << std::endl;
+}
+
+void WebRTCManager::PushAudioFrame(const uint8_t* audioData, size_t size) {
+    if (!m_audioEnabled || !audioData || size == 0) return;
+    SendData(audioData, size);
+    if (m_audioFrameCallback) {
+        std::vector<uint8_t> frame(audioData, audioData + size);
+        m_audioFrameCallback(frame);
+    }
 }
 
 bool WebRTCManager::IsConnected() const {

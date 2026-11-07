@@ -628,6 +628,14 @@
                     <span class="tooltip-tag" data-tooltip="Zooms and pans the camera smoothly when moving between local and remote screens.">?</span>
                 </label>
                 <label class="checkbox-label">
+                    <input type="checkbox" id="enableAudio" checked> Enable Spatial Audio Channel
+                    <span class="tooltip-tag" data-tooltip="Streams low-latency directional spatial voice chat bound to cursor focus areas.">?</span>
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="enableWebcam"> Enable Peer Webcam Video Stream
+                    <span class="tooltip-tag" data-tooltip="Captures local webcam video and renders remote peer streams as spatial 3D picture-in-picture panels.">?</span>
+                </label>
+                <label class="checkbox-label">
                     <input type="checkbox" id="autoConnect" checked> Auto-Connect on Startup
                 </label>
                 <label class="checkbox-label">
@@ -854,6 +862,8 @@
 
             if (cfg.use_d3d11 !== undefined) document.getElementById('useD3D11').checked = (cfg.use_d3d11 === 'true');
             if (cfg.spatial_mode !== undefined) document.getElementById('spatialMode').checked = (cfg.spatial_mode === 'true');
+            if (cfg.enable_audio !== undefined) document.getElementById('enableAudio').checked = (cfg.enable_audio === 'true');
+            if (cfg.enable_webcam !== undefined) document.getElementById('enableWebcam').checked = (cfg.enable_webcam === 'true');
             if (cfg.auto_connect !== undefined) document.getElementById('autoConnect').checked = (cfg.auto_connect === 'true');
             if (cfg.start_minimized !== undefined) document.getElementById('startMinimized').checked = (cfg.start_minimized === 'true');
 
@@ -884,6 +894,8 @@
                 selColorB: selColors.b,
                 useD3D11: document.getElementById('useD3D11').checked,
                 spatialMode: document.getElementById('spatialMode').checked,
+                enableAudio: document.getElementById('enableAudio').checked,
+                enableWebcam: document.getElementById('enableWebcam').checked,
                 autoConnect: document.getElementById('autoConnect').checked,
                 startMinimized: document.getElementById('startMinimized').checked
             };
@@ -916,6 +928,8 @@
                     display_name: config.displayName,
                     use_d3d11: config.useD3D11 ? 'true' : 'false',
                     spatial_mode: config.spatialMode ? 'true' : 'false',
+                    enable_audio: config.enableAudio ? 'true' : 'false',
+                    enable_webcam: config.enableWebcam ? 'true' : 'false',
                     headless: 'false'
                 });
                 appendLog('info', '[Dashboard] Settings successfully saved to netmux.cfg');

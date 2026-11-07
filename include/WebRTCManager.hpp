@@ -33,6 +33,9 @@ public:
     void SendDesktopFrame(void* frameData);
     void AddVideoTrack();
     void AddAudioTrack();
+    void EnableAudioTrack(bool enable);
+    bool IsAudioTrackEnabled() const { return m_audioEnabled; }
+    void PushAudioFrame(const uint8_t* audioData, size_t size);
 
     void SetSignalingCallback(std::function<void(const std::string&)> callback) {
         m_signalingCallback = callback;
@@ -41,6 +44,11 @@ public:
     // Set callback for receiving incoming video bitstream packets
     void SetVideoFrameCallback(std::function<void(const std::vector<uint8_t>&)> callback) {
         m_videoFrameCallback = callback;
+    }
+
+    // Set callback for receiving incoming audio stream packets
+    void SetAudioFrameCallback(std::function<void(const std::vector<uint8_t>&)> callback) {
+        m_audioFrameCallback = callback;
     }
 
     // Singleton accessor for subsystems that need the WebRTC pipeline
@@ -60,6 +68,7 @@ public:
 private:
     static WebRTCManager* s_instance;
     bool m_connected;
+    bool m_audioEnabled = false;
     size_t m_queuedBytes;
     std::vector<std::string> m_iceCandidates;
 
@@ -68,4 +77,5 @@ private:
 
     std::function<void(const std::string&)> m_signalingCallback;
     std::function<void(const std::vector<uint8_t>&)> m_videoFrameCallback;
+    std::function<void(const std::vector<uint8_t>&)> m_audioFrameCallback;
 };

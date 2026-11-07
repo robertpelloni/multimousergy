@@ -220,6 +220,8 @@ ipcMain.on('start-netmux', (event, config) => {
     display_name: config.displayName || 'Workstation',
     use_d3d11: config.useD3D11 ? 'true' : 'false',
     spatial_mode: config.spatialMode ? 'true' : 'false',
+    enable_audio: config.enableAudio ? 'true' : 'false',
+    enable_webcam: config.enableWebcam ? 'true' : 'false',
     headless: 'true',
     recent_servers: config.recentServers || '127.0.0.1'
   };

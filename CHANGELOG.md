@@ -1,3 +1,12 @@
+## [0.1.104-alpha] - 2026-11-04
+
+### Added
+- WebRTC Spatial Audio Track Pipeline & Dashboard Integration:
+  - Implemented `EnableAudioTrack()`, `PushAudioFrame()`, and `SetAudioFrameCallback()` in `WebRTCManager`.
+  - Added "Enable Spatial Audio Channel" and "Enable Peer Webcam Stream" controls with descriptive tooltips to the Spatial Viewport card in `ui/index.html`.
+  - Persisted `enable_audio` and `enable_webcam` flags across UI and `netmux.cfg`.
+  - Added unit test `test_webrtc_audio_pipeline()` in `tests/test_main.cpp`.
+
 ## [0.1.103-alpha] - 2026-11-04
 
 ### Added
