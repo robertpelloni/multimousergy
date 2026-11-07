@@ -1,3 +1,11 @@
+## [0.1.99-alpha] - 2026-11-04
+
+### Added
+- Collaborative Team Group Isolation Dashboard UI:
+  - De-aggregated "Session / Group" field in `ui/index.html` into independent "Session Name", "Group Name", and "Group ID" controls.
+  - Linked bidirectional config loading and saving with `netmux.cfg` for team group names.
+  - Added descriptive tooltips explaining team/tenant workspace segmentation.
+
 ## [0.1.98-alpha] - 2026-11-04
 
 ### Added

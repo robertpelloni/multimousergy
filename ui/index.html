@@ -515,11 +515,15 @@
 
                 <div class="form-row">
                     <div class="form-col">
-                        <label for="sessionName">Session / Group <span class="tooltip-tag" data-tooltip="Multi-tenant group identifier for collaborative workspaces.">?</span></label>
+                        <label for="sessionName">Session Name <span class="tooltip-tag" data-tooltip="Session name for multi-client discovery.">?</span></label>
                         <input type="text" id="sessionName" value="DefaultSession">
                     </div>
-                    <div class="form-col" style="flex: 0.5;">
-                        <label for="groupId">Group ID</label>
+                    <div class="form-col">
+                        <label for="groupName">Group Name <span class="tooltip-tag" data-tooltip="Team or tenant isolation group name.">?</span></label>
+                        <input type="text" id="groupName" value="DefaultGroup">
+                    </div>
+                    <div class="form-col" style="flex: 0.4;">
+                        <label for="groupId">Group ID <span class="tooltip-tag" data-tooltip="Numeric ID matching peers in the same team.">?</span></label>
                         <input type="number" id="groupId" value="0">
                     </div>
                 </div>
@@ -808,6 +812,7 @@
             if (cfg.display_name) document.getElementById('displayName').value = cfg.display_name;
             if (cfg.security_key) document.getElementById('securityKey').value = cfg.security_key;
             if (cfg.session_name) document.getElementById('sessionName').value = cfg.session_name;
+            if (cfg.group_name) document.getElementById('groupName').value = cfg.group_name;
             if (cfg.group_id) document.getElementById('groupId').value = cfg.group_id;
             if (cfg.boundary_x) document.getElementById('boundaryX').value = cfg.boundary_x;
             if (cfg.boundary_y) document.getElementById('boundaryY').value = cfg.boundary_y;
@@ -849,7 +854,7 @@
                 displayName: document.getElementById('displayName').value,
                 securityKey: document.getElementById('securityKey').value,
                 sessionName: document.getElementById('sessionName').value,
-                groupName: 'DefaultGroup',
+                groupName: document.getElementById('groupName').value || 'DefaultGroup',
                 groupId: parseInt(document.getElementById('groupId').value, 10) || 0,
                 boundaryX: isNaN(parseInt(document.getElementById('boundaryX').value, 10)) ? 1919 : parseInt(document.getElementById('boundaryX').value, 10),
                 boundaryY: parseInt(document.getElementById('boundaryY').value, 10) || 0,
