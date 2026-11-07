@@ -643,6 +643,15 @@
                 <div class="dropzone" id="fileDropzone">
                     Drag and drop file here to send across displays
                 </div>
+                <div id="transferContainer" style="margin-top: 10px; display: none;">
+                    <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 4px; display: flex; justify-content: space-between;">
+                        <span id="transferFileName">Sending: filename.ext</span>
+                        <span id="transferPercent">0%</span>
+                    </div>
+                    <div style="background: rgba(255, 255, 255, 0.08); height: 6px; border-radius: 3px; overflow: hidden;">
+                        <div id="transferProgressBar" style="width: 0%; height: 100%; background: #00d2ff; transition: width 0.15s ease;"></div>
+                    </div>
+                </div>
             </div>
 
         </div>
@@ -1119,6 +1128,26 @@
                         if (driftEl) {
                             driftEl.innerText = `${maxDrift} px / ${totalCorrections}`;
                             driftEl.style.color = maxDrift > 10.0 ? '#ff3838' : '#00d2ff';
+                        }
+                    }
+                }
+
+                // Handle file transfer telemetry progress
+                if (data && data.transfers && data.transfers.length > 0) {
+                    const tx = data.transfers[0];
+                    const container = document.getElementById('transferContainer');
+                    const nameEl = document.getElementById('transferFileName');
+                    const pctEl = document.getElementById('transferPercent');
+                    const barEl = document.getElementById('transferProgressBar');
+                    if (container && nameEl && pctEl && barEl) {
+                        container.style.display = 'block';
+                        const pct = Math.round((tx.progress || 0) * 100);
+                        nameEl.innerText = `${tx.isOutgoing ? 'Sending' : 'Receiving'}: ${tx.filename}`;
+                        pctEl.innerText = `${pct}%`;
+                        barEl.style.width = `${pct}%`;
+                        if (tx.isComplete) {
+                            nameEl.innerText = `Completed: ${tx.filename}`;
+                            barEl.style.background = '#2ed573';
                         }
                     }
                 }

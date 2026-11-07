@@ -1,3 +1,20 @@
+## [0.1.103-alpha] - 2026-11-04
+
+### Added
+- File Transfer Engine Telemetry & Dashboard Integration:
+  - Added `QueueFileTransfer()` API on `NetMuxFramework` for programmatic initiation of chunked multi-part file streaming.
+  - Telemetry JSON serialization of active file transfer progress (`transfers` array) dispatched to stdout in headless mode.
+  - Real-time file transfer progress bar and status indicator inside the Command Dashboard (`ui/index.html`).
+  - Added unit test `test_file_transfer_engine_queue_and_telemetry()` verifying queueing, chunk transmission, completion, and hash verification.
+
+## [0.1.102-alpha] - 2026-11-04
+
+### Added
+- Continuous Multi-Peer Drag Selection Synchronization:
+  - Attached selection metadata directly to `AbsoluteMovement` and `DeltaMovement` packets in `InputEngine.cpp`.
+  - Added real-time bounding box rendering on the Command Dashboard minimap canvas.
+  - Added unit test `test_continuous_drag_selection_sync()` validating drag coordinates and release state transitions.
+
 ## [0.1.101-alpha] - 2026-11-04
 
 ### Added

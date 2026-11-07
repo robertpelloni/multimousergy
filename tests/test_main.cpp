@@ -177,6 +177,55 @@ void test_continuous_drag_selection_sync() {
     std::cout << "Continuous drag selection test passed!" << std::endl;
 }
 
+void test_file_transfer_engine_queue_and_telemetry() {
+    std::cout << "Testing FileTransferEngine queue, multi-chunk progress and telemetry..." << std::endl;
+    // Create a temporary mock file
+    std::string testPath = "test_queue_file.bin";
+    std::ofstream out(testPath, std::ios::binary);
+    std::string data = "NetMux telemetry streaming & queue transfer verification buffer payload!";
+    out.write(data.c_str(), data.size());
+    out.close();
+
+    FileTransferEngine sender;
+    assert(sender.StartTransfer(testPath, 101));
+    auto active = sender.GetActiveTransfers();
+    assert(!active.empty());
+
+    unsigned long long tId = active.begin()->first;
+    assert(active[tId].filename == testPath);
+    assert(active[tId].isOutgoing == true);
+    assert(!active[tId].isComplete);
+
+    Packet headerPkt;
+    assert(!sender.IsHeaderSent(tId));
+    assert(sender.GetHeaderPacket(tId, headerPkt));
+    sender.SetHeaderSent(tId, true);
+    assert(sender.IsHeaderSent(tId));
+
+    FileTransferEngine receiver;
+    assert(receiver.HandleFileHeader(headerPkt));
+
+    Packet chunkPkt;
+    while (sender.GetNextChunk(tId, chunkPkt)) {
+        assert(receiver.HandleFileData(chunkPkt));
+    }
+
+    auto senderStatus = sender.GetActiveTransfers();
+    assert(senderStatus[tId].isComplete == true);
+    assert(senderStatus[tId].progress >= 1.0f);
+
+    auto receiverStatus = receiver.GetActiveTransfers();
+    assert(receiverStatus[tId].isComplete == true);
+#ifdef None
+#undef None
+#endif
+    assert(receiverStatus[tId].lastError == FileTransferError::None);
+
+    std::remove(testPath.c_str());
+    std::remove(("received_" + testPath).c_str());
+    std::cout << "FileTransferEngine queue and telemetry test passed!" << std::endl;
+}
+
 void test_multi_team_group_isolation() {
     std::cout << "Testing Multi-Team Group Isolation logic..." << std::endl;
     SyncModule syncGroupA;
@@ -288,6 +337,7 @@ int main() {
     test_authoritative_drift_arbitration();
     test_multi_team_group_isolation();
     test_continuous_drag_selection_sync();
+    test_file_transfer_engine_queue_and_telemetry();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

@@ -245,6 +245,20 @@ void NetMuxFramework::Run() {
                           << "}";
                 first = false;
             }
+            std::cout << "],\"transfers\":[";
+            auto activeTransfers = m_fileTransfer.GetActiveTransfers();
+            bool firstTx = true;
+            for (auto const& [tId, tStatus] : activeTransfers) {
+                if (!firstTx) std::cout << ",";
+                std::cout << "{\"id\":" << tId
+                          << ",\"filename\":\"" << tStatus.filename << "\""
+                          << ",\"progress\":" << tStatus.progress
+                          << ",\"isComplete\":" << (tStatus.isComplete ? "true" : "false")
+                          << ",\"isOutgoing\":" << (tStatus.isOutgoing ? "true" : "false")
+                          << ",\"error\":" << static_cast<int>(tStatus.lastError)
+                          << "}";
+                firstTx = false;
+            }
             std::cout << "]}" << std::endl;
             lastUIUpdate = m_loopTimer.ElapsedMilliseconds();
         }
@@ -389,6 +403,10 @@ void NetMuxFramework::ProcessInteractionQueue() {
             }
         }
     }
+}
+
+bool NetMuxFramework::QueueFileTransfer(const std::string& filePath, unsigned long long targetPeerId) {
+    return m_fileTransfer.StartTransfer(filePath, targetPeerId);
 }
 
 void NetMuxFramework::ProcessOutgoingPackets() {
