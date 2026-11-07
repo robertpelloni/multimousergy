@@ -290,6 +290,11 @@ void InputEngine::Update() {
                         NetMuxPacketType moveType = (rawMoveCount++ % 10 == 0) ? NetMuxPacketType::AbsoluteMovement : NetMuxPacketType::DeltaMovement;
 
                         Packet pkt = {0, 0, 0, 0.0, moveType, (moveType == NetMuxPacketType::DeltaMovement) ? dx : m_virtualX, (moveType == NetMuxPacketType::DeltaMovement) ? dy : m_virtualY, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0};
+                        if (m_isSelecting) {
+                            pkt.isSelecting = true;
+                            pkt.selectionStartX = m_selStartX;
+                            pkt.selectionStartY = m_selStartY;
+                        }
                         m_pendingPackets.push(pkt);
                     }
 

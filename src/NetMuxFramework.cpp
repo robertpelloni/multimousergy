@@ -518,6 +518,9 @@ void NetMuxFramework::ProcessIncomingPackets() {
             long dy = (long)(ny - oldPeer.targetY);
 
             m_sync.UpdatePeer(peerId, inPkt.groupId, inPkt.x, inPkt.y, inPkt.localTimestamp);
+            if (inPkt.isSelecting) {
+                m_sync.UpdatePeerSelection(peerId, true, inPkt.selectionStartX, inPkt.selectionStartY);
+            }
             m_overlayDirty = true;
             
             if (peerId == m_sync.GetActivePeer()) {

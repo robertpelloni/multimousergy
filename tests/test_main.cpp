@@ -140,6 +140,43 @@ void test_sync_module_interpolation() {
     assert(s.x > startX);
 }
 
+void test_continuous_drag_selection_sync() {
+    std::cout << "Testing Continuous Drag Selection Synchronization..." << std::endl;
+    SyncModule sync;
+    unsigned long long peerId = 555;
+    unsigned int groupId = 1;
+
+    // Simulate initial mouse down (selection start at 10000, 10000)
+    sync.UpdatePeer(peerId, groupId, 10000, 10000);
+    sync.UpdatePeerSelection(peerId, true, 10000, 10000);
+
+    PeerState state;
+    assert(sync.GetPeerState(peerId, state));
+    assert(state.isSelecting == true);
+
+    // Simulate continuous dragging movement across several coordinate steps
+    for (int step = 1; step <= 5; ++step) {
+        int currentX = 10000 + step * 2000;
+        int currentY = 10000 + step * 1500;
+        sync.UpdatePeer(peerId, groupId, currentX, currentY);
+        sync.UpdatePeerSelection(peerId, true, 10000, 10000);
+
+        PeerState dragStepState;
+        assert(sync.GetPeerState(peerId, dragStepState));
+        assert(dragStepState.isSelecting == true);
+        assert(dragStepState.normalizedX == currentX);
+        assert(dragStepState.normalizedY == currentY);
+    }
+
+    // Simulate mouse release (selection ended)
+    sync.UpdatePeerSelection(peerId, false, 0, 0);
+    PeerState releasedState;
+    assert(sync.GetPeerState(peerId, releasedState));
+    assert(releasedState.isSelecting == false);
+
+    std::cout << "Continuous drag selection test passed!" << std::endl;
+}
+
 void test_multi_team_group_isolation() {
     std::cout << "Testing Multi-Team Group Isolation logic..." << std::endl;
     SyncModule syncGroupA;
@@ -250,6 +287,7 @@ int main() {
     test_webrtc_manager_pipeline();
     test_authoritative_drift_arbitration();
     test_multi_team_group_isolation();
+    test_continuous_drag_selection_sync();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }
