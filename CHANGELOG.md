@@ -1,3 +1,12 @@
+## [0.1.98-alpha] - 2026-11-04
+
+### Added
+- Native WebRTC Desktop Video Integration (`WebRTCManager.hpp`, `WebRTCManager.cpp`):
+  - Embedded `VideoEncoder` and `VideoDecoder` directly into `WebRTCManager` for hardware-accelerated local desktop frame compression.
+  - Implemented `EncodeLocalDesktopFrame` with H.264 bitstream packet delivery over low-latency DataChannels.
+  - Added configurable incoming video frame callbacks (`SetVideoFrameCallback`) and `DecodeRemoteVideoPacket`.
+  - Added `test_webrtc_manager_pipeline()` unit test in `tests/test_main.cpp`.
+
 ## [0.1.97-alpha] - 2026-11-04
 
 ### Added

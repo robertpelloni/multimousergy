@@ -9,6 +9,7 @@
 #include "WebcamCapture.hpp"
 #include "VideoEncoder.hpp"
 #include "VideoDecoder.hpp"
+#include "WebRTCManager.hpp"
 
 void test_concurrent_cursor_sync();
 void test_group_isolation();
@@ -88,6 +89,43 @@ void test_video_codec_pipeline() {
     std::cout << "H.264 VideoCodec pipeline passed successfully!" << std::endl;
 }
 
+void test_webrtc_manager_pipeline() {
+    std::cout << "Testing WebRTCManager pipeline..." << std::endl;
+    WebRTCManager rtc;
+    assert(!rtc.IsConnected());
+    assert(rtc.Initialize(nullptr));
+
+    std::string offerSdp;
+    assert(rtc.CreateOffer(offerSdp));
+    assert(!offerSdp.empty());
+    assert(offerSdp.find("H264") != std::string::npos);
+
+    rtc.AddICECandidate("candidate:1 1 UDP 2130706431 127.0.0.1 50000 typ host");
+    assert(rtc.GetICECandidates().size() == 1);
+
+    std::string answerSdp;
+    assert(rtc.HandleOffer(offerSdp, answerSdp));
+    assert(rtc.IsConnected());
+
+    // Test sending data and frame encoding
+    const uint8_t testPayload[] = { 0x01, 0x02, 0x03, 0x04 };
+    rtc.SendData(testPayload, sizeof(testPayload));
+    assert(rtc.GetQueuedDataBytes() == sizeof(testPayload));
+
+    bool frameCallbackTriggered = false;
+    rtc.SetVideoFrameCallback([&frameCallbackTriggered](const std::vector<uint8_t>& frame) {
+        if (!frame.empty()) frameCallbackTriggered = true;
+    });
+
+    rtc.SendDesktopFrame(nullptr);
+    assert(frameCallbackTriggered);
+
+    rtc.Shutdown();
+    assert(!rtc.IsConnected());
+    assert(rtc.GetQueuedDataBytes() == 0);
+    std::cout << "WebRTCManager pipeline passed successfully!" << std::endl;
+}
+
 void test_sync_module_interpolation() {
     std::cout << "Testing SyncModule interpolation..." << std::endl;
     SyncModule sync;
@@ -133,6 +171,7 @@ int main() {
     test_file_transfer_engine();
     test_webcam_capture();
     test_video_codec_pipeline();
+    test_webrtc_manager_pipeline();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }
