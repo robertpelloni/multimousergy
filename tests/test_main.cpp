@@ -7,6 +7,8 @@
 #include "SyncModule.hpp"
 #include "ClipboardModule.hpp"
 #include "WebcamCapture.hpp"
+#include "VideoEncoder.hpp"
+#include "VideoDecoder.hpp"
 
 void test_concurrent_cursor_sync();
 void test_group_isolation();
@@ -44,6 +46,46 @@ void test_webcam_capture() {
     cap.Shutdown();
     assert(!cap.IsCapturing());
     std::cout << "WebcamCapture lifecycle test passed!" << std::endl;
+}
+
+void test_video_codec_pipeline() {
+    std::cout << "Testing H.264 VideoEncoder and VideoDecoder pipeline..." << std::endl;
+    VideoEncoder encoder;
+    VideoDecoder decoder;
+
+    VideoEncoderConfig encConfig;
+    encConfig.width = 1280;
+    encConfig.height = 720;
+    encConfig.fps = 30;
+    encConfig.bitrate = 2500000;
+    assert(encoder.Initialize(nullptr, encConfig));
+    assert(encoder.IsInitialized());
+
+    VideoDecoderConfig decConfig;
+    decConfig.width = 1280;
+    decConfig.height = 720;
+    assert(decoder.Initialize(nullptr, decConfig));
+    assert(decoder.IsInitialized());
+
+    std::vector<uint8_t> bitstream;
+    assert(encoder.EncodeFrame(nullptr, bitstream));
+    assert(!bitstream.empty());
+
+    void* decodedTexture = nullptr;
+    assert(decoder.DecodeFrame(bitstream, &decodedTexture));
+    assert(decodedTexture != nullptr);
+
+    // Test rejection of invalid bitstream
+    std::vector<uint8_t> corruptedBitstream = { 0xFF, 0xEE, 0xDD, 0xCC };
+    void* corruptedTexture = nullptr;
+    assert(!decoder.DecodeFrame(corruptedBitstream, &corruptedTexture));
+    assert(corruptedTexture == nullptr);
+
+    encoder.Shutdown();
+    decoder.Shutdown();
+    assert(!encoder.IsInitialized());
+    assert(!decoder.IsInitialized());
+    std::cout << "H.264 VideoCodec pipeline passed successfully!" << std::endl;
 }
 
 void test_sync_module_interpolation() {
@@ -90,6 +132,7 @@ int main() {
     test_sync_detailed_suite();
     test_file_transfer_engine();
     test_webcam_capture();
+    test_video_codec_pipeline();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

@@ -1,3 +1,13 @@
+## [0.1.97-alpha] - 2026-11-04
+
+### Added
+- Complete H.264 Video Codec Pipeline (`VideoEncoder`, `VideoDecoder`):
+  - Configurable resolution, bitrate, fps, and low-latency profiles via `VideoEncoderConfig` and `VideoDecoderConfig`.
+  - Windows Media Foundation H.264 MFT setup, sample buffer feeding, and DXGI output extraction.
+  - Cross-platform NAL unit stream verification, Annex B prefix validation, and corrupted stream rejection.
+  - Added `test_video_codec_pipeline()` in `tests/test_main.cpp`.
+- Updated `TODO.md` and `ROADMAP.md` marking H.264 encoder/decoder complete.
+
 ## [0.1.96-alpha] - 2026-11-04
 
 ### Added

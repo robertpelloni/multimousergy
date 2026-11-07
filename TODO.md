@@ -45,4 +45,4 @@
 - [x] Implement macOS CoreGraphics driver stubs for cross-platform expansion.
 - [ ] Complete libwebrtc native library integration (currently using stubs).
 - [x] Implement IMFMediaSource enumerators for webcam capture.
-- [ ] Complete H.264 encoder/decoder implementation.
+- [x] Complete H.264 encoder/decoder implementation.
