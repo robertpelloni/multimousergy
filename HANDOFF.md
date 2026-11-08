@@ -1,6 +1,11 @@
-# NetMux Session Handoff - v0.1.113-alpha
+# NetMux Session Handoff - v0.1.114-alpha
 
 ## Repository Synchronization Summary (2026-11-04)
+
+### 3D Spatial Raycasting & Plane Intersection (v0.1.114-alpha)
+- **VR/AR Spatial 3D Cursor Engine**:
+  - Implemented `Ray3D`, `ScreenToRay`, and `IntersectRayWithAnchorPlane` in `SpatialViewport` to project screen inputs into 3D world rays and compute exact normalized UV cursor coordinates across spatial peer planes.
+  - Added unit test `test_spatial_raycasting_and_intersection()` in `tests/test_main.cpp`.
 
 ### Wayland Integration & Portal-Based Input Capture (v0.1.113-alpha)
 - **Wayland Display Server & Portal Session Manager**:

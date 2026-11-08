@@ -55,3 +55,4 @@
 - [x] Implement multi-monitor virtual display layout mapping in SyncModule.
 - [x] Implement Linux uinput virtual hardware mouse emulation in DriverInterface.
 - [x] Implement Wayland portal-based input capture session management in WaylandPortalManager.
+- [x] Implement 3D spatial raycasting and anchor plane intersection in SpatialViewport.

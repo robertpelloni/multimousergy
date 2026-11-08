@@ -273,6 +273,41 @@ void test_dynamic_resolution_dpi_scaling() {
     std::cout << "Dynamic Resolution and DPI-Aware Coordinate Scaling test passed!" << std::endl;
 }
 
+void test_spatial_raycasting_and_intersection() {
+    std::cout << "Testing SpatialViewport 3D raycasting and plane intersection..." << std::endl;
+    // Screen center 1920x1080 (960, 540)
+    Ray3D ray;
+    SpatialViewport::ScreenToRay(960, 540, 1920, 1080, ray);
+
+    // Center ray should point straight ahead (dirX ≈ 0, dirY ≈ 0, dirZ ≈ 1)
+    assert(std::abs(ray.dirX) < 0.05f);
+    assert(std::abs(ray.dirY) < 0.05f);
+    assert(ray.dirZ > 0.99f);
+
+    // Anchor placed directly in front of the camera at (0, 0, 0)
+    SpatialAnchor anchor;
+    anchor.posX = 0.0f;
+    anchor.posY = 0.0f;
+    anchor.posZ = 0.0f;
+    anchor.scale = 1.0f;
+
+    float u = -1.0f, v = -1.0f;
+    bool hit = SpatialViewport::IntersectRayWithAnchorPlane(ray, anchor, u, v);
+    assert(hit);
+    // Intersection at center should be roughly UV (0.5, 0.5)
+    assert(std::abs(u - 0.5f) < 0.05f);
+    assert(std::abs(v - 0.5f) < 0.05f);
+
+    // Ray pointing off-screen to the far right
+    Ray3D missRay;
+    missRay.originX = 0.0f; missRay.originY = 0.0f; missRay.originZ = -5.0f;
+    missRay.dirX = 10.0f; missRay.dirY = 0.0f; missRay.dirZ = 1.0f;
+    bool missHit = SpatialViewport::IntersectRayWithAnchorPlane(missRay, anchor, u, v);
+    assert(!missHit);
+
+    std::cout << "SpatialViewport 3D raycasting and plane intersection test passed!" << std::endl;
+}
+
 void test_wayland_portal_manager() {
     std::cout << "Testing WaylandPortalManager display detection and session lifecycle..." << std::endl;
     WaylandPortalManager portal;
@@ -666,6 +701,7 @@ int main() {
     test_multimonitor_layout_mapping();
     test_driver_interface_virtual_device();
     test_wayland_portal_manager();
+    test_spatial_raycasting_and_intersection();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

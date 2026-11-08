@@ -1,6 +1,7 @@
 #include "SpatialViewport.hpp"
 #include "WebRTCManager.hpp"
 #include <iostream>
+#include <cmath>
 
 SpatialViewport::SpatialViewport()
 #ifdef _WIN32
@@ -45,6 +46,64 @@ void SpatialViewport::RemoveSpatialAnchor(unsigned long long peerId) {
     if (m_activeFocusPeer == peerId) {
         m_activeFocusPeer = 0;
     }
+}
+
+void SpatialViewport::ScreenToRay(int screenX, int screenY, int viewportWidth, int viewportHeight, Ray3D& outRay) {
+    if (viewportWidth <= 0 || viewportHeight <= 0) return;
+
+    // Convert screen coordinates to Normalized Device Coordinates (NDC) [-1, 1]
+    float ndcX = (2.0f * screenX) / viewportWidth - 1.0f;
+    float ndcY = 1.0f - (2.0f * screenY) / viewportHeight;
+
+    // Camera sits at (0, 0, -5) with 45-deg FOV perspective projection
+    outRay.originX = 0.0f;
+    outRay.originY = 0.0f;
+    outRay.originZ = -5.0f;
+
+    float aspect = (float)viewportWidth / (float)viewportHeight;
+    float tanHalfFov = 0.41421356f; // tan(pi / 8) for ~45 deg FOV
+
+    outRay.dirX = ndcX * aspect * tanHalfFov;
+    outRay.dirY = ndcY * tanHalfFov;
+    outRay.dirZ = 1.0f;
+
+    // Normalize direction vector
+    float len = std::sqrt(outRay.dirX * outRay.dirX + outRay.dirY * outRay.dirY + outRay.dirZ * outRay.dirZ);
+    if (len > 0.0f) {
+        outRay.dirX /= len;
+        outRay.dirY /= len;
+        outRay.dirZ /= len;
+    }
+}
+
+bool SpatialViewport::IntersectRayWithAnchorPlane(const Ray3D& ray, const SpatialAnchor& anchor, float& outU, float& outV) {
+    // Plane is oriented along Z = anchor.posZ with normal (0, 0, -1) facing camera
+    float planeZ = anchor.posZ;
+    if (std::abs(ray.dirZ) < 1e-6f) return false;
+
+    // Ray equation: P = origin + t * dir
+    float t = (planeZ - ray.originZ) / ray.dirZ;
+    if (t < 0.0f) return false; // Behind ray origin
+
+    float hitX = ray.originX + t * ray.dirX;
+    float hitY = ray.originY + t * ray.dirY;
+
+    // Plane extents scaled by anchor.scale (default plane is 2x2 centered at anchor.posX, anchor.posY)
+    float halfWidth = (anchor.scale > 0.0f ? anchor.scale : 1.0f);
+    float halfHeight = halfWidth;
+
+    float localX = hitX - anchor.posX;
+    float localY = hitY - anchor.posY;
+
+    if (localX < -halfWidth || localX > halfWidth || localY < -halfHeight || localY > halfHeight) {
+        return false; // Missed the anchor plane quad
+    }
+
+    // Map to normalized UV coordinates [0.0, 1.0]
+    outU = (localX + halfWidth) / (2.0f * halfWidth);
+    outV = (halfHeight - localY) / (2.0f * halfHeight);
+
+    return true;
 }
 
 SpatialViewport::~SpatialViewport() {

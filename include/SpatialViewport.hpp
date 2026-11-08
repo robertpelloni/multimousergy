@@ -8,6 +8,15 @@
 #include <d3dcompiler.h>
 #endif
 
+struct Ray3D {
+    float originX = 0.0f;
+    float originY = 0.0f;
+    float originZ = -5.0f;
+    float dirX = 0.0f;
+    float dirY = 0.0f;
+    float dirZ = 1.0f;
+};
+
 struct SpatialAnchor {
     unsigned long long peerId = 0;
     float posX = 0.0f;
@@ -29,6 +38,10 @@ public:
     bool GetSpatialAnchor(unsigned long long peerId, SpatialAnchor& outAnchor) const;
     void SetActiveAnchorFocus(unsigned long long peerId);
     void RemoveSpatialAnchor(unsigned long long peerId);
+
+    // 3D Spatial Raycasting & Intersection for VR/AR spatial cursors
+    static void ScreenToRay(int screenX, int screenY, int viewportWidth, int viewportHeight, Ray3D& outRay);
+    static bool IntersectRayWithAnchorPlane(const Ray3D& ray, const SpatialAnchor& anchor, float& outU, float& outV);
 
 #ifdef _WIN32
     bool Initialize(ID3D11Device* device);

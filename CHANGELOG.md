@@ -1,3 +1,10 @@
+## [0.1.114-alpha] - 2026-11-04
+
+### Added
+- 3D Spatial Raycasting & Plane Intersection in SpatialViewport:
+  - Defined `Ray3D` and implemented `ScreenToRay` and `IntersectRayWithAnchorPlane` in `SpatialViewport` enabling VR/AR 3D screen-to-plane cursor projection.
+  - Added unit test `test_spatial_raycasting_and_intersection()` in `tests/test_main.cpp`.
+
 ## [0.1.113-alpha] - 2026-11-04
 
 ### Added
