@@ -1,3 +1,13 @@
+## [0.1.119-alpha] - 2026-11-04
+
+### Added
+- Targeted Peer File Transfer Dispatching:
+  - Added `GetTransferPeerId(unsigned long long transferId)` to `FileTransferEngine` to track recipient peer IDs.
+  - Implemented `SendPacketToPeer(const Packet& packet, unsigned long long targetPeerId)` in `NetworkManager` for direct UDP/TCP routing to target peers.
+  - Bound incoming TCP connection descriptors to `peerId` upon receiving identified packets from peers in `NetworkManager::ReceivePacket`.
+  - Updated `NetMuxFramework::PerformFileTransfer()` to route file chunks directly to the destination peer using `SendPacketToPeer`.
+  - Added unit test `test_file_transfer_peer_targeting()` in `tests/test_main.cpp`.
+
 ## [0.1.118-alpha] - 2026-11-04
 
 ### Added

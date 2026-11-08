@@ -103,6 +103,13 @@
 - Glowing dual-layer focus halo rings in `D3D11Overlay.cpp`.
 - Adaptive delta compression (1:25 anchor ratio) in `InputEngine.cpp`.
 
+### Targeted Peer File Transfer Dispatching (v0.1.119-alpha)
+- Added `GetTransferPeerId(unsigned long long transferId)` in `FileTransferEngine`.
+- Implemented `SendPacketToPeer(const Packet& packet, unsigned long long targetPeerId)` in `NetworkManager` for direct UDP/TCP routing to target peers.
+- Bound incoming TCP connection descriptors to `peerId` upon receiving identified packets from peers in `NetworkManager::ReceivePacket`.
+- Updated `NetMuxFramework::PerformFileTransfer()` to route file chunks directly to destination peers via `SendPacketToPeer`.
+- Added unit test `test_file_transfer_peer_targeting()` in `tests/test_main.cpp`.
+
 ### Streaming File Transfer Engine (v0.1.118-alpha)
 - Streaming disk writes: `FileTransferEngine` streams incoming `FileData` chunks directly to disk into `.part` temporary files instead of loading the entire file into a RAM vector.
 - Peer ID Transfer Ownership: Added `peerId` tracking to `FileTransfer` and updated `CleanupPeerTransfers(peerId)` to clean up uncompleted incoming transfers and disk artifacts for specific disconnected peers.
@@ -110,10 +117,10 @@
 - Added unit test `test_file_transfer_streaming()` in `tests/test_main.cpp`.
 
 ## Project State
-- **Version**: `v0.1.118-alpha`
-- **Build**: CMake + GCC/Clang/MSVC, 100% CTest pass rate (35/35 unit tests passing).
+- **Version**: `v0.1.119-alpha`
+- **Build**: CMake + GCC/Clang/MSVC, 100% CTest pass rate (36/36 unit tests passing).
 - Working tree clean.
 
 ## Notes for Successor
-- All Milestone 6 items (H.264 codecs, WebRTC native integration, spatial audio, and integrated video chat stream synchronizer) and streaming file transfer engine optimizations are fully implemented and verified.
+- All Milestone 6 items (H.264 codecs, WebRTC native integration, spatial audio, and integrated video chat stream synchronizer) and targeted peer file transfer optimizations are fully implemented and verified.
 - The Electron frontend runs headless C++ netmux instances and consumes JSON telemetry via stdout.

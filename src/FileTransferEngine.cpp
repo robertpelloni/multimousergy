@@ -237,6 +237,15 @@ void FileTransferEngine::SetHeaderSent(unsigned long long transferId, bool sent)
     m_headerSent[transferId] = sent;
 }
 
+unsigned long long FileTransferEngine::GetTransferPeerId(unsigned long long transferId) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto it = m_transfers.find(transferId);
+    if (it != m_transfers.end()) {
+        return it->second.peerId;
+    }
+    return 0;
+}
+
 std::string FileTransferEngine::CalculateHash(const std::string& path) {
     std::ifstream file(path, std::ios::binary);
     if (!file.is_open()) return "";

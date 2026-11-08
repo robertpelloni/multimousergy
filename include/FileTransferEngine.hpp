@@ -59,6 +59,7 @@ public:
 
     bool IsHeaderSent(unsigned long long transferId);
     void SetHeaderSent(unsigned long long transferId, bool sent);
+    unsigned long long GetTransferPeerId(unsigned long long transferId);
 
     void CleanupPeerTransfers(unsigned long long peerId);
 

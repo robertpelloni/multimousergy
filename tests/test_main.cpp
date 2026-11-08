@@ -312,6 +312,30 @@ void test_network_rate_limiter() {
     std::cout << "NetworkManager Token-Bucket Rate Limiter test passed!" << std::endl;
 }
 
+void test_file_transfer_peer_targeting() {
+    std::string testPath = "test_target_file.bin";
+    std::ofstream src(testPath, std::ios::binary);
+    src << "Testing targeted peer file transfer payload!";
+    src.close();
+
+    FileTransferEngine engine;
+    assert(engine.StartTransfer(testPath, 777));
+    assert(engine.GetTransferPeerId(1) == 777);
+
+    // Unregistered transfer ID check
+    assert(engine.GetTransferPeerId(999) == 0);
+
+    // NetworkManager SendPacketToPeer invocation check
+    NetworkManager net;
+    Packet pkt;
+    pkt.type = NetMuxPacketType::FileData;
+    pkt.senderId = 123;
+    net.SendPacketToPeer(pkt, 777); // Safe to call even disconnected / unstarted
+
+    std::filesystem::remove(testPath);
+    std::cout << "test_file_transfer_peer_targeting passed!" << std::endl;
+}
+
 void test_file_transfer_streaming() {
     // Create a dummy source file
     std::string testPath = "test_stream_source.bin";
@@ -849,6 +873,7 @@ int main() {
     test_auth_module_hmac();
     test_network_rate_limiter();
     test_file_transfer_streaming();
+    test_file_transfer_peer_targeting();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

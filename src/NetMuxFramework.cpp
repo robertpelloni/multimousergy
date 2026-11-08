@@ -823,16 +823,25 @@ void NetMuxFramework::PerformFileTransfer() {
     for (auto const& [id, status] : transfers) {
         if (status.isOutgoing && !status.isComplete) {
             Packet pkt = { m_localId, m_settings.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(), NetMuxPacketType::FileData, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
+            unsigned long long targetPeer = m_fileTransfer.GetTransferPeerId(id);
 
             // Check if we need to send header first
             if (!m_fileTransfer.IsHeaderSent(id)) {
                 if (m_fileTransfer.GetHeaderPacket(id, pkt)) {
-                    m_network.SendPacket(pkt);
+                    if (targetPeer != 0) {
+                        m_network.SendPacketToPeer(pkt, targetPeer);
+                    } else {
+                        m_network.SendPacket(pkt);
+                    }
                     m_fileTransfer.SetHeaderSent(id, true);
                 }
             } else {
                 if (m_fileTransfer.GetNextChunk(id, pkt)) {
-                    m_network.SendPacket(pkt);
+                    if (targetPeer != 0) {
+                        m_network.SendPacketToPeer(pkt, targetPeer);
+                    } else {
+                        m_network.SendPacket(pkt);
+                    }
                 }
             }
         }

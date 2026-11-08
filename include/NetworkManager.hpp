@@ -36,6 +36,7 @@ enum class ConnectionState {
 struct ClientConnection {
     Socket socket;
     std::vector<char> buffer;
+    unsigned long long peerId = 0;
 };
 
 struct TokenBucketLimiter {
@@ -58,6 +59,7 @@ public:
     void SetIsServer(bool isServer) { m_isServer = isServer; }
     void SendPacket(const Packet& packet);
     void SendPacketToGroup(const Packet& packet, unsigned int groupId);
+    void SendPacketToPeer(const Packet& packet, unsigned long long targetPeerId);
     bool ReceivePacket(Packet& packet);
 
     bool BroadcastDiscovery(int port);

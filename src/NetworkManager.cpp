@@ -156,6 +156,46 @@ void NetworkManager::SendPacketToGroup(const Packet& packet, unsigned int groupI
     }
 }
 
+void NetworkManager::SendPacketToPeer(const Packet& packet, unsigned long long targetPeerId) {
+    if (!m_running || targetPeerId == 0) {
+        SendPacket(packet);
+        return;
+    }
+
+    bool headerOnly = packet.IsHeaderOnly();
+    std::vector<uint8_t> data = PacketSerializer::Serialize(packet, headerOnly);
+
+    if (headerOnly) {
+        if (m_isServer) {
+            auto it = m_udpPeerMap.find(targetPeerId);
+            if (it != m_udpPeerMap.end()) {
+                sendto(m_udpSocket, (const char*)data.data(), (int)data.size(), 0, (struct sockaddr*)&it->second.addr, sizeof(sockaddr_in));
+            }
+        } else if (m_hasRemoteAddr) {
+            sendto(m_udpSocket, (const char*)data.data(), (int)data.size(), 0, (struct sockaddr*)&m_remoteAddr, sizeof(sockaddr_in));
+        }
+    } else {
+        if (m_isServer) {
+            bool sent = false;
+            for (auto& client : m_clients) {
+                if (client.peerId == targetPeerId) {
+                    SafeSend(client.socket, (const char*)data.data(), (int)data.size());
+                    sent = true;
+                    break;
+                }
+            }
+            if (!sent) {
+                // Fallback: If peerId not yet bound to a TCP socket, broadcast to clients
+                for (auto& client : m_clients) {
+                    SafeSend(client.socket, (const char*)data.data(), (int)data.size());
+                }
+            }
+        } else if (m_tcpSocket != INVALID_SOCKET_HANDLE) {
+            SafeSend(m_tcpSocket, (const char*)data.data(), (int)data.size());
+        }
+    }
+}
+
 void NetworkManager::SendPacket(const Packet& packet) {
     if (!m_running || m_udpSocket == INVALID_SOCKET_HANDLE) return;
 
@@ -289,6 +329,9 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
             size_t consumed = PacketSerializer::Deserialize((const uint8_t*)it->buffer.data(), it->buffer.size(), packet);
             if (consumed > 0) {
                 it->buffer.erase(it->buffer.begin(), it->buffer.begin() + consumed);
+                if (m_isServer && it->peerId == 0 && packet.senderId != 0) {
+                    it->peerId = packet.senderId;
+                }
                 return true;
             }
         }
