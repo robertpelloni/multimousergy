@@ -1,3 +1,10 @@
+## [0.1.109-alpha] - 2026-11-04
+
+### Added
+- SpatialAnchor 3D Node Tracking in SpatialViewport:
+  - Defined `SpatialAnchor` struct and implemented `SetSpatialAnchor`, `GetSpatialAnchor`, `SetActiveAnchorFocus`, and `RemoveSpatialAnchor` in `SpatialViewport`.
+  - Added unit test `test_spatial_viewport_anchors()` in `tests/test_main.cpp`.
+
 ## [0.1.108-alpha] - 2026-11-04
 
 ### Added

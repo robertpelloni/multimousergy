@@ -272,6 +272,37 @@ void test_dynamic_resolution_dpi_scaling() {
     std::cout << "Dynamic Resolution and DPI-Aware Coordinate Scaling test passed!" << std::endl;
 }
 
+void test_spatial_viewport_anchors() {
+    std::cout << "Testing SpatialViewport SpatialAnchor tracking..." << std::endl;
+    SpatialViewport viewport;
+    unsigned long long peer1 = 1001;
+    unsigned long long peer2 = 1002;
+
+    viewport.SetSpatialAnchor(peer1, 2.5f, 0.0f, -5.0f, 1.2f);
+    viewport.SetSpatialAnchor(peer2, -2.5f, 1.0f, -4.5f, 0.8f);
+
+    SpatialAnchor a1, a2;
+    assert(viewport.GetSpatialAnchor(peer1, a1));
+    assert(viewport.GetSpatialAnchor(peer2, a2));
+
+    assert(a1.posX == 2.5f);
+    assert(a1.scale == 1.2f);
+    assert(!a1.hasActiveFocus);
+
+    // Set active anchor focus
+    viewport.SetActiveAnchorFocus(peer1);
+    assert(viewport.GetSpatialAnchor(peer1, a1));
+    assert(viewport.GetSpatialAnchor(peer2, a2));
+    assert(a1.hasActiveFocus == true);
+    assert(a2.hasActiveFocus == false);
+
+    // Remove anchor
+    viewport.RemoveSpatialAnchor(peer2);
+    assert(!viewport.GetSpatialAnchor(peer2, a2));
+
+    std::cout << "SpatialViewport SpatialAnchor tracking test passed!" << std::endl;
+}
+
 void test_spatial_audio_panning() {
     std::cout << "Testing Directional Spatial Audio Panning..." << std::endl;
     float leftGain = 0.0f, rightGain = 0.0f;
@@ -505,6 +536,7 @@ int main() {
     test_dynamic_resolution_dpi_scaling();
     test_file_transfer_batch_queue();
     test_spatial_audio_panning();
+    test_spatial_viewport_anchors();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

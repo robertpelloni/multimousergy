@@ -1,6 +1,11 @@
-# NetMux Session Handoff - v0.1.108-alpha
+# NetMux Session Handoff - v0.1.109-alpha
 
 ## Repository Synchronization Summary (2026-11-04)
+
+### SpatialAnchor 3D Node Tracking (v0.1.109-alpha)
+- **Spatial Node Anchoring**:
+  - Defined `SpatialAnchor` struct and implemented dynamic anchor mapping (`SetSpatialAnchor`, `GetSpatialAnchor`, `SetActiveAnchorFocus`, `RemoveSpatialAnchor`) in `SpatialViewport`.
+  - Added unit test `test_spatial_viewport_anchors()` in `tests/test_main.cpp`.
 
 ### Directional Spatial Audio Panning (v0.1.108-alpha)
 - **Spatial Voice Audio Panning**:

@@ -8,10 +8,27 @@
 #include <d3dcompiler.h>
 #endif
 
+struct SpatialAnchor {
+    unsigned long long peerId = 0;
+    float posX = 0.0f;
+    float posY = 0.0f;
+    float posZ = 0.0f;
+    float yaw = 0.0f;
+    float pitch = 0.0f;
+    float roll = 0.0f;
+    float scale = 1.0f;
+    bool hasActiveFocus = false;
+};
+
 class SpatialViewport {
 public:
     SpatialViewport();
     ~SpatialViewport();
+
+    void SetSpatialAnchor(unsigned long long peerId, float x, float y, float z, float scale = 1.0f);
+    bool GetSpatialAnchor(unsigned long long peerId, SpatialAnchor& outAnchor) const;
+    void SetActiveAnchorFocus(unsigned long long peerId);
+    void RemoveSpatialAnchor(unsigned long long peerId);
 
 #ifdef _WIN32
     bool Initialize(ID3D11Device* device);
@@ -83,4 +100,7 @@ private:
     int m_boundaryX = 1919;
     int m_boundaryY = 0;
     bool m_isLeft = true;
+
+    std::map<unsigned long long, SpatialAnchor> m_anchors;
+    unsigned long long m_activeFocusPeer = 0;
 };

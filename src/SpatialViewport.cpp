@@ -12,6 +12,41 @@ SpatialViewport::SpatialViewport()
 {
 }
 
+void SpatialViewport::SetSpatialAnchor(unsigned long long peerId, float x, float y, float z, float scale) {
+    SpatialAnchor& anchor = m_anchors[peerId];
+    anchor.peerId = peerId;
+    anchor.posX = x;
+    anchor.posY = y;
+    anchor.posZ = z;
+    anchor.scale = scale;
+    if (m_activeFocusPeer == peerId) {
+        anchor.hasActiveFocus = true;
+    }
+}
+
+bool SpatialViewport::GetSpatialAnchor(unsigned long long peerId, SpatialAnchor& outAnchor) const {
+    auto it = m_anchors.find(peerId);
+    if (it != m_anchors.end()) {
+        outAnchor = it->second;
+        return true;
+    }
+    return false;
+}
+
+void SpatialViewport::SetActiveAnchorFocus(unsigned long long peerId) {
+    m_activeFocusPeer = peerId;
+    for (auto& pair : m_anchors) {
+        pair.second.hasActiveFocus = (pair.first == peerId);
+    }
+}
+
+void SpatialViewport::RemoveSpatialAnchor(unsigned long long peerId) {
+    m_anchors.erase(peerId);
+    if (m_activeFocusPeer == peerId) {
+        m_activeFocusPeer = 0;
+    }
+}
+
 SpatialViewport::~SpatialViewport() {
 #ifdef _WIN32
     if (m_boundaryPixelShader) m_boundaryPixelShader->Release();
