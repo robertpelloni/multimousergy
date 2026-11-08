@@ -63,6 +63,7 @@ private:
     void PerformClipboardSync();
     void PerformFileTransfer();
     void PerformPeerCleanup();
+    void ProcessStdinCommands();
 
     bool IsPeerTrusted(unsigned long long peerId, NetMuxPacketType type);
 

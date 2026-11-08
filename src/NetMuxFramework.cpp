@@ -16,9 +16,12 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include <io.h>
 #else
 #include <unistd.h>
+#include <sys/select.h>
 #endif
+#include <sstream>
 
 NetMuxFramework::NetMuxFramework()
     : m_running(false), m_lastSyncTime(0), m_lastPerfLog(0), m_overlayDirty(false) {
@@ -180,6 +183,7 @@ void NetMuxFramework::Run() {
         PerformSyncCheck();
         PerformFileTransfer();
         PerformPeerCleanup();
+        ProcessStdinCommands();
 #ifdef __linux__
         ProcessX11Events();
 #endif
@@ -843,6 +847,46 @@ void NetMuxFramework::PerformFileTransfer() {
                         m_network.SendPacket(pkt);
                     }
                 }
+            }
+        }
+    }
+}
+
+void NetMuxFramework::ProcessStdinCommands() {
+    // Non-blocking check for input from stdin (IPC pipe from Electron process)
+#ifdef _WIN32
+    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    DWORD bytesAvail = 0;
+    if (hStdin == INVALID_HANDLE_VALUE || !PeekNamedPipe(hStdin, NULL, 0, NULL, &bytesAvail, NULL) || bytesAvail == 0) {
+        return;
+    }
+#else
+    fd_set readFds;
+    FD_ZERO(&readFds);
+    FD_SET(STDIN_FILENO, &readFds);
+    timeval tv = {0, 0};
+    if (select(STDIN_FILENO + 1, &readFds, NULL, NULL, &tv) <= 0) {
+        return;
+    }
+#endif
+
+    std::string line;
+    if (std::getline(std::cin, line)) {
+        if (line.empty()) return;
+
+        std::stringstream ss(line);
+        std::string cmd;
+        ss >> cmd;
+
+        if (cmd == "TRANSFER") {
+            std::string filePath;
+            unsigned long long targetPeer = 0;
+            ss >> filePath;
+            if (ss >> targetPeer) {
+                // targetPeer specified
+            }
+            if (!filePath.empty()) {
+                QueueFileTransfer(filePath, targetPeer);
             }
         }
     }

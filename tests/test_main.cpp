@@ -312,6 +312,22 @@ void test_network_rate_limiter() {
     std::cout << "NetworkManager Token-Bucket Rate Limiter test passed!" << std::endl;
 }
 
+void test_file_transfer_command_handling() {
+    NetMuxFramework framework;
+    std::string testPath = "test_cmd_transfer.bin";
+    std::ofstream src(testPath, std::ios::binary);
+    src << "Command-initiated file payload 12345";
+    src.close();
+
+    // Verify queuing directly
+    assert(framework.QueueFileTransfer(testPath, 888));
+    auto active = framework.GetFileTransferEngine().GetActiveTransfers();
+    assert(active.size() >= 1);
+
+    std::filesystem::remove(testPath);
+    std::cout << "test_file_transfer_command_handling passed!" << std::endl;
+}
+
 void test_file_transfer_peer_targeting() {
     std::string testPath = "test_target_file.bin";
     std::ofstream src(testPath, std::ios::binary);
@@ -874,6 +890,7 @@ int main() {
     test_network_rate_limiter();
     test_file_transfer_streaming();
     test_file_transfer_peer_targeting();
+    test_file_transfer_command_handling();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

@@ -12,7 +12,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveConfig: (config) => ipcRenderer.invoke('save-config', config),
 
   // File drop transfer simulation/action
-  initiateFileTransfer: (filePath) => ipcRenderer.send('initiate-file-transfer', filePath),
+  initiateFileTransfer: (filePath, targetPeerId) => ipcRenderer.send('initiate-file-transfer', filePath, targetPeerId),
 
   // Event streams
   onTelemetry: (callback) => ipcRenderer.on('telemetry-data', (_event, value) => callback(value)),

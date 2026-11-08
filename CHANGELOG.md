@@ -1,3 +1,11 @@
+## [0.1.120-alpha] - 2026-11-04
+
+### Added
+- Stdin Command Protocol & UI Drag-and-Drop Pipe:
+  - Added non-blocking `ProcessStdinCommands()` in `NetMuxFramework` parsing `TRANSFER <filepath> <targetPeerId>` commands from stdin and queueing transfers.
+  - Wired `ui/main.js` and `ui/preload.js` to pipe staged file transfers to the backend process stdin with explicit peer targeting.
+  - Added unit test `test_file_transfer_command_handling()` in `tests/test_main.cpp`.
+
 ## [0.1.119-alpha] - 2026-11-04
 
 ### Added

@@ -988,10 +988,13 @@
                     const totalBytes = files.reduce((acc, f) => acc + f.size, 0);
                     appendLog('info', `[FileTransfer] Staged ${fileCount} file(s) for peer sync (${(totalBytes / 1024).toFixed(1)} KB total)`);
 
+                    // Direct to selected remote peer or group broadcast (0)
+                    const targetPeerId = window.selectedRemotePeerId || 0;
+
                     files.forEach(file => {
-                        appendLog('info', ` -> Queued: ${file.name} (${file.size} bytes)`);
+                        appendLog('info', ` -> Queued: ${file.name} (${file.size} bytes) -> target peer: ${targetPeerId || 'All'}`);
                         if (window.electronAPI && window.electronAPI.initiateFileTransfer) {
-                            window.electronAPI.initiateFileTransfer(file.path || file.name);
+                            window.electronAPI.initiateFileTransfer(file.path || file.name, targetPeerId);
                         }
                     });
 

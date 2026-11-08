@@ -182,12 +182,15 @@ ipcMain.on('quit-app', () => {
   app.quit();
 });
 
-ipcMain.on('initiate-file-transfer', (event, filePath) => {
+ipcMain.on('initiate-file-transfer', (event, filePath, targetPeerId = 0) => {
   if (mainWindow) {
     mainWindow.webContents.send('log-data', {
       level: 'info',
-      message: `[FileTransfer] Initiated staged transfer for: ${filePath}`
+      message: `[FileTransfer] Initiated staged transfer for: ${filePath} (target peer: ${targetPeerId || 'All/Group'})`
     });
+  }
+  if (netmuxProcess && netmuxProcess.stdin && !netmuxProcess.stdin.destroyed) {
+    netmuxProcess.stdin.write(`TRANSFER ${filePath} ${targetPeerId}\n`);
   }
 });
 
