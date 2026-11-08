@@ -54,3 +54,4 @@
 - [x] Implement group-scoped interaction ownership for isolated collaborative teams.
 - [x] Implement multi-monitor virtual display layout mapping in SyncModule.
 - [x] Implement Linux uinput virtual hardware mouse emulation in DriverInterface.
+- [x] Implement Wayland portal-based input capture session management in WaylandPortalManager.

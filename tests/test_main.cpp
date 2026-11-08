@@ -3,6 +3,7 @@
 #include <cstring>
 #include "NetMuxFramework.hpp"
 #include "ConfigManager.hpp"
+#include "WaylandPortalManager.hpp"
 #include "NetworkManager.hpp"
 #include "SyncModule.hpp"
 #include "ClipboardModule.hpp"
@@ -270,6 +271,34 @@ void test_dynamic_resolution_dpi_scaling() {
     assert(scaledY == 1079);
 
     std::cout << "Dynamic Resolution and DPI-Aware Coordinate Scaling test passed!" << std::endl;
+}
+
+void test_wayland_portal_manager() {
+    std::cout << "Testing WaylandPortalManager display detection and session lifecycle..." << std::endl;
+    WaylandPortalManager portal;
+
+    // Verify display server detection
+    WaylandSessionType sessionType = WaylandPortalManager::DetectDisplayServer();
+    assert(sessionType == WaylandSessionType::X11 || sessionType == WaylandSessionType::WaylandNative ||
+           sessionType == WaylandSessionType::WaylandPortal || sessionType == WaylandSessionType::Unknown);
+
+    // Verify session acquisition
+    std::string handle;
+    bool sessionOk = portal.RequestInputCaptureSession(handle);
+    assert(sessionOk);
+    assert(!handle.empty());
+    assert(portal.IsActive());
+
+    // Verify virtual pointer event injection capability
+    bool injectOk = portal.InjectVirtualPointerEvent(10, 20, 0);
+    assert(injectOk);
+
+    // Verify session release
+    bool releaseOk = portal.ReleaseInputCaptureSession(handle);
+    assert(releaseOk);
+    assert(!portal.IsActive());
+
+    std::cout << "WaylandPortalManager display detection and session lifecycle test passed!" << std::endl;
 }
 
 void test_driver_interface_virtual_device() {
@@ -636,6 +665,7 @@ int main() {
     test_group_scoped_interaction_ownership();
     test_multimonitor_layout_mapping();
     test_driver_interface_virtual_device();
+    test_wayland_portal_manager();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

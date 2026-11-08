@@ -1,6 +1,11 @@
-# NetMux Session Handoff - v0.1.112-alpha
+# NetMux Session Handoff - v0.1.113-alpha
 
 ## Repository Synchronization Summary (2026-11-04)
+
+### Wayland Integration & Portal-Based Input Capture (v0.1.113-alpha)
+- **Wayland Display Server & Portal Session Manager**:
+  - Implemented `WaylandPortalManager` (`DetectDisplayServer`, `IsWaylandSession`, `IsPortalAvailable`, `RequestInputCaptureSession`, `ReleaseInputCaptureSession`, `InjectVirtualPointerEvent`) supporting modern secure Linux Wayland desktop environments.
+  - Added unit test `test_wayland_portal_manager()` in `tests/test_main.cpp`.
 
 ### Linux Virtual Hardware Mouse Emulation via uinput (v0.1.112-alpha)
 - **Virtual HID Hardware Emulation**:

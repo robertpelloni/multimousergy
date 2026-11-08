@@ -1,3 +1,10 @@
+## [0.1.113-alpha] - 2026-11-04
+
+### Added
+- Wayland Integration and Portal-Based Input Capture Session Management:
+  - Implemented `WaylandPortalManager` (`DetectDisplayServer`, `IsWaylandSession`, `IsPortalAvailable`, `RequestInputCaptureSession`, `ReleaseInputCaptureSession`, `InjectVirtualPointerEvent`).
+  - Added unit test `test_wayland_portal_manager()` in `tests/test_main.cpp`.
+
 ## [0.1.112-alpha] - 2026-11-04
 
 ### Added
