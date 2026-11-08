@@ -50,6 +50,18 @@ bool FileTransferEngine::GetHeaderPacket(unsigned long long transferId, Packet& 
     return true;
 }
 
+bool FileTransferEngine::StartBatchTransfer(const std::vector<std::string>& filePaths, unsigned long long targetPeerId, std::vector<unsigned long long>& outTransferIds) {
+    outTransferIds.clear();
+    bool anyStarted = false;
+    for (const auto& path : filePaths) {
+        if (StartTransfer(path, targetPeerId)) {
+            outTransferIds.push_back(m_nextTransferId - 1);
+            anyStarted = true;
+        }
+    }
+    return anyStarted;
+}
+
 bool FileTransferEngine::GetNextChunk(unsigned long long transferId, Packet& outPkt) {
     std::lock_guard<std::mutex> lock(m_mutex);
 

@@ -1,3 +1,11 @@
+## [0.1.107-alpha] - 2026-11-04
+
+### Added
+- Multi-File Batch Transfer Queueing & Enhanced Drag-and-Drop Staging:
+  - Added `StartBatchTransfer()` to `FileTransferEngine` and `QueueBatchFileTransfer()` to `NetMuxFramework`.
+  - Updated Command Dashboard UI (`ui/index.html`) dropzone to process multi-file batches, reporting total payload sizes, queuing individual transfers, and updating batch status indicators.
+  - Added unit test `test_file_transfer_batch_queue()` in `tests/test_main.cpp`.
+
 ## [0.1.106-alpha] - 2026-11-04
 
 ### Added

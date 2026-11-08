@@ -409,6 +409,11 @@ bool NetMuxFramework::QueueFileTransfer(const std::string& filePath, unsigned lo
     return m_fileTransfer.StartTransfer(filePath, targetPeerId);
 }
 
+bool NetMuxFramework::QueueBatchFileTransfer(const std::vector<std::string>& filePaths, unsigned long long targetPeerId) {
+    std::vector<unsigned long long> outIds;
+    return m_fileTransfer.StartBatchTransfer(filePaths, targetPeerId, outIds);
+}
+
 void NetMuxFramework::ProcessOutgoingPackets() {
     Packet outPkt;
     while (m_input.GetPendingPacket(outPkt)) {

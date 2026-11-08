@@ -46,6 +46,7 @@ public:
     FileTransferEngine& GetFileTransferEngine() { return m_fileTransfer; }
     bool IsRunning() const { return m_running; }
     bool QueueFileTransfer(const std::string& filePath, unsigned long long targetPeerId = 0);
+    bool QueueBatchFileTransfer(const std::vector<std::string>& filePaths, unsigned long long targetPeerId = 0);
 
 #ifdef __linux__
     void* m_xDisplay = nullptr;

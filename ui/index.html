@@ -983,11 +983,25 @@
                 e.preventDefault();
                 dz.classList.remove('dragover');
                 if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                    const file = e.dataTransfer.files[0];
-                    appendLog('info', `[FileTransfer] Staged file for peer sync: ${file.name} (${file.size} bytes)`);
-                    if (window.electronAPI && window.electronAPI.initiateFileTransfer) {
-                        window.electronAPI.initiateFileTransfer(file.path || file.name);
+                    const files = Array.from(e.dataTransfer.files);
+                    const fileCount = files.length;
+                    const totalBytes = files.reduce((acc, f) => acc + f.size, 0);
+                    appendLog('info', `[FileTransfer] Staged ${fileCount} file(s) for peer sync (${(totalBytes / 1024).toFixed(1)} KB total)`);
+
+                    files.forEach(file => {
+                        appendLog('info', ` -> Queued: ${file.name} (${file.size} bytes)`);
+                        if (window.electronAPI && window.electronAPI.initiateFileTransfer) {
+                            window.electronAPI.initiateFileTransfer(file.path || file.name);
+                        }
+                    });
+
+                    // Update UI staging label
+                    const stagedLabel = document.getElementById('transferFileName');
+                    if (stagedLabel) {
+                        stagedLabel.innerText = fileCount === 1 ? `Sending: ${files[0].name}` : `Batch (${fileCount} files): ${files[0].name} +${fileCount - 1} more`;
                     }
+                    const container = document.getElementById('transferContainer');
+                    if (container) container.style.display = 'block';
                 }
             });
         }

@@ -1,6 +1,12 @@
-# NetMux Session Handoff - v0.1.106-alpha
+# NetMux Session Handoff - v0.1.107-alpha
 
 ## Repository Synchronization Summary (2026-11-04)
+
+### Multi-File Batch Transfer Queueing & Enhanced Staging (v0.1.107-alpha)
+- **Batch File Transfer Engine**:
+  - Added `StartBatchTransfer` to `FileTransferEngine` and `QueueBatchFileTransfer` to `NetMuxFramework`.
+  - Updated Command Dashboard UI (`ui/index.html`) to stage multi-file drops with aggregate size calculations, individual file queueing, and visual batch status progress.
+  - Added unit test `test_file_transfer_batch_queue()` in `tests/test_main.cpp`.
 
 ### Dynamic Resolution & DPI-Aware Coordinate Scaling (v0.1.106-alpha)
 - **Coordinate Projection Engine**:

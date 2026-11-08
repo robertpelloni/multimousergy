@@ -272,6 +272,39 @@ void test_dynamic_resolution_dpi_scaling() {
     std::cout << "Dynamic Resolution and DPI-Aware Coordinate Scaling test passed!" << std::endl;
 }
 
+void test_file_transfer_batch_queue() {
+    std::cout << "Testing FileTransferEngine batch queueing..." << std::endl;
+    // Create multiple test dummy files
+    std::string path1 = "test_batch_1.txt";
+    std::string path2 = "test_batch_2.txt";
+    {
+        std::ofstream f1(path1, std::ios::binary);
+        f1 << "MultiMousergy Batch Item 1 payload";
+        std::ofstream f2(path2, std::ios::binary);
+        f2 << "MultiMousergy Batch Item 2 payload with more data bytes";
+    }
+
+    FileTransferEngine engine;
+    std::vector<std::string> paths = { path1, path2 };
+    std::vector<unsigned long long> outIds;
+    bool batchOk = engine.StartBatchTransfer(paths, 42, outIds);
+    assert(batchOk);
+    assert(outIds.size() == 2);
+
+    auto active = engine.GetActiveTransfers();
+    assert(active.size() == 2);
+    assert(active.count(outIds[0]) > 0);
+    assert(active.count(outIds[1]) > 0);
+    assert(active[outIds[0]].filename == path1);
+    assert(active[outIds[1]].filename == path2);
+    assert(active[outIds[0]].isOutgoing == true);
+
+    // Clean up files
+    std::remove(path1.c_str());
+    std::remove(path2.c_str());
+    std::cout << "FileTransferEngine batch queueing test passed!" << std::endl;
+}
+
 void test_file_transfer_engine_queue_and_telemetry() {
     std::cout << "Testing FileTransferEngine queue, multi-chunk progress and telemetry..." << std::endl;
     // Create a temporary mock file
@@ -436,6 +469,7 @@ int main() {
     test_continuous_drag_selection_sync();
     test_file_transfer_engine_queue_and_telemetry();
     test_dynamic_resolution_dpi_scaling();
+    test_file_transfer_batch_queue();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

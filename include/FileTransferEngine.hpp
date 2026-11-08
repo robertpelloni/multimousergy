@@ -37,6 +37,7 @@ public:
 
     // Outgoing
     bool StartTransfer(const std::string& filePath, unsigned long long targetPeerId);
+    bool StartBatchTransfer(const std::vector<std::string>& filePaths, unsigned long long targetPeerId, std::vector<unsigned long long>& outTransferIds);
     bool GetHeaderPacket(unsigned long long transferId, Packet& outPkt);
     bool GetNextChunk(unsigned long long transferId, Packet& outPkt);
 
