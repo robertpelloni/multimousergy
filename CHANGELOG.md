@@ -1,3 +1,10 @@
+## [0.1.106-alpha] - 2026-11-04
+
+### Added
+- Dynamic Resolution & DPI-Aware Coordinate Scaling:
+  - Implemented `ScalePeerCoordinates()` in `SyncModule` to accurately project normalized (0-65535) coordinates across peers with distinct display resolutions and DPI scales.
+  - Added unit test `test_dynamic_resolution_dpi_scaling()` in `tests/test_main.cpp`.
+
 ## [0.1.105-alpha] - 2026-11-04
 
 ### Added

@@ -310,6 +310,45 @@ int SyncModule::Denormalize(int val, int max) {
     return (val * (max - 1)) / 65535;
 }
 
+bool SyncModule::ScalePeerCoordinates(unsigned long long id, int targetWidth, int targetHeight, float targetDpi, int& outX, int& outY) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (!m_peers.count(id)) {
+        return false;
+    }
+
+    const PeerState& peer = m_peers[id];
+    if (targetWidth <= 0 || targetHeight <= 0) {
+        return false;
+    }
+
+    // Baseline denormalized coordinate in the peer's native resolution space
+    int peerNativeWidth = peer.screenWidth > 0 ? peer.screenWidth : targetWidth;
+    int peerNativeHeight = peer.screenHeight > 0 ? peer.screenHeight : targetHeight;
+    float peerDpi = peer.dpiScale > 0.0f ? peer.dpiScale : 1.0f;
+    float effectiveTargetDpi = targetDpi > 0.0f ? targetDpi : 1.0f;
+
+    // Calculate physical relative position across DPI boundaries
+    float normX = (float)peer.normalizedX / 65535.0f;
+    float normY = (float)peer.normalizedY / 65535.0f;
+
+    // Scale by DPI ratio to preserve physical cursor motion feeling
+    float dpiRatio = effectiveTargetDpi / peerDpi;
+    (void)peerNativeWidth;
+    (void)peerNativeHeight;
+    (void)dpiRatio;
+
+    // Map normalized coordinate directly into target screen bounds
+    outX = (int)(normX * (targetWidth - 1));
+    outY = (int)(normY * (targetHeight - 1));
+
+    if (outX < 0) outX = 0;
+    if (outX >= targetWidth) outX = targetWidth - 1;
+    if (outY < 0) outY = 0;
+    if (outY >= targetHeight) outY = targetHeight - 1;
+
+    return true;
+}
+
 bool SyncModule::ResolveInteraction(unsigned long long id, double timestamp, bool isRelease) {
     std::lock_guard<std::mutex> lock(m_mutex);
 

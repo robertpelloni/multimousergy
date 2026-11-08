@@ -47,3 +47,4 @@
 - [x] Implement IMFMediaSource enumerators for webcam capture.
 - [x] Complete H.264 encoder/decoder implementation.
 - [x] Implement peer media stream synchronization for integrated video chat.
+- [x] Implement dynamic resolution and DPI-aware coordinate scaling.

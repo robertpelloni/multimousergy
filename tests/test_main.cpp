@@ -238,6 +238,40 @@ void test_continuous_drag_selection_sync() {
     std::cout << "Continuous drag selection test passed!" << std::endl;
 }
 
+void test_dynamic_resolution_dpi_scaling() {
+    std::cout << "Testing Dynamic Resolution and DPI-Aware Coordinate Scaling..." << std::endl;
+    SyncModule sync;
+    unsigned long long peerId = 999;
+
+    // Register peer on 4K display (3840x2160) with 1.5x DPI scale
+    sync.UpdatePeer(peerId, 0, 32767, 32767); // Center coordinate
+    sync.UpdatePeerResolution(peerId, 3840, 2160, 1.5f);
+
+    int scaledX = 0, scaledY = 0;
+    // Map to a 1080p display (1920x1080) at 1.0x DPI scale
+    bool ok = sync.ScalePeerCoordinates(peerId, 1920, 1080, 1.0f, scaledX, scaledY);
+    assert(ok);
+    // Center of 1920x1080 is roughly 959-960
+    assert(scaledX >= 958 && scaledX <= 961);
+    assert(scaledY >= 538 && scaledY <= 541);
+
+    // Map top-left (0,0)
+    sync.UpdatePeer(peerId, 0, 0, 0);
+    ok = sync.ScalePeerCoordinates(peerId, 1920, 1080, 1.0f, scaledX, scaledY);
+    assert(ok);
+    assert(scaledX == 0);
+    assert(scaledY == 0);
+
+    // Map bottom-right (65535, 65535)
+    sync.UpdatePeer(peerId, 0, 65535, 65535);
+    ok = sync.ScalePeerCoordinates(peerId, 1920, 1080, 1.0f, scaledX, scaledY);
+    assert(ok);
+    assert(scaledX == 1919);
+    assert(scaledY == 1079);
+
+    std::cout << "Dynamic Resolution and DPI-Aware Coordinate Scaling test passed!" << std::endl;
+}
+
 void test_file_transfer_engine_queue_and_telemetry() {
     std::cout << "Testing FileTransferEngine queue, multi-chunk progress and telemetry..." << std::endl;
     // Create a temporary mock file
@@ -401,6 +435,7 @@ int main() {
     test_multi_team_group_isolation();
     test_continuous_drag_selection_sync();
     test_file_transfer_engine_queue_and_telemetry();
+    test_dynamic_resolution_dpi_scaling();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

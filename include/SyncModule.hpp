@@ -77,6 +77,9 @@ public:
     static int Normalize(int val, int max);
     static int Denormalize(int val, int max);
 
+    // Dynamic resolution and DPI-aware coordinate projection
+    bool ScalePeerCoordinates(unsigned long long id, int targetWidth, int targetHeight, float targetDpi, int& outX, int& outY);
+
     // Interaction Ownership: returns true if interaction is permitted
     bool ResolveInteraction(unsigned long long id, double timestamp, bool isRelease = false);
 

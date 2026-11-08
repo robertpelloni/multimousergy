@@ -1,6 +1,11 @@
-# NetMux Session Handoff - v0.1.105-alpha
+# NetMux Session Handoff - v0.1.106-alpha
 
 ## Repository Synchronization Summary (2026-11-04)
+
+### Dynamic Resolution & DPI-Aware Coordinate Scaling (v0.1.106-alpha)
+- **Coordinate Projection Engine**:
+  - Implemented `ScalePeerCoordinates` in `SyncModule` to dynamically project normalized 0-65535 cursor positions between heterogeneous client displays (e.g. 4K 3840x2160 at 1.5x DPI to 1080p 1920x1080 at 1.0x DPI).
+  - Added unit test `test_dynamic_resolution_dpi_scaling()` in `tests/test_main.cpp`.
 
 ### Integrated Video Chat Stream Synchronization (v0.1.105-alpha)
 - **Synchronized Media Stream Architecture**:
