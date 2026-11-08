@@ -44,6 +44,10 @@ public:
     bool GetPeerMediaStream(unsigned long long peerId, PeerMediaStream& outStream) const;
     void ClearPeerMediaStream(unsigned long long peerId);
 
+    // Directional spatial audio panning
+    static void CalculateSpatialAudioGain(int peerNormalizedX, int peerNormalizedY, float& leftGain, float& rightGain);
+    static bool ApplySpatialAudioPan(const std::vector<uint8_t>& pcmInput, int peerNormX, int peerNormY, std::vector<uint8_t>& pcmOutput);
+
     // Media track management
     void SendDesktopFrame(void* frameData);
     void AddVideoTrack();

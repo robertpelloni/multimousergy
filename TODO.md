@@ -49,3 +49,4 @@
 - [x] Implement peer media stream synchronization for integrated video chat.
 - [x] Implement dynamic resolution and DPI-aware coordinate scaling.
 - [x] Implement multi-file batch transfer queueing and enhanced drag-and-drop staging.
+- [x] Implement directional spatial audio panning linked to peer cursor positions.

@@ -1,5 +1,6 @@
 #include "WebRTCManager.hpp"
 #include <iostream>
+#include <cmath>
 
 #ifdef _WIN32
 #include <d3d11.h>
@@ -141,6 +142,36 @@ bool WebRTCManager::GetPeerMediaStream(unsigned long long peerId, PeerMediaStrea
 
 void WebRTCManager::ClearPeerMediaStream(unsigned long long peerId) {
     m_peerStreams.erase(peerId);
+}
+
+void WebRTCManager::CalculateSpatialAudioGain(int peerNormalizedX, int peerNormalizedY, float& leftGain, float& rightGain) {
+    (void)peerNormalizedY;
+    // Normalized 0..65535 maps from hard left (0.0) to hard right (1.0)
+    float pan = (float)peerNormalizedX / 65535.0f;
+    if (pan < 0.0f) pan = 0.0f;
+    if (pan > 1.0f) pan = 1.0f;
+
+    // Constant power panning law
+    float angle = pan * 1.57079632679f; // 0 to PI/2
+    leftGain = std::cos(angle);
+    rightGain = std::sin(angle);
+}
+
+bool WebRTCManager::ApplySpatialAudioPan(const std::vector<uint8_t>& pcmInput, int peerNormX, int peerNormY, std::vector<uint8_t>& pcmOutput) {
+    if (pcmInput.empty()) return false;
+    float leftGain = 1.0f, rightGain = 1.0f;
+    CalculateSpatialAudioGain(peerNormX, peerNormY, leftGain, rightGain);
+
+    // Assume 16-bit stereo PCM (2 bytes per sample, 2 channels = 4 bytes per frame)
+    pcmOutput = pcmInput;
+    int16_t* samples = reinterpret_cast<int16_t*>(pcmOutput.data());
+    size_t sampleCount = pcmOutput.size() / sizeof(int16_t);
+
+    for (size_t i = 0; i + 1 < sampleCount; i += 2) {
+        samples[i] = static_cast<int16_t>(samples[i] * leftGain);       // Left channel
+        samples[i + 1] = static_cast<int16_t>(samples[i + 1] * rightGain); // Right channel
+    }
+    return true;
 }
 
 bool WebRTCManager::IsConnected() const {

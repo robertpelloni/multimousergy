@@ -272,6 +272,40 @@ void test_dynamic_resolution_dpi_scaling() {
     std::cout << "Dynamic Resolution and DPI-Aware Coordinate Scaling test passed!" << std::endl;
 }
 
+void test_spatial_audio_panning() {
+    std::cout << "Testing Directional Spatial Audio Panning..." << std::endl;
+    float leftGain = 0.0f, rightGain = 0.0f;
+
+    // Hard left (normalizedX = 0)
+    WebRTCManager::CalculateSpatialAudioGain(0, 32767, leftGain, rightGain);
+    assert(leftGain > 0.99f);
+    assert(rightGain < 0.01f);
+
+    // Hard right (normalizedX = 65535)
+    WebRTCManager::CalculateSpatialAudioGain(65535, 32767, leftGain, rightGain);
+    assert(leftGain < 0.01f);
+    assert(rightGain > 0.99f);
+
+    // Center (normalizedX = 32767)
+    WebRTCManager::CalculateSpatialAudioGain(32767, 32767, leftGain, rightGain);
+    assert(std::abs(leftGain - rightGain) < 0.05f);
+
+    // Test PCM buffer application
+    // 4 samples = 2 stereo frames of 1000 amplitude
+    std::vector<int16_t> rawPcm = { 1000, 1000, 1000, 1000 };
+    std::vector<uint8_t> inputBytes(reinterpret_cast<uint8_t*>(rawPcm.data()), reinterpret_cast<uint8_t*>(rawPcm.data() + rawPcm.size()));
+    std::vector<uint8_t> outputBytes;
+
+    bool panOk = WebRTCManager::ApplySpatialAudioPan(inputBytes, 0, 0, outputBytes);
+    assert(panOk);
+    const int16_t* pannedSamples = reinterpret_cast<const int16_t*>(outputBytes.data());
+    // In hard left: left channel preserved, right channel muted
+    assert(pannedSamples[0] > 900);
+    assert(pannedSamples[1] < 50);
+
+    std::cout << "Directional Spatial Audio Panning test passed!" << std::endl;
+}
+
 void test_file_transfer_batch_queue() {
     std::cout << "Testing FileTransferEngine batch queueing..." << std::endl;
     // Create multiple test dummy files
@@ -470,6 +504,7 @@ int main() {
     test_file_transfer_engine_queue_and_telemetry();
     test_dynamic_resolution_dpi_scaling();
     test_file_transfer_batch_queue();
+    test_spatial_audio_panning();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

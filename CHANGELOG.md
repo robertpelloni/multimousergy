@@ -1,3 +1,10 @@
+## [0.1.108-alpha] - 2026-11-04
+
+### Added
+- Directional Spatial Audio Panning:
+  - Implemented `CalculateSpatialAudioGain` and `ApplySpatialAudioPan` in `WebRTCManager` applying constant-power stereo panning laws based on peer cursor coordinates.
+  - Added unit test `test_spatial_audio_panning()` in `tests/test_main.cpp`.
+
 ## [0.1.107-alpha] - 2026-11-04
 
 ### Added

@@ -1,6 +1,11 @@
-# NetMux Session Handoff - v0.1.107-alpha
+# NetMux Session Handoff - v0.1.108-alpha
 
 ## Repository Synchronization Summary (2026-11-04)
+
+### Directional Spatial Audio Panning (v0.1.108-alpha)
+- **Spatial Voice Audio Panning**:
+  - Implemented `CalculateSpatialAudioGain` and `ApplySpatialAudioPan` in `WebRTCManager` delivering constant-power stereo panning based on peer cursor horizontal coordinates (0 = left, 32767 = center, 65535 = right).
+  - Added unit test `test_spatial_audio_panning()` in `tests/test_main.cpp`.
 
 ### Multi-File Batch Transfer Queueing & Enhanced Staging (v0.1.107-alpha)
 - **Batch File Transfer Engine**:
