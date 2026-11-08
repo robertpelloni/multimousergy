@@ -1,6 +1,11 @@
-# NetMux Session Handoff - v0.1.111-alpha
+# NetMux Session Handoff - v0.1.112-alpha
 
 ## Repository Synchronization Summary (2026-11-04)
+
+### Linux Virtual Hardware Mouse Emulation via uinput (v0.1.112-alpha)
+- **Virtual HID Hardware Emulation**:
+  - Implemented `InitUInputDevice` in `DriverInterface`, constructing a clean virtual USB mouse node on `/dev/uinput` with fallback device node scanning.
+  - Added unit test `test_driver_interface_virtual_device()` in `tests/test_main.cpp`.
 
 ### Multi-Monitor Virtual Display Layout Mapping (v0.1.111-alpha)
 - **Virtual Canvas to Physical Display Mapper**:

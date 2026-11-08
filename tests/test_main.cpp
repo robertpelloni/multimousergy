@@ -272,6 +272,29 @@ void test_dynamic_resolution_dpi_scaling() {
     std::cout << "Dynamic Resolution and DPI-Aware Coordinate Scaling test passed!" << std::endl;
 }
 
+void test_driver_interface_virtual_device() {
+    std::cout << "Testing DriverInterface Virtual Device lifecycle..." << std::endl;
+    DriverInterface driver;
+
+    // Test initial state
+    assert(!driver.IsInitialized());
+    assert(driver.GetDriverType() == NetMuxDriverType::Auto);
+
+    // Test driver initialization
+    driver.Initialize(NetMuxDriverType::Auto);
+
+    // Exercise API surface
+    driver.SendMouseMovement(10, -5);
+    driver.SendMouseButton(1, true);
+    driver.SendMouseButton(1, false);
+    driver.SendMouseWheel(120, false);
+
+    driver.Shutdown();
+    assert(!driver.IsInitialized());
+
+    std::cout << "DriverInterface Virtual Device lifecycle test passed!" << std::endl;
+}
+
 void test_multimonitor_layout_mapping() {
     std::cout << "Testing Multi-Monitor Layout Mapping..." << std::endl;
     SyncModule sync;
@@ -612,6 +635,7 @@ int main() {
     test_spatial_viewport_anchors();
     test_group_scoped_interaction_ownership();
     test_multimonitor_layout_mapping();
+    test_driver_interface_virtual_device();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

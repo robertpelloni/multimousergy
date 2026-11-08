@@ -1,3 +1,10 @@
+## [0.1.112-alpha] - 2026-11-04
+
+### Added
+- Linux Virtual Hardware Mouse Emulation via uinput:
+  - Implemented `InitUInputDevice()` in `DriverInterface` creating independent virtual input hardware nodes on `/dev/uinput` with fallback scanning across physical `/dev/input/event*` devices.
+  - Added unit test `test_driver_interface_virtual_device()` in `tests/test_main.cpp`.
+
 ## [0.1.111-alpha] - 2026-11-04
 
 ### Added
