@@ -1,3 +1,10 @@
+## [0.1.111-alpha] - 2026-11-04
+
+### Added
+- Multi-Monitor Virtual Display Layout Mapping:
+  - Defined `MonitorDescriptor` and implemented `AddLocalMonitor`, `ClearLocalMonitors`, and `MapVirtualToPhysicalMonitor` in `SyncModule` to accurately resolve virtual span coordinates to physical monitor IDs and monitor-relative pixel coordinates.
+  - Added unit test `test_multimonitor_layout_mapping()` in `tests/test_main.cpp`.
+
 ## [0.1.110-alpha] - 2026-11-04
 
 ### Added

@@ -272,6 +272,46 @@ void test_dynamic_resolution_dpi_scaling() {
     std::cout << "Dynamic Resolution and DPI-Aware Coordinate Scaling test passed!" << std::endl;
 }
 
+void test_multimonitor_layout_mapping() {
+    std::cout << "Testing Multi-Monitor Layout Mapping..." << std::endl;
+    SyncModule sync;
+
+    // Dual 1920x1080 setup side-by-side
+    // Monitor 1: (0, 0) -> (1920, 1080)
+    // Monitor 2: (1920, 0) -> (3840, 1080)
+    MonitorDescriptor mon1 = { 1, 0, 0, 1920, 1080, 1.0f, true };
+    MonitorDescriptor mon2 = { 2, 1920, 0, 1920, 1080, 1.25f, false };
+
+    sync.AddLocalMonitor(mon1);
+    sync.AddLocalMonitor(mon2);
+    assert(sync.GetLocalMonitors().size() == 2);
+
+    int outMonId = 0, outX = 0, outY = 0;
+
+    // Point on Monitor 1
+    bool hit1 = sync.MapVirtualToPhysicalMonitor(500, 300, outMonId, outX, outY);
+    assert(hit1);
+    assert(outMonId == 1);
+    assert(outX == 500);
+    assert(outY == 300);
+
+    // Point on Monitor 2
+    bool hit2 = sync.MapVirtualToPhysicalMonitor(2120, 450, outMonId, outX, outY);
+    assert(hit2);
+    assert(outMonId == 2);
+    assert(outX == 200); // 2120 - 1920
+    assert(outY == 450);
+
+    // Boundary edge on Monitor 2
+    bool hitEdge = sync.MapVirtualToPhysicalMonitor(3839, 1079, outMonId, outX, outY);
+    assert(hitEdge);
+    assert(outMonId == 2);
+    assert(outX == 1919);
+    assert(outY == 1079);
+
+    std::cout << "Multi-Monitor Layout Mapping test passed!" << std::endl;
+}
+
 void test_group_scoped_interaction_ownership() {
     std::cout << "Testing Group-Scoped Interaction Ownership..." << std::endl;
     SyncModule sync;
@@ -571,6 +611,7 @@ int main() {
     test_spatial_audio_panning();
     test_spatial_viewport_anchors();
     test_group_scoped_interaction_ownership();
+    test_multimonitor_layout_mapping();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

@@ -10,6 +10,16 @@ struct HistoryPoint {
     double timestamp;
 };
 
+struct MonitorDescriptor {
+    int monitorId = 0;
+    int x = 0;
+    int y = 0;
+    int width = 1920;
+    int height = 1080;
+    float dpiScale = 1.0f;
+    bool isPrimary = true;
+};
+
 struct PeerState {
     unsigned long long id;
     unsigned int groupId;
@@ -77,6 +87,12 @@ public:
     static int Normalize(int val, int max);
     static int Denormalize(int val, int max);
 
+    // Multi-Monitor Virtual Display Layout Mapping
+    void AddLocalMonitor(const MonitorDescriptor& desc);
+    void ClearLocalMonitors();
+    bool MapVirtualToPhysicalMonitor(int virtualX, int virtualY, int& outMonitorId, int& outLocalX, int& outLocalY) const;
+    const std::vector<MonitorDescriptor>& GetLocalMonitors() const { return m_monitors; }
+
     // Dynamic resolution and DPI-aware coordinate projection
     bool ScalePeerCoordinates(unsigned long long id, int targetWidth, int targetHeight, float targetDpi, int& outX, int& outY);
 
@@ -103,7 +119,8 @@ private:
     unsigned long long m_activePeerId = 0;
     std::map<unsigned int, unsigned long long> m_groupActivePeerId;
     std::map<unsigned int, double> m_groupLastActiveSwitch;
+    std::vector<MonitorDescriptor> m_monitors;
     unsigned long long m_localId = 0;
     double m_lastActiveSwitch = 0;
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
 };

@@ -1,6 +1,11 @@
-# NetMux Session Handoff - v0.1.110-alpha
+# NetMux Session Handoff - v0.1.111-alpha
 
 ## Repository Synchronization Summary (2026-11-04)
+
+### Multi-Monitor Virtual Display Layout Mapping (v0.1.111-alpha)
+- **Virtual Canvas to Physical Display Mapper**:
+  - Implemented `MonitorDescriptor`, `AddLocalMonitor`, `ClearLocalMonitors`, and `MapVirtualToPhysicalMonitor` in `SyncModule` to accurately resolve spanning multi-monitor virtual coordinates to physical monitor IDs and local pixel coordinates.
+  - Added unit test `test_multimonitor_layout_mapping()` in `tests/test_main.cpp`.
 
 ### Group-Scoped Interaction Ownership (v0.1.110-alpha)
 - **Multi-Team Isolated Ownership Model**:

@@ -310,6 +310,44 @@ int SyncModule::Denormalize(int val, int max) {
     return (val * (max - 1)) / 65535;
 }
 
+void SyncModule::AddLocalMonitor(const MonitorDescriptor& desc) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_monitors.push_back(desc);
+}
+
+void SyncModule::ClearLocalMonitors() {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_monitors.clear();
+}
+
+bool SyncModule::MapVirtualToPhysicalMonitor(int virtualX, int virtualY, int& outMonitorId, int& outLocalX, int& outLocalY) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_monitors.empty()) {
+        outMonitorId = 0;
+        outLocalX = virtualX;
+        outLocalY = virtualY;
+        return true;
+    }
+
+    // Check bounds against each registered monitor
+    for (const auto& mon : m_monitors) {
+        if (virtualX >= mon.x && virtualX < (mon.x + mon.width) &&
+            virtualY >= mon.y && virtualY < (mon.y + mon.height)) {
+            outMonitorId = mon.monitorId;
+            outLocalX = virtualX - mon.x;
+            outLocalY = virtualY - mon.y;
+            return true;
+        }
+    }
+
+    // Default to the first/primary monitor if cursor is outside exact bounding boxes
+    const auto& fallback = m_monitors[0];
+    outMonitorId = fallback.monitorId;
+    outLocalX = std::max(0, std::min(virtualX - fallback.x, fallback.width - 1));
+    outLocalY = std::max(0, std::min(virtualY - fallback.y, fallback.height - 1));
+    return false;
+}
+
 bool SyncModule::ScalePeerCoordinates(unsigned long long id, int targetWidth, int targetHeight, float targetDpi, int& outX, int& outY) {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (!m_peers.count(id)) {
