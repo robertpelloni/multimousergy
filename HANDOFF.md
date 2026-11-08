@@ -1,6 +1,11 @@
-# NetMux Session Handoff - v0.1.116-alpha
+# NetMux Session Handoff - v0.1.117-alpha
 
 ## Repository Synchronization Summary (2026-11-04)
+
+### Token-Bucket Network Rate Limiter (v0.1.117-alpha)
+- **Congestion & Anti-Flood Protection**:
+  - Implemented `TokenBucketLimiter`, `ConfigureRateLimiter`, and `CheckRateLimit` in `NetworkManager` to enforce continuous rate policing and burst control on network packets.
+  - Added unit test `test_network_rate_limiter()` in `tests/test_main.cpp`.
 
 ### HMAC-SHA256 Message Integrity Verification (v0.1.116-alpha)
 - **Cryptographic Message Authentication Engine**:

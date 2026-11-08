@@ -274,6 +274,39 @@ void test_dynamic_resolution_dpi_scaling() {
     std::cout << "Dynamic Resolution and DPI-Aware Coordinate Scaling test passed!" << std::endl;
 }
 
+void test_network_rate_limiter() {
+    std::cout << "Testing NetworkManager Token-Bucket Rate Limiter..." << std::endl;
+    NetworkManager net;
+    unsigned long long peerId = 8888;
+
+    // Configure bucket: 10 tokens max, refill 5 tokens per second
+    net.ConfigureRateLimiter(10.0, 5.0);
+
+    double t0 = 1000.0;
+    // Initial burst of 10 packets (cost = 1.0 each) should all pass
+    for (int i = 0; i < 10; ++i) {
+        bool allowed = net.CheckRateLimit(peerId, 1.0, t0);
+        assert(allowed);
+    }
+
+    // 11th packet at the exact same time should be throttled
+    bool throttled = net.CheckRateLimit(peerId, 1.0, t0);
+    assert(!throttled);
+
+    // After 1 second (refill = 5 tokens), 5 packets should be allowed
+    double t1 = t0 + 1.0;
+    for (int i = 0; i < 5; ++i) {
+        bool allowed = net.CheckRateLimit(peerId, 1.0, t1);
+        assert(allowed);
+    }
+
+    // 6th packet at t1 should be throttled
+    bool throttledAgain = net.CheckRateLimit(peerId, 1.0, t1);
+    assert(!throttledAgain);
+
+    std::cout << "NetworkManager Token-Bucket Rate Limiter test passed!" << std::endl;
+}
+
 void test_auth_module_hmac() {
     std::cout << "Testing AuthModule HMAC-SHA256 message integrity..." << std::endl;
     std::string key = "super_secret_multimousergy_psk";
@@ -762,6 +795,7 @@ int main() {
     test_spatial_raycasting_and_intersection();
     test_hotkey_manager();
     test_auth_module_hmac();
+    test_network_rate_limiter();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

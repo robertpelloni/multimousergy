@@ -38,6 +38,13 @@ struct ClientConnection {
     std::vector<char> buffer;
 };
 
+struct TokenBucketLimiter {
+    double tokens = 200.0;
+    double maxTokens = 200.0;
+    double refillRate = 100.0; // Tokens added per second
+    double lastRefill = 0.0;
+};
+
 class NetworkManager {
 public:
     NetworkManager();
@@ -59,6 +66,10 @@ public:
 
     int GetClientCount() const { return (int)m_clients.size(); }
 
+    // Token-Bucket Rate Limiting
+    void ConfigureRateLimiter(double maxTokens, double refillRate);
+    bool CheckRateLimit(unsigned long long peerId, double cost, double currentTime);
+
     void Shutdown();
 
 private:
@@ -77,4 +88,8 @@ private:
     ConnectionState m_tcpState;
 
     std::vector<char> m_connectorBuffer; // Buffer for the client-side connector socket
+
+    std::map<unsigned long long, TokenBucketLimiter> m_rateLimiters;
+    double m_defaultMaxTokens = 200.0;
+    double m_defaultRefillRate = 100.0;
 };

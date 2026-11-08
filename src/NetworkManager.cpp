@@ -336,6 +336,39 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
     return false;
 }
 
+void NetworkManager::ConfigureRateLimiter(double maxTokens, double refillRate) {
+    m_defaultMaxTokens = maxTokens;
+    m_defaultRefillRate = refillRate;
+}
+
+bool NetworkManager::CheckRateLimit(unsigned long long peerId, double cost, double currentTime) {
+    TokenBucketLimiter& limiter = m_rateLimiters[peerId];
+    if (limiter.lastRefill == 0.0) {
+        limiter.tokens = m_defaultMaxTokens;
+        limiter.maxTokens = m_defaultMaxTokens;
+        limiter.refillRate = m_defaultRefillRate;
+        limiter.lastRefill = currentTime;
+    }
+
+    // Refill tokens based on elapsed seconds
+    double elapsed = currentTime - limiter.lastRefill;
+    if (elapsed > 0.0) {
+        limiter.tokens += elapsed * limiter.refillRate;
+        if (limiter.tokens > limiter.maxTokens) {
+            limiter.tokens = limiter.maxTokens;
+        }
+        limiter.lastRefill = currentTime;
+    }
+
+    // Check availability
+    if (limiter.tokens >= cost) {
+        limiter.tokens -= cost;
+        return true;
+    }
+
+    return false; // Rate limit exceeded
+}
+
 void NetworkManager::Shutdown() {
     if (m_running) {
         m_running = false;

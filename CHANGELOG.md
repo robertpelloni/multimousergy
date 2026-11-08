@@ -1,3 +1,10 @@
+## [0.1.117-alpha] - 2026-11-04
+
+### Added
+- Token-Bucket Network Rate Limiter in NetworkManager:
+  - Implemented `TokenBucketLimiter` struct, `ConfigureRateLimiter`, and `CheckRateLimit` in `NetworkManager` mitigating flood attacks and socket congestion on incoming packet streams.
+  - Added unit test `test_network_rate_limiter()` in `tests/test_main.cpp`.
+
 ## [0.1.116-alpha] - 2026-11-04
 
 ### Added

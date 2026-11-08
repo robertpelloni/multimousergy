@@ -227,8 +227,10 @@ ipcMain.on('start-netmux', (event, config) => {
   };
   writeConfigFile(fileCfg);
 
+  const winReleaseExe = path.join(__dirname, '..', 'build', 'Release', 'NetMux.exe');
+  const winNinjaExe = path.join(__dirname, '..', 'build', 'NetMux.exe');
   const exePath = process.platform === 'win32'
-    ? path.join(__dirname, '..', 'build', 'Release', 'NetMux.exe')
+    ? (fs.existsSync(winReleaseExe) ? winReleaseExe : winNinjaExe)
     : path.join(__dirname, '..', 'build', 'NetMux');
 
   let args = [];
