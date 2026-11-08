@@ -1,7 +1,12 @@
 #include <iostream>
 #include <cassert>
 #include <cstring>
+#include <filesystem>
 #include "NetMuxFramework.hpp"
+
+#ifdef None
+#undef None
+#endif
 #include "ConfigManager.hpp"
 #include "AuthModule.hpp"
 #include "WaylandPortalManager.hpp"
@@ -305,6 +310,53 @@ void test_network_rate_limiter() {
     assert(!throttledAgain);
 
     std::cout << "NetworkManager Token-Bucket Rate Limiter test passed!" << std::endl;
+}
+
+void test_file_transfer_streaming() {
+    // Create a dummy source file
+    std::string testPath = "test_stream_source.bin";
+    std::ofstream src(testPath, std::ios::binary);
+    std::string testContent = "Multi-part stream chunks test payload 1234567890abcdefghijklmnopqrstuvwxyz";
+    for (int i = 0; i < 150; ++i) {
+        src.write(testContent.data(), testContent.size());
+    }
+    src.close();
+
+    FileTransferEngine sender;
+    assert(sender.StartTransfer(testPath, 555));
+
+    Packet headerPkt;
+    assert(sender.GetHeaderPacket(1, headerPkt));
+
+    FileTransferEngine receiver;
+    assert(receiver.HandleFileHeader(headerPkt, 555));
+
+    // Verify peerId association
+    auto active = receiver.GetActiveTransfers();
+    assert(active.size() == 1);
+    assert(!active[1].isComplete);
+
+    // Stream all chunks
+    Packet chunkPkt;
+    while (sender.GetNextChunk(1, chunkPkt)) {
+        assert(receiver.HandleFileData(chunkPkt));
+    }
+
+    active = receiver.GetActiveTransfers();
+    assert(active[1].isComplete);
+    assert(active[1].lastError == FileTransferError::None);
+
+    std::string receivedPath = "received_test_stream_source.bin";
+    assert(std::filesystem::exists(receivedPath));
+
+    // Cleanup peer transfers
+    receiver.CleanupPeerTransfers(555);
+
+    // Clean up temporary disk files
+    std::filesystem::remove(testPath);
+    std::filesystem::remove(receivedPath);
+
+    std::cout << "test_file_transfer_streaming passed!" << std::endl;
 }
 
 void test_auth_module_hmac() {
@@ -796,6 +848,7 @@ int main() {
     test_hotkey_manager();
     test_auth_module_hmac();
     test_network_rate_limiter();
+    test_file_transfer_streaming();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

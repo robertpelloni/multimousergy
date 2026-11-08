@@ -25,6 +25,7 @@ bool FileTransferEngine::StartTransfer(const std::string& filePath, unsigned lon
     transfer.bytesTransferred = 0;
     transfer.isOutgoing = true;
     transfer.isComplete = false;
+    transfer.peerId = targetPeerId;
     transfer.hash = CalculateHash(filePath);
 
     unsigned long long transferId = m_nextTransferId++;
@@ -97,7 +98,7 @@ bool FileTransferEngine::GetNextChunk(unsigned long long transferId, Packet& out
     return false;
 }
 
-bool FileTransferEngine::HandleFileHeader(const Packet& pkt) {
+bool FileTransferEngine::HandleFileHeader(const Packet& pkt, unsigned long long senderPeerId) {
     std::lock_guard<std::mutex> lock(m_mutex);
 
     // Payload format: "filename|size|hash"
@@ -142,11 +143,12 @@ bool FileTransferEngine::HandleFileHeader(const Packet& pkt) {
     transfer.bytesTransferred = 0;
     transfer.isOutgoing = false;
     transfer.isComplete = false;
+    transfer.peerId = senderPeerId;
+    transfer.tempPath = "received_" + safeFilename + ".part";
 
-    try {
-        transfer.buffer.resize(transfer.fileSize);
-    } catch (const std::bad_alloc&) {
-        return false;
+    // Clean up any stale partial file from a previous aborted transfer
+    if (fs::exists(transfer.tempPath)) {
+        fs::remove(transfer.tempPath);
     }
 
     m_transfers[transferId] = transfer;
@@ -167,35 +169,50 @@ bool FileTransferEngine::HandleFileData(const Packet& pkt) {
     if (pkt.chunkIndex < 0) return false;
     size_t offset = (size_t)pkt.chunkIndex * CHUNK_SIZE;
 
-    if (offset + pkt.payloadSize > t.buffer.size()) return false;
+    if (offset + pkt.payloadSize > t.fileSize) return false;
 
-    std::memcpy(t.buffer.data() + offset, pkt.payload, pkt.payloadSize);
+    // Stream directly to temporary disk file to avoid high memory buffering
+    std::fstream fileStream(t.tempPath, std::ios::in | std::ios::out | std::ios::binary);
+    if (!fileStream.is_open()) {
+        fileStream.clear();
+        fileStream.open(t.tempPath, std::ios::out | std::ios::binary);
+    }
+    if (!fileStream.is_open()) {
+        t.lastError = FileTransferError::AccessDenied;
+        return false;
+    }
+
+    fileStream.seekp(offset);
+    fileStream.write(pkt.payload, pkt.payloadSize);
+    fileStream.close();
+
     t.bytesTransferred += pkt.payloadSize;
 
     if (t.bytesTransferred >= t.fileSize) {
         t.isComplete = true;
 
-        // Verify Hash
-        unsigned char hash[32];
-        auto ctx = AuthModule::CreateContext();
-        AuthModule::UpdateHash(ctx, t.buffer.data(), t.buffer.size());
-        AuthModule::FinalizeHash(ctx, hash);
-        std::string calculatedHash = AuthModule::HashToHex(hash);
+        // Verify Hash from disk stream
+        std::string calculatedHash = CalculateHash(t.tempPath);
 
         if (calculatedHash != t.hash) {
             std::cerr << "[FileTransfer] Hash mismatch! Expected: " << t.hash << " Got: " << calculatedHash << std::endl;
             t.lastError = FileTransferError::HashMismatch;
+            fs::remove(t.tempPath);
         } else {
-            // Save to disk
+            // Rename temporary file to final target destination
             std::string savePath = "received_" + t.filename;
-            std::ofstream outFile(savePath, std::ios::binary);
-            if (outFile.is_open()) {
-                outFile.write(t.buffer.data(), t.buffer.size());
-                std::cout << "[FileTransfer] File saved: " << savePath << std::endl;
+            if (fs::exists(savePath)) {
+                fs::remove(savePath);
             }
+            std::error_code ec;
+            fs::rename(t.tempPath, savePath, ec);
+            if (ec) {
+                // Fallback copy if rename fails across mounts
+                fs::copy_file(t.tempPath, savePath, fs::copy_options::overwrite_existing, ec);
+                fs::remove(t.tempPath, ec);
+            }
+            std::cout << "[FileTransfer] File saved: " << savePath << std::endl;
         }
-        t.buffer.clear();
-        t.buffer.shrink_to_fit();
     }
 
     return true;
@@ -243,13 +260,15 @@ std::string FileTransferEngine::CalculateHash(const std::string& path) {
 
 void FileTransferEngine::CleanupPeerTransfers(unsigned long long peerId) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    // Note: transferId encodes peerId in some implementations, but here we'll just check all.
-    // However, our protocol currently doesn't link transferId to peerId explicitly in the map.
-    // For now, we clear incomplete transfers that haven't seen activity.
-    // In a future refactor, we should map transferId -> ownerPeerId.
     for (auto it = m_transfers.begin(); it != m_transfers.end(); ) {
-        if (!it->second.isComplete) {
+        if (!it->second.isComplete && (peerId == 0 || it->second.peerId == peerId)) {
+            // Clean up any lingering partial files on disk
+            if (!it->second.tempPath.empty() && fs::exists(it->second.tempPath)) {
+                fs::remove(it->second.tempPath);
+            }
             it = m_transfers.erase(it);
-        } else ++it;
+        } else {
+            ++it;
+        }
     }
 }

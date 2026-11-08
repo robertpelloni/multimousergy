@@ -23,9 +23,11 @@ struct FileTransfer {
     uint64_t fileSize;
     std::string hash;
     std::string localPath;
+    std::string tempPath;
     uint64_t bytesTransferred;
     bool isOutgoing;
     bool isComplete;
+    unsigned long long peerId = 0;
     FileTransferError lastError = FileTransferError::None;
     std::vector<char> buffer;
 };
@@ -42,7 +44,7 @@ public:
     bool GetNextChunk(unsigned long long transferId, Packet& outPkt);
 
     // Incoming
-    bool HandleFileHeader(const Packet& pkt);
+    bool HandleFileHeader(const Packet& pkt, unsigned long long senderPeerId = 0);
     bool HandleFileData(const Packet& pkt);
 
     // Monitoring

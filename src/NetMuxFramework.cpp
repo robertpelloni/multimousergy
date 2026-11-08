@@ -708,7 +708,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
             }
         } else if (inPkt.type == NetMuxPacketType::FileHeader) {
             if (IsPeerTrusted(peerId, inPkt.type)) {
-                m_fileTransfer.HandleFileHeader(inPkt);
+                m_fileTransfer.HandleFileHeader(inPkt, peerId);
                 if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
             }
         } else if (inPkt.type == NetMuxPacketType::FileData) {

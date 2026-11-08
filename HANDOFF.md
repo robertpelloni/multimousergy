@@ -103,11 +103,17 @@
 - Glowing dual-layer focus halo rings in `D3D11Overlay.cpp`.
 - Adaptive delta compression (1:25 anchor ratio) in `InputEngine.cpp`.
 
+### Streaming File Transfer Engine (v0.1.118-alpha)
+- Streaming disk writes: `FileTransferEngine` streams incoming `FileData` chunks directly to disk into `.part` temporary files instead of loading the entire file into a RAM vector.
+- Peer ID Transfer Ownership: Added `peerId` tracking to `FileTransfer` and updated `CleanupPeerTransfers(peerId)` to clean up uncompleted incoming transfers and disk artifacts for specific disconnected peers.
+- Final streaming SHA-256 validation directly against disk artifacts before atomically promoting to target filename.
+- Added unit test `test_file_transfer_streaming()` in `tests/test_main.cpp`.
+
 ## Project State
-- **Version**: `v0.1.105-alpha`
-- **Build**: CMake + GCC/Clang/MSVC, 100% CTest pass rate (22/22 unit tests passing).
+- **Version**: `v0.1.118-alpha`
+- **Build**: CMake + GCC/Clang/MSVC, 100% CTest pass rate (35/35 unit tests passing).
 - Working tree clean.
 
 ## Notes for Successor
-- All Milestone 6 items (H.264 codecs, WebRTC native integration, spatial audio, and integrated video chat stream synchronizer) are fully implemented and verified.
+- All Milestone 6 items (H.264 codecs, WebRTC native integration, spatial audio, and integrated video chat stream synchronizer) and streaming file transfer engine optimizations are fully implemented and verified.
 - The Electron frontend runs headless C++ netmux instances and consumes JSON telemetry via stdout.

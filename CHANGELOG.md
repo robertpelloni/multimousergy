@@ -1,3 +1,12 @@
+## [0.1.118-alpha] - 2026-11-04
+
+### Added
+- Streaming File Transfer Engine:
+  - Refactored `FileTransferEngine` to stream incoming `FileData` chunks directly to disk into `.part` temporary files instead of loading the entire file into a RAM vector.
+  - Added `peerId` tracking to `FileTransfer` and updated `CleanupPeerTransfers(peerId)` to clean up uncompleted incoming transfers and disk artifacts for specific disconnected peers.
+  - Final streaming SHA-256 validation directly against disk artifacts before atomically promoting to target filename.
+  - Added unit test `test_file_transfer_streaming()` in `tests/test_main.cpp`.
+
 ## [0.1.117-alpha] - 2026-11-04
 
 ### Added
