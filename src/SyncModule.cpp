@@ -349,6 +349,67 @@ bool SyncModule::ScalePeerCoordinates(unsigned long long id, int targetWidth, in
     return true;
 }
 
+unsigned long long SyncModule::GetGroupActivePeer(unsigned int groupId) const {
+    auto it = m_groupActivePeerId.find(groupId);
+    if (it != m_groupActivePeerId.end()) {
+        return it->second;
+    }
+    return 0;
+}
+
+bool SyncModule::ResolveGroupInteraction(unsigned long long id, unsigned int groupId, double timestamp, bool isRelease) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    double adjustedTimestamp = timestamp;
+    if (m_peers.count(id)) {
+        adjustedTimestamp -= m_peers[id].clockOffset;
+    }
+
+    unsigned long long currentGroupActive = m_groupActivePeerId[groupId];
+    double currentGroupSwitch = m_groupLastActiveSwitch[groupId];
+
+    if (isRelease) {
+        if (currentGroupActive == id) {
+            m_groupLastActiveSwitch[groupId] = adjustedTimestamp;
+        }
+        return true;
+    }
+
+    // Initial claim for this team group
+    if (currentGroupActive == 0) {
+        m_groupActivePeerId[groupId] = id;
+        m_groupLastActiveSwitch[groupId] = adjustedTimestamp;
+        return true;
+    }
+
+    // Ownership check for this team group
+    if (currentGroupActive == id) {
+        m_groupLastActiveSwitch[groupId] = adjustedTimestamp;
+        return true;
+    }
+
+    // Race window check
+    const double RACE_WINDOW_MS = 100.0;
+    if ((adjustedTimestamp - currentGroupSwitch) < RACE_WINDOW_MS) {
+        if (adjustedTimestamp < currentGroupSwitch) {
+            std::cout << "[Sync] Preemptive Group " << groupId << " Ownership: " << id << " stealing from " << currentGroupActive
+                      << " (Diff: " << (currentGroupSwitch - adjustedTimestamp) << "ms)" << std::endl;
+            m_groupActivePeerId[groupId] = id;
+            m_groupLastActiveSwitch[groupId] = adjustedTimestamp;
+            return true;
+        }
+    }
+
+    const double INTERACTION_TIMEOUT_MS = 500.0;
+    if ((adjustedTimestamp - currentGroupSwitch) > INTERACTION_TIMEOUT_MS) {
+        m_groupActivePeerId[groupId] = id;
+        m_groupLastActiveSwitch[groupId] = adjustedTimestamp;
+        return true;
+    }
+
+    return false;
+}
+
 bool SyncModule::ResolveInteraction(unsigned long long id, double timestamp, bool isRelease) {
     std::lock_guard<std::mutex> lock(m_mutex);
 

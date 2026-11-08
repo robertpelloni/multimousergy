@@ -1,6 +1,11 @@
-# NetMux Session Handoff - v0.1.109-alpha
+# NetMux Session Handoff - v0.1.110-alpha
 
 ## Repository Synchronization Summary (2026-11-04)
+
+### Group-Scoped Interaction Ownership (v0.1.110-alpha)
+- **Multi-Team Isolated Ownership Model**:
+  - Implemented `ResolveGroupInteraction` and `GetGroupActivePeer` in `SyncModule`, maintaining per-group active interaction ownership states and timestamps so independent teams sharing the same network retain full local focus and uninterrupted simultaneous control.
+  - Added unit test `test_group_scoped_interaction_ownership()` in `tests/test_main.cpp`.
 
 ### SpatialAnchor 3D Node Tracking (v0.1.109-alpha)
 - **Spatial Node Anchoring**:

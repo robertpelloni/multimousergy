@@ -272,6 +272,39 @@ void test_dynamic_resolution_dpi_scaling() {
     std::cout << "Dynamic Resolution and DPI-Aware Coordinate Scaling test passed!" << std::endl;
 }
 
+void test_group_scoped_interaction_ownership() {
+    std::cout << "Testing Group-Scoped Interaction Ownership..." << std::endl;
+    SyncModule sync;
+    unsigned long long peerGroup1 = 301;
+    unsigned long long peerGroup2 = 401;
+    unsigned int group1 = 10;
+    unsigned int group2 = 20;
+
+    sync.UpdatePeer(peerGroup1, group1, 5000, 5000);
+    sync.UpdatePeer(peerGroup2, group2, 9000, 9000);
+
+    // Peer 1 claims ownership in Group 10
+    bool claim1 = sync.ResolveGroupInteraction(peerGroup1, group1, 1000.0, false);
+    assert(claim1);
+    assert(sync.GetGroupActivePeer(group1) == peerGroup1);
+
+    // Peer 2 claims ownership in Group 20 simultaneously
+    bool claim2 = sync.ResolveGroupInteraction(peerGroup2, group2, 1010.0, false);
+    assert(claim2);
+    assert(sync.GetGroupActivePeer(group2) == peerGroup2);
+
+    // Both peers concurrently hold ownership in their isolated groups
+    assert(sync.GetGroupActivePeer(group1) == peerGroup1);
+    assert(sync.GetGroupActivePeer(group2) == peerGroup2);
+
+    // Soft release in Group 10 does not impact Group 20
+    bool rel1 = sync.ResolveGroupInteraction(peerGroup1, group1, 1050.0, true);
+    assert(rel1);
+    assert(sync.GetGroupActivePeer(group2) == peerGroup2);
+
+    std::cout << "Group-Scoped Interaction Ownership test passed!" << std::endl;
+}
+
 void test_spatial_viewport_anchors() {
     std::cout << "Testing SpatialViewport SpatialAnchor tracking..." << std::endl;
     SpatialViewport viewport;
@@ -537,6 +570,7 @@ int main() {
     test_file_transfer_batch_queue();
     test_spatial_audio_panning();
     test_spatial_viewport_anchors();
+    test_group_scoped_interaction_ownership();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

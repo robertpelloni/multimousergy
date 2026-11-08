@@ -82,6 +82,7 @@ public:
 
     // Interaction Ownership: returns true if interaction is permitted
     bool ResolveInteraction(unsigned long long id, double timestamp, bool isRelease = false);
+    bool ResolveGroupInteraction(unsigned long long id, unsigned int groupId, double timestamp, bool isRelease = false);
 
     // Focus validation for arbitrary input events
     bool DispatchInputEvent(unsigned long long id, double timestamp);
@@ -94,11 +95,14 @@ public:
 
     void SetActivePeer(unsigned long long id);
     unsigned long long GetActivePeer() const { return m_activePeerId; }
+    unsigned long long GetGroupActivePeer(unsigned int groupId) const;
     unsigned long long GetLocalId() const { return m_localId; }
 
 private:
     std::map<unsigned long long, PeerState> m_peers;
     unsigned long long m_activePeerId = 0;
+    std::map<unsigned int, unsigned long long> m_groupActivePeerId;
+    std::map<unsigned int, double> m_groupLastActiveSwitch;
     unsigned long long m_localId = 0;
     double m_lastActiveSwitch = 0;
     std::mutex m_mutex;

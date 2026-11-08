@@ -1,3 +1,10 @@
+## [0.1.110-alpha] - 2026-11-04
+
+### Added
+- Group-Scoped Interaction Ownership for Collaborative Teams:
+  - Implemented `ResolveGroupInteraction()` and `GetGroupActivePeer()` in `SyncModule` providing independent simultaneous active ownership states across isolated team groups.
+  - Added unit test `test_group_scoped_interaction_ownership()` in `tests/test_main.cpp`.
+
 ## [0.1.109-alpha] - 2026-11-04
 
 ### Added

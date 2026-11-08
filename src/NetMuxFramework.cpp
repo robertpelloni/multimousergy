@@ -387,7 +387,7 @@ void NetMuxFramework::ProcessInteractionQueue() {
         if (m_sync.GetPeerState(event.peerId, peer)) {
             unsigned long long previousOwner = m_sync.GetActivePeer();
 
-            if (m_sync.ResolveInteraction(event.peerId, event.timestamp, !event.down)) {
+            if (m_sync.ResolveGroupInteraction(event.peerId, peer.groupId, event.timestamp, !event.down)) {
                 if (!m_driver.SendMouseButton(event.button, event.down)) {
                     m_input.PerformWarpClickRestore((int)peer.x, (int)peer.y, event.button, event.down);
                 }

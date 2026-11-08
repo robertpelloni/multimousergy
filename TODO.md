@@ -51,3 +51,4 @@
 - [x] Implement multi-file batch transfer queueing and enhanced drag-and-drop staging.
 - [x] Implement directional spatial audio panning linked to peer cursor positions.
 - [x] Implement SpatialAnchor 3D node tracking in SpatialViewport.
+- [x] Implement group-scoped interaction ownership for isolated collaborative teams.
