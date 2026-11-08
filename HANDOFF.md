@@ -1,6 +1,11 @@
-# NetMux Session Handoff - v0.1.115-alpha
+# NetMux Session Handoff - v0.1.116-alpha
 
 ## Repository Synchronization Summary (2026-11-04)
+
+### HMAC-SHA256 Message Integrity Verification (v0.1.116-alpha)
+- **Cryptographic Message Authentication Engine**:
+  - Implemented `ComputeHMAC_SHA256` and `VerifyHMAC_SHA256` in `AuthModule` following RFC 2104 / RFC 4231 specifications with constant-time equality validation.
+  - Added unit test `test_auth_module_hmac()` in `tests/test_main.cpp`.
 
 ### Configurable Screen-Switching Hotkeys (v0.1.115-alpha)
 - **Instantaneous Keyboard Shortcut Capture Control**:

@@ -1,3 +1,10 @@
+## [0.1.116-alpha] - 2026-11-04
+
+### Added
+- RFC 2104 / RFC 4231 HMAC-SHA256 Message Integrity Verification in AuthModule:
+  - Implemented `ComputeHMAC_SHA256()` and `VerifyHMAC_SHA256()` with constant-time equality validation.
+  - Added unit test `test_auth_module_hmac()` in `tests/test_main.cpp`.
+
 ## [0.1.115-alpha] - 2026-11-04
 
 ### Added

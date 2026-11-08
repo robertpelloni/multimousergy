@@ -23,4 +23,8 @@ public:
 
     // Verifies if a received hash matches the expected response for a nonce/key
     static bool VerifyResponse(int nonce, const std::string& key, const unsigned char* receivedHash);
+
+    // RFC 2104 / RFC 4231 HMAC-SHA256 message integrity verification
+    static bool ComputeHMAC_SHA256(const std::string& key, const void* data, size_t dataLen, unsigned char* outMac);
+    static bool VerifyHMAC_SHA256(const std::string& key, const void* data, size_t dataLen, const unsigned char* expectedMac);
 };

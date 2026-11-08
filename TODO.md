@@ -57,3 +57,4 @@
 - [x] Implement Wayland portal-based input capture session management in WaylandPortalManager.
 - [x] Implement 3D spatial raycasting and anchor plane intersection in SpatialViewport.
 - [x] Implement configurable screen-switching hotkeys in InputEngine.
+- [x] Implement RFC 2104 / RFC 4231 HMAC-SHA256 message integrity verification in AuthModule.

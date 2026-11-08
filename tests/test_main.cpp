@@ -3,6 +3,7 @@
 #include <cstring>
 #include "NetMuxFramework.hpp"
 #include "ConfigManager.hpp"
+#include "AuthModule.hpp"
 #include "WaylandPortalManager.hpp"
 #include "NetworkManager.hpp"
 #include "SyncModule.hpp"
@@ -271,6 +272,31 @@ void test_dynamic_resolution_dpi_scaling() {
     assert(scaledY == 1079);
 
     std::cout << "Dynamic Resolution and DPI-Aware Coordinate Scaling test passed!" << std::endl;
+}
+
+void test_auth_module_hmac() {
+    std::cout << "Testing AuthModule HMAC-SHA256 message integrity..." << std::endl;
+    std::string key = "super_secret_multimousergy_psk";
+    std::string message = "Packet payload: absolute cursor coordinate movement";
+
+    unsigned char mac[32];
+    bool computeOk = AuthModule::ComputeHMAC_SHA256(key, message.data(), message.size(), mac);
+    assert(computeOk);
+
+    // Verify valid HMAC matches
+    bool verifyOk = AuthModule::VerifyHMAC_SHA256(key, message.data(), message.size(), mac);
+    assert(verifyOk);
+
+    // Verify tampered message fails
+    std::string tampered = message + "!";
+    bool verifyTamper = AuthModule::VerifyHMAC_SHA256(key, tampered.data(), tampered.size(), mac);
+    assert(!verifyTamper);
+
+    // Verify wrong key fails
+    bool verifyWrongKey = AuthModule::VerifyHMAC_SHA256("wrong_psk", message.data(), message.size(), mac);
+    assert(!verifyWrongKey);
+
+    std::cout << "AuthModule HMAC-SHA256 message integrity test passed!" << std::endl;
 }
 
 void test_hotkey_manager() {
@@ -735,6 +761,7 @@ int main() {
     test_wayland_portal_manager();
     test_spatial_raycasting_and_intersection();
     test_hotkey_manager();
+    test_auth_module_hmac();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }
