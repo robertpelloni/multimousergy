@@ -1,3 +1,10 @@
+## [0.1.115-alpha] - 2026-11-04
+
+### Added
+- Configurable Screen-Switching Hotkeys in InputEngine:
+  - Implemented `SetSwitchHotkey`, `CheckHotkeyTrigger`, and `ToggleScreenCapture` in `InputEngine` enabling instantaneous screen focus jumps via keyboard shortcut.
+  - Added unit test `test_hotkey_manager()` in `tests/test_main.cpp`.
+
 ## [0.1.114-alpha] - 2026-11-04
 
 ### Added

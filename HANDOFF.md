@@ -1,6 +1,11 @@
-# NetMux Session Handoff - v0.1.114-alpha
+# NetMux Session Handoff - v0.1.115-alpha
 
 ## Repository Synchronization Summary (2026-11-04)
+
+### Configurable Screen-Switching Hotkeys (v0.1.115-alpha)
+- **Instantaneous Keyboard Shortcut Capture Control**:
+  - Implemented `SetSwitchHotkey`, `CheckHotkeyTrigger`, and `ToggleScreenCapture` in `InputEngine` to instantaneously jump focus between local and remote screens via keyboard shortcuts.
+  - Added unit test `test_hotkey_manager()` in `tests/test_main.cpp`.
 
 ### 3D Spatial Raycasting & Plane Intersection (v0.1.114-alpha)
 - **VR/AR Spatial 3D Cursor Engine**:

@@ -273,6 +273,38 @@ void test_dynamic_resolution_dpi_scaling() {
     std::cout << "Dynamic Resolution and DPI-Aware Coordinate Scaling test passed!" << std::endl;
 }
 
+void test_hotkey_manager() {
+    std::cout << "Testing InputEngine Hotkey Manager..." << std::endl;
+    InputEngine engine;
+    assert(!engine.IsCaptured());
+
+    // Register hotkey: Modifier 6 (Ctrl + Alt), Key 0x27 (VK_RIGHT)
+    engine.SetSwitchHotkey(6, 0x27, true);
+
+    // Mismatched key should not trigger
+    bool triggerMiss = engine.CheckHotkeyTrigger(2, 0x27);
+    assert(!triggerMiss);
+    assert(!engine.IsCaptured());
+
+    // Matching key triggers capture toggle
+    bool triggerHit = engine.CheckHotkeyTrigger(6, 0x27);
+    assert(triggerHit);
+    assert(engine.IsCaptured());
+
+    // Second trigger toggles back to local
+    bool triggerBack = engine.CheckHotkeyTrigger(6, 0x27);
+    assert(triggerBack);
+    assert(!engine.IsCaptured());
+
+    // Disabled hotkey should not trigger
+    engine.SetSwitchHotkey(6, 0x27, false);
+    bool triggerDisabled = engine.CheckHotkeyTrigger(6, 0x27);
+    assert(!triggerDisabled);
+    assert(!engine.IsCaptured());
+
+    std::cout << "InputEngine Hotkey Manager test passed!" << std::endl;
+}
+
 void test_spatial_raycasting_and_intersection() {
     std::cout << "Testing SpatialViewport 3D raycasting and plane intersection..." << std::endl;
     // Screen center 1920x1080 (960, 540)
@@ -702,6 +734,7 @@ int main() {
     test_driver_interface_virtual_device();
     test_wayland_portal_manager();
     test_spatial_raycasting_and_intersection();
+    test_hotkey_manager();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

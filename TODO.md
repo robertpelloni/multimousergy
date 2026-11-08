@@ -56,3 +56,4 @@
 - [x] Implement Linux uinput virtual hardware mouse emulation in DriverInterface.
 - [x] Implement Wayland portal-based input capture session management in WaylandPortalManager.
 - [x] Implement 3D spatial raycasting and anchor plane intersection in SpatialViewport.
+- [x] Implement configurable screen-switching hotkeys in InputEngine.

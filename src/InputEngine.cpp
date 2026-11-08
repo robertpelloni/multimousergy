@@ -368,6 +368,27 @@ bool InputEngine::GetPendingPacket(Packet& pkt) {
     return true;
 }
 
+void InputEngine::SetSwitchHotkey(int modifier, int vkCode, bool enabled) {
+    m_hotkeyModifier = modifier;
+    m_hotkeyVkCode = vkCode;
+    m_hotkeyEnabled = enabled;
+}
+
+bool InputEngine::CheckHotkeyTrigger(int modifier, int vkCode) {
+    if (!m_hotkeyEnabled) return false;
+    if (m_hotkeyModifier == modifier && m_hotkeyVkCode == vkCode) {
+        return ToggleScreenCapture();
+    }
+    return false;
+}
+
+bool InputEngine::ToggleScreenCapture() {
+    m_isCaptured = !m_isCaptured;
+    m_accumulatedX = 0;
+    std::cout << "[Input] Hotkey triggered! Screen capture toggled to: " << (m_isCaptured ? "REMOTE" : "LOCAL") << std::endl;
+    return true;
+}
+
 bool InputEngine::IsCaptured() const {
     return m_isCaptured;
 }
