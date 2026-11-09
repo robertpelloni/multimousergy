@@ -200,7 +200,14 @@ bool FileTransferEngine::HandleFileData(const Packet& pkt) {
             fs::remove(t.tempPath);
         } else {
             // Rename temporary file to final target destination
-            std::string savePath = "received_" + t.filename;
+            std::string savePath;
+            if (!m_destDir.empty()) {
+                std::error_code dirEc;
+                fs::create_directories(m_destDir, dirEc);
+                savePath = (fs::path(m_destDir) / ("received_" + t.filename)).string();
+            } else {
+                savePath = "received_" + t.filename;
+            }
             if (fs::exists(savePath)) {
                 fs::remove(savePath);
             }
@@ -244,6 +251,16 @@ unsigned long long FileTransferEngine::GetTransferPeerId(unsigned long long tran
         return it->second.peerId;
     }
     return 0;
+}
+
+void FileTransferEngine::SetDestinationDirectory(const std::string& dir) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_destDir = dir;
+}
+
+std::string FileTransferEngine::GetDestinationDirectory() const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_destDir;
 }
 
 std::string FileTransferEngine::CalculateHash(const std::string& path) {

@@ -61,13 +61,17 @@ public:
     void SetHeaderSent(unsigned long long transferId, bool sent);
     unsigned long long GetTransferPeerId(unsigned long long transferId);
 
+    void SetDestinationDirectory(const std::string& dir);
+    std::string GetDestinationDirectory() const;
+
     void CleanupPeerTransfers(unsigned long long peerId);
 
 private:
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
     std::map<unsigned long long, FileTransfer> m_transfers;
     std::map<unsigned long long, bool> m_headerSent;
     unsigned long long m_nextTransferId = 1;
+    std::string m_destDir = "";
 
     std::string CalculateHash(const std::string& path);
 };

@@ -103,6 +103,11 @@
 - Glowing dual-layer focus halo rings in `D3D11Overlay.cpp`.
 - Adaptive delta compression (1:25 anchor ratio) in `InputEngine.cpp`.
 
+### Configurable Destination Directory in FileTransferEngine (v0.1.122-alpha)
+- Added `SetDestinationDirectory()` and `GetDestinationDirectory()` in `FileTransferEngine` and `NetMuxFramework`.
+- Automatically ensures destination directories are created and stores incoming files in the custom folder path.
+- Added unit test `test_file_transfer_custom_directory()` in `tests/test_main.cpp`.
+
 ### Exponential Moving Average (EMA) Drift Filter (v0.1.121-alpha)
 - Added `smoothedDrift` to `PeerState` with $\alpha = 0.25$ filter in `SyncModule::UpdateDrift()` to reject single-packet outlier jitter.
 - Exposed `GetSmoothedDrift(peerId)` accessor in `SyncModule`.
@@ -128,10 +133,10 @@
 - Added unit test `test_file_transfer_streaming()` in `tests/test_main.cpp`.
 
 ## Project State
-- **Version**: `v0.1.121-alpha`
-- **Build**: CMake + GCC/Clang/MSVC, 100% CTest pass rate (38/38 unit tests passing).
+- **Version**: `v0.1.122-alpha`
+- **Build**: CMake + GCC/Clang/MSVC, 100% CTest pass rate (39/39 unit tests passing).
 - Working tree clean.
 
 ## Notes for Successor
-- All Milestone 6 items (H.264 codecs, WebRTC native integration, spatial audio, and integrated video chat stream synchronizer), drag-and-drop file transfer pipeline, and EMA drift filtering are fully implemented and verified.
+- All Milestone 6 items (H.264 codecs, WebRTC native integration, spatial audio, and integrated video chat stream synchronizer), drag-and-drop file transfer pipeline, and configurable destination directory are fully implemented and verified.
 - The Electron frontend runs headless C++ netmux instances and consumes JSON telemetry via stdout.

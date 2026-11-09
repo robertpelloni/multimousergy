@@ -312,6 +312,38 @@ void test_network_rate_limiter() {
     std::cout << "NetworkManager Token-Bucket Rate Limiter test passed!" << std::endl;
 }
 
+void test_file_transfer_custom_directory() {
+    FileTransferEngine receiver;
+    std::string customDir = "test_custom_incoming_dir";
+    receiver.SetDestinationDirectory(customDir);
+    assert(receiver.GetDestinationDirectory() == customDir);
+
+    std::string testPath = "test_dest_file.bin";
+    std::ofstream src(testPath, std::ios::binary);
+    src << "Destination directory test content 98765";
+    src.close();
+
+    FileTransferEngine sender;
+    assert(sender.StartTransfer(testPath, 111));
+
+    Packet headerPkt;
+    assert(sender.GetHeaderPacket(1, headerPkt));
+    assert(receiver.HandleFileHeader(headerPkt, 111));
+
+    Packet chunkPkt;
+    while (sender.GetNextChunk(1, chunkPkt)) {
+        assert(receiver.HandleFileData(chunkPkt));
+    }
+
+    std::string expectedSavedPath = customDir + "/received_test_dest_file.bin";
+    assert(std::filesystem::exists(expectedSavedPath));
+
+    std::filesystem::remove(testPath);
+    std::filesystem::remove_all(customDir);
+
+    std::cout << "test_file_transfer_custom_directory passed!" << std::endl;
+}
+
 void test_ema_drift_filter() {
     SyncModule sync;
     unsigned long long peerId = 404;
@@ -913,6 +945,7 @@ int main() {
     test_file_transfer_streaming();
     test_file_transfer_peer_targeting();
     test_file_transfer_command_handling();
+    test_file_transfer_custom_directory();
     test_ema_drift_filter();
     std::cout << "All tests passed!" << std::endl;
     return 0;

@@ -1,3 +1,12 @@
+## [0.1.122-alpha] - 2026-11-04
+
+### Added
+- Configurable Destination Directory in FileTransferEngine:
+  - Added `SetDestinationDirectory()` and `GetDestinationDirectory()` to `FileTransferEngine`.
+  - Automatically creates destination directory trees upon file arrival and saves completed files directly to the designated directory.
+  - Exposed destination directory configuration on `NetMuxFramework`.
+  - Added unit test `test_file_transfer_custom_directory()` in `tests/test_main.cpp`.
+
 ## [0.1.121-alpha] - 2026-11-04
 
 ### Added
