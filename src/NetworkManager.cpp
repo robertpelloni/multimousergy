@@ -144,14 +144,25 @@ static int SafeSend(Socket s, const char* data, int len) {
 }
 
 void NetworkManager::SendPacketToGroup(const Packet& packet, unsigned int groupId) {
-    if (!m_running || m_udpSocket == INVALID_SOCKET_HANDLE || !m_isServer) return;
+    if (!m_running || !m_isServer) return;
 
     bool headerOnly = packet.IsHeaderOnly();
     std::vector<uint8_t> data = PacketSerializer::Serialize(packet, headerOnly);
 
-    for (auto const& [id, peer] : m_udpPeerMap) {
-        if (peer.groupId == groupId) {
-            sendto(m_udpSocket, (const char*)data.data(), (int)data.size(), 0, (struct sockaddr*)&peer.addr, sizeof(sockaddr_in));
+    if (headerOnly) {
+        if (m_udpSocket != INVALID_SOCKET_HANDLE) {
+            for (auto const& [id, peer] : m_udpPeerMap) {
+                if (peer.groupId == groupId) {
+                    sendto(m_udpSocket, (const char*)data.data(), (int)data.size(), 0, (struct sockaddr*)&peer.addr, sizeof(sockaddr_in));
+                }
+            }
+        }
+    } else {
+        // TCP group routing
+        for (auto& client : m_clients) {
+            if (client.groupId == groupId || groupId == 0) {
+                SafeSend(client.socket, (const char*)data.data(), (int)data.size());
+            }
         }
     }
 }
@@ -329,8 +340,13 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
             size_t consumed = PacketSerializer::Deserialize((const uint8_t*)it->buffer.data(), it->buffer.size(), packet);
             if (consumed > 0) {
                 it->buffer.erase(it->buffer.begin(), it->buffer.begin() + consumed);
-                if (m_isServer && it->peerId == 0 && packet.senderId != 0) {
-                    it->peerId = packet.senderId;
+                if (m_isServer) {
+                    if (it->peerId == 0 && packet.senderId != 0) {
+                        it->peerId = packet.senderId;
+                    }
+                    if (packet.groupId != 0) {
+                        it->groupId = packet.groupId;
+                    }
                 }
                 return true;
             }

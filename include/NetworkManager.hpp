@@ -37,6 +37,7 @@ struct ClientConnection {
     Socket socket;
     std::vector<char> buffer;
     unsigned long long peerId = 0;
+    unsigned int groupId = 0;
 };
 
 struct TokenBucketLimiter {

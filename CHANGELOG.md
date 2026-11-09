@@ -1,3 +1,12 @@
+## [0.1.124-alpha] - 2026-11-04
+
+### Added
+- TCP Stream Multi-Team Group Routing:
+  - Added `groupId` to `ClientConnection` struct in `include/NetworkManager.hpp`.
+  - Updated `NetworkManager::SendPacketToGroup()` to filter and dispatch non-header TCP packets exclusively to clients belonging to the designated collaborative group.
+  - Automatically records client connection `groupId` upon receiving incoming group packets.
+  - Added unit test `test_tcp_group_isolation()` in `tests/test_main.cpp`.
+
 ## [0.1.123-alpha] - 2026-11-04
 
 ### Added

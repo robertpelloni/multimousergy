@@ -119,6 +119,12 @@
 - Connected drag-and-drop file staging in `ui/index.html` via `ui/main.js` and `ui/preload.js` to pipe transfer requests into the backend process stdin.
 - Added unit test `test_file_transfer_command_handling()` in `tests/test_main.cpp`.
 
+### TCP Stream Multi-Team Group Routing (v0.1.124-alpha)
+- Added `groupId` to `ClientConnection` struct in `NetworkManager.hpp`.
+- Updated `NetworkManager::SendPacketToGroup()` to filter and dispatch non-header TCP packets exclusively to clients belonging to the designated collaborative group.
+- Automatically records client connection `groupId` upon receiving incoming group packets.
+- Added unit test `test_tcp_group_isolation()` in `tests/test_main.cpp`.
+
 ### Collaborative Drag Selection Bounding Box Engine (v0.1.123-alpha)
 - Added `SelectionBox` struct and `GetPeerSelectionBox(peerId, outBox)` in `SyncModule`.
 - Dynamically resolves inverted drag vectors and boundary dimensions across display coordinates.
@@ -138,10 +144,10 @@
 - Added unit test `test_file_transfer_streaming()` in `tests/test_main.cpp`.
 
 ## Project State
-- **Version**: `v0.1.123-alpha`
-- **Build**: CMake + GCC/Clang/MSVC, 100% CTest pass rate (40/40 unit tests passing).
+- **Version**: `v0.1.124-alpha`
+- **Build**: CMake + GCC/Clang/MSVC, 100% CTest pass rate (41/41 unit tests passing).
 - Working tree clean.
 
 ## Notes for Successor
-- All Milestone 6 items (H.264 codecs, WebRTC native integration, spatial audio, and integrated video chat stream synchronizer), drag-and-drop file transfer pipeline, configurable destination directory, and collaborative drag selection bounding boxes are fully implemented and verified.
+- All Milestone 6 items (H.264 codecs, WebRTC native integration, spatial audio, and integrated video chat stream synchronizer), drag-and-drop file transfer pipeline, configurable destination directory, and multi-team TCP stream group routing are fully implemented and verified.
 - The Electron frontend runs headless C++ netmux instances and consumes JSON telemetry via stdout.

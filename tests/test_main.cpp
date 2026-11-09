@@ -312,6 +312,22 @@ void test_network_rate_limiter() {
     std::cout << "NetworkManager Token-Bucket Rate Limiter test passed!" << std::endl;
 }
 
+void test_tcp_group_isolation() {
+    NetworkManager server;
+    assert(server.StartServer(9999));
+
+    // Verify SendPacketToGroup with non-header packet (TCP) is safely callable
+    Packet groupPkt;
+    groupPkt.type = NetMuxPacketType::ClipboardSync;
+    groupPkt.groupId = 42;
+    groupPkt.payloadSize = 12;
+    std::memcpy(groupPkt.payload, "Group Secret", 12);
+
+    server.SendPacketToGroup(groupPkt, 42);
+    server.Shutdown();
+    std::cout << "test_tcp_group_isolation passed!" << std::endl;
+}
+
 void test_collaborative_drag_selection_box() {
     SyncModule sync;
     unsigned long long peerId = 505;
@@ -982,6 +998,7 @@ int main() {
     test_file_transfer_command_handling();
     test_file_transfer_custom_directory();
     test_collaborative_drag_selection_box();
+    test_tcp_group_isolation();
     test_ema_drift_filter();
     std::cout << "All tests passed!" << std::endl;
     return 0;
