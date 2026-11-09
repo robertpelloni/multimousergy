@@ -360,6 +360,41 @@ void test_tcp_group_isolation() {
     std::cout << "test_tcp_group_isolation passed!" << std::endl;
 }
 
+void test_collaborative_selection_overlap() {
+    SyncModule sync;
+    unsigned long long p1 = 701;
+    unsigned long long p2 = 702;
+
+    sync.UpdatePeer(p1, 1, 1000, 1000);
+    sync.UpdatePeer(p2, 1, 5000, 5000);
+
+    SelectionBox overlap;
+    // Neither selecting
+    assert(!sync.CheckSelectionConflict(p1, p2, overlap));
+
+    // Peer 1 selects region (10000, 10000) to (30000, 30000)
+    sync.UpdatePeerSelection(p1, true, 10000, 10000);
+    sync.UpdatePeer(p1, 1, 30000, 30000);
+
+    // Peer 2 selects disjoint region (50000, 50000) to (60000, 60000)
+    sync.UpdatePeerSelection(p2, true, 50000, 50000);
+    sync.UpdatePeer(p2, 1, 60000, 60000);
+
+    // Disjoint boxes should not intersect
+    assert(!sync.CheckSelectionConflict(p1, p2, overlap));
+
+    // Peer 2 drags into overlapping region (20000, 20000) to (40000, 40000)
+    sync.UpdatePeerSelection(p2, true, 20000, 20000);
+    sync.UpdatePeer(p2, 1, 40000, 40000);
+
+    // Should detect overlap and calculate intersecting bounding box
+    assert(sync.CheckSelectionConflict(p1, p2, overlap));
+    assert(overlap.width > 0);
+    assert(overlap.height > 0);
+
+    std::cout << "test_collaborative_selection_overlap passed!" << std::endl;
+}
+
 void test_collaborative_drag_selection_box() {
     SyncModule sync;
     unsigned long long peerId = 505;
@@ -1032,6 +1067,7 @@ int main() {
     test_collaborative_drag_selection_box();
     test_tcp_group_isolation();
     test_conflict_blocking_state();
+    test_collaborative_selection_overlap();
     test_ema_drift_filter();
     std::cout << "All tests passed!" << std::endl;
     return 0;

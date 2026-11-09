@@ -130,6 +130,11 @@
 - Automatically records client connection `groupId` upon receiving incoming group packets.
 - Added unit test `test_tcp_group_isolation()` in `tests/test_main.cpp`.
 
+### Collaborative Multi-Selection Intersection Engine (v0.1.126-alpha)
+- Added `Intersects()` to `SelectionBox` struct and implemented `CheckSelectionConflict()` in `SyncModule`.
+- Dynamically computes bounding overlap intersections for simultaneous peer drag selections.
+- Added unit test `test_collaborative_selection_overlap()` in `tests/test_main.cpp`.
+
 ### Collaborative Drag Selection Bounding Box Engine (v0.1.123-alpha)
 - Added `SelectionBox` struct and `GetPeerSelectionBox(peerId, outBox)` in `SyncModule`.
 - Dynamically resolves inverted drag vectors and boundary dimensions across display coordinates.
@@ -149,10 +154,10 @@
 - Added unit test `test_file_transfer_streaming()` in `tests/test_main.cpp`.
 
 ## Project State
-- **Version**: `v0.1.125-alpha`
-- **Build**: CMake + GCC/Clang/MSVC, 100% CTest pass rate (42/42 unit tests passing).
+- **Version**: `v0.1.126-alpha`
+- **Build**: CMake + GCC/Clang/MSVC, 100% CTest pass rate (43/43 unit tests passing).
 - Working tree clean.
 
 ## Notes for Successor
-- All Milestone 6 items (H.264 codecs, WebRTC native integration, spatial audio, and integrated video chat stream synchronizer), drag-and-drop file transfer pipeline, configurable destination directory, multi-team TCP stream group routing, and conflict blocking minimap visual feedback are fully implemented and verified.
+- All Milestone 6 items (H.264 codecs, WebRTC native integration, spatial audio, and integrated video chat stream synchronizer), drag-and-drop file transfer pipeline, configurable destination directory, multi-team TCP stream group routing, and collaborative multi-selection intersection detection are fully implemented and verified.
 - The Electron frontend runs headless C++ netmux instances and consumes JSON telemetry via stdout.

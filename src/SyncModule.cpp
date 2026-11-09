@@ -96,8 +96,9 @@ bool SyncModule::GetPeerSelectionBox(unsigned long long id, SelectionBox& outBox
     }
 
     const PeerState& peer = it->second;
-    int curX = (int)peer.x;
-    int curY = (int)peer.y;
+    // Prefer target coordinate if available to reflect immediate packet destination
+    int curX = (int)(peer.targetX != 0.0f ? peer.targetX : peer.x);
+    int curY = (int)(peer.targetY != 0.0f ? peer.targetY : peer.y);
     int startX = (int)peer.selStartX;
     int startY = (int)peer.selStartY;
 
@@ -107,6 +108,25 @@ bool SyncModule::GetPeerSelectionBox(unsigned long long id, SelectionBox& outBox
     outBox.maxY = std::max(startY, curY);
     outBox.width = outBox.maxX - outBox.minX;
     outBox.height = outBox.maxY - outBox.minY;
+    return true;
+}
+
+bool SyncModule::CheckSelectionConflict(unsigned long long peerId1, unsigned long long peerId2, SelectionBox& outOverlap) const {
+    SelectionBox b1, b2;
+    if (!GetPeerSelectionBox(peerId1, b1) || !GetPeerSelectionBox(peerId2, b2)) {
+        return false;
+    }
+
+    if (!b1.Intersects(b2)) {
+        return false;
+    }
+
+    outOverlap.minX = std::max(b1.minX, b2.minX);
+    outOverlap.minY = std::max(b1.minY, b2.minY);
+    outOverlap.maxX = std::min(b1.maxX, b2.maxX);
+    outOverlap.maxY = std::min(b1.maxY, b2.maxY);
+    outOverlap.width = outOverlap.maxX - outOverlap.minX;
+    outOverlap.height = outOverlap.maxY - outOverlap.minY;
     return true;
 }
 

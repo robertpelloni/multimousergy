@@ -1,3 +1,12 @@
+## [0.1.126-alpha] - 2026-11-04
+
+### Added
+- Collaborative Multi-Selection Intersection Engine:
+  - Added `Intersects()` to `SelectionBox` struct.
+  - Implemented `CheckSelectionConflict(peerId1, peerId2, outOverlap)` in `SyncModule` to compute overlapping selection boxes across simultaneous peer drags.
+  - Updated cursor bounding coordinate resolution in `GetPeerSelectionBox()` to reflect target coordinates immediately.
+  - Added unit test `test_collaborative_selection_overlap()` in `tests/test_main.cpp`.
+
 ## [0.1.125-alpha] - 2026-11-04
 
 ### Added
