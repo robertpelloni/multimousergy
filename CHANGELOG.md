@@ -1,3 +1,11 @@
+## [0.1.128-alpha] - 2026-11-04
+
+### Added
+- Group-Scoped Peer Membership Queries:
+  - Added `GetGroupPeers(uint32_t groupId)` and `GetGroupPeerCount(uint32_t groupId)` in `SyncModule`.
+  - Enables querying active peers and membership counts filtered strictly by team group isolation bounds.
+  - Added comprehensive unit test `test_group_peer_membership_queries()` to `tests/test_main.cpp`.
+
 ## [0.1.127-alpha] - 2026-11-04
 
 ### Added

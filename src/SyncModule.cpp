@@ -454,6 +454,28 @@ unsigned long long SyncModule::GetGroupActivePeer(unsigned int groupId) const {
     return 0;
 }
 
+std::vector<unsigned long long> SyncModule::GetGroupPeers(unsigned int groupId) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    std::vector<unsigned long long> result;
+    for (const auto& [id, peer] : m_peers) {
+        if (peer.groupId == groupId) {
+            result.push_back(id);
+        }
+    }
+    return result;
+}
+
+int SyncModule::GetGroupPeerCount(unsigned int groupId) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    int count = 0;
+    for (const auto& [id, peer] : m_peers) {
+        if (peer.groupId == groupId) {
+            count++;
+        }
+    }
+    return count;
+}
+
 bool SyncModule::ResolveGroupInteraction(unsigned long long id, unsigned int groupId, double timestamp, bool isRelease) {
     std::lock_guard<std::mutex> lock(m_mutex);
 

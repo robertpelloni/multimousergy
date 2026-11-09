@@ -344,6 +344,34 @@ void test_conflict_blocking_state() {
     std::cout << "test_conflict_blocking_state passed!" << std::endl;
 }
 
+void test_group_peer_membership_queries() {
+    SyncModule sync;
+    // Add peers to Group 1
+    sync.UpdatePeer(101, 1, 100, 100);
+    sync.UpdatePeer(102, 1, 200, 200);
+
+    // Add peers to Group 2
+    sync.UpdatePeer(201, 2, 300, 300);
+    sync.UpdatePeer(202, 2, 400, 400);
+    sync.UpdatePeer(203, 2, 500, 500);
+
+    // Group 1 count & query
+    assert(sync.GetGroupPeerCount(1) == 2);
+    auto g1Peers = sync.GetGroupPeers(1);
+    assert(g1Peers.size() == 2);
+
+    // Group 2 count & query
+    assert(sync.GetGroupPeerCount(2) == 3);
+    auto g2Peers = sync.GetGroupPeers(2);
+    assert(g2Peers.size() == 3);
+
+    // Non-existent group
+    assert(sync.GetGroupPeerCount(99) == 0);
+    assert(sync.GetGroupPeers(99).empty());
+
+    std::cout << "test_group_peer_membership_queries passed!" << std::endl;
+}
+
 void test_tcp_group_isolation() {
     NetworkManager server;
     assert(server.StartServer(9999));
@@ -1066,6 +1094,7 @@ int main() {
     test_file_transfer_custom_directory();
     test_collaborative_drag_selection_box();
     test_tcp_group_isolation();
+    test_group_peer_membership_queries();
     test_conflict_blocking_state();
     test_collaborative_selection_overlap();
     test_ema_drift_filter();

@@ -1,6 +1,22 @@
-# NetMux Session Handoff - v0.1.117-alpha
+# NetMux Session Handoff - v0.1.128-alpha
 
 ## Repository Synchronization Summary (2026-11-04)
+
+### Group-Scoped Peer Membership Queries (v0.1.128-alpha)
+- **Multi-Team Discovery & Group Isolation**:
+  - Implemented `GetGroupPeers(uint32_t groupId)` and `GetGroupPeerCount(uint32_t groupId)` in `SyncModule`.
+  - Enables querying active peers and counts partitioned by team group bounds.
+  - Added unit test `test_group_peer_membership_queries()` to `tests/test_main.cpp`.
+
+### Dynamic Minimap Drag Selection Styling & Dimensional Markers (v0.1.127-alpha)
+- **Canvas Visualizer Enhancement**:
+  - Styled selection rectangle dynamically using configured selection color.
+  - Rendered width x height pixel dimensions directly on canvas during active drags.
+
+### Collaborative Multi-Selection Intersection Engine (v0.1.126-alpha)
+- **Selection Conflict Resolution**:
+  - Implemented `CheckSelectionConflict` and `SelectionBox::Intersects()` in `SyncModule`.
+  - Added unit test `test_collaborative_selection_overlap()` in `tests/test_main.cpp`.
 
 ### Token-Bucket Network Rate Limiter (v0.1.117-alpha)
 - **Congestion & Anti-Flood Protection**:

@@ -130,6 +130,8 @@ public:
     void SetActivePeer(unsigned long long id);
     unsigned long long GetActivePeer() const { return m_activePeerId; }
     unsigned long long GetGroupActivePeer(unsigned int groupId) const;
+    std::vector<unsigned long long> GetGroupPeers(unsigned int groupId) const;
+    int GetGroupPeerCount(unsigned int groupId) const;
     unsigned long long GetLocalId() const { return m_localId; }
 
 private:
