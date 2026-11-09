@@ -1,3 +1,11 @@
+## [0.1.125-alpha] - 2026-11-04
+
+### Added
+- Collision Blocking Telemetry & Minimap Visual Feedback:
+  - Streamed `isConflictBlocked` state in headless JSON telemetry in `NetMuxFramework.cpp`.
+  - Added visual amber `[LOCKED]` badges to peer indicators on the minimap in `ui/index.html` during concurrent focus collisions.
+  - Added unit test `test_conflict_blocking_state()` in `tests/test_main.cpp`.
+
 ## [0.1.124-alpha] - 2026-11-04
 
 ### Added

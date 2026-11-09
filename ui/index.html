@@ -1128,7 +1128,12 @@
                         // Label
                         ctx.fillStyle = '#f1f2f6';
                         ctx.font = '11px sans-serif';
-                        ctx.fillText(`Peer ${peer.id}`, x + 12, y + 4);
+                        let labelText = `Peer ${peer.id}`;
+                        if (peer.isConflictBlocked) {
+                            labelText += ` [LOCKED]`;
+                            ctx.fillStyle = '#ffaa00';
+                        }
+                        ctx.fillText(labelText, x + 12, y + 4);
 
                         // Render collaborative selection bounding box if selecting
                         if (peer.isSelecting) {

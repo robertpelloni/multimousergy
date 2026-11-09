@@ -312,6 +312,38 @@ void test_network_rate_limiter() {
     std::cout << "NetworkManager Token-Bucket Rate Limiter test passed!" << std::endl;
 }
 
+void test_conflict_blocking_state() {
+    SyncModule sync;
+    unsigned long long peerA = 601;
+    unsigned long long peerB = 602;
+
+    sync.UpdatePeer(peerA, 1, 1000, 1000);
+    sync.UpdatePeer(peerB, 1, 2000, 2000);
+
+    double t = 1000.0;
+    // Peer A claims focus
+    assert(sync.ResolveInteraction(peerA, t));
+    PeerState stateA;
+    assert(sync.GetPeerState(peerA, stateA));
+    assert(!stateA.isConflictBlocked);
+
+    // Peer B tries to claim outside race window (>100ms) within 2000ms timeout
+    t += 200.0;
+    bool allowed = sync.ResolveInteraction(peerB, t);
+    assert(!allowed);
+
+    PeerState stateB;
+    assert(sync.GetPeerState(peerB, stateB));
+    assert(stateB.isConflictBlocked);
+
+    // Peer B moves -> isConflictBlocked resets
+    sync.UpdatePeer(peerB, 1, 2100, 2100);
+    assert(sync.GetPeerState(peerB, stateB));
+    assert(!stateB.isConflictBlocked);
+
+    std::cout << "test_conflict_blocking_state passed!" << std::endl;
+}
+
 void test_tcp_group_isolation() {
     NetworkManager server;
     assert(server.StartServer(9999));
@@ -999,6 +1031,7 @@ int main() {
     test_file_transfer_custom_directory();
     test_collaborative_drag_selection_box();
     test_tcp_group_isolation();
+    test_conflict_blocking_state();
     test_ema_drift_filter();
     std::cout << "All tests passed!" << std::endl;
     return 0;

@@ -241,6 +241,7 @@ void NetMuxFramework::Run() {
                           << ",\"y\":" << p.second.y
                           << ",\"latency\":" << p.second.latency
                           << ",\"isSelecting\":" << (p.second.isSelecting ? "true" : "false")
+                          << ",\"isConflictBlocked\":" << (p.second.isConflictBlocked ? "true" : "false")
                           << ",\"selStartX\":" << p.second.selStartX
                           << ",\"selStartY\":" << p.second.selStartY
                           << ",\"drift\":" << p.second.drift
