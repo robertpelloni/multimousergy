@@ -312,6 +312,28 @@ void test_network_rate_limiter() {
     std::cout << "NetworkManager Token-Bucket Rate Limiter test passed!" << std::endl;
 }
 
+void test_ema_drift_filter() {
+    SyncModule sync;
+    unsigned long long peerId = 404;
+    sync.UpdatePeer(peerId, 1, 1000, 1000);
+
+    // Initial drift update initializes smoothedDrift
+    sync.UpdateDrift(peerId, 100.0f);
+    assert(std::abs(sync.GetSmoothedDrift(peerId) - 100.0f) < 0.001f);
+
+    // Single outlier packet spike (e.g. 500 units drift)
+    // EMA with alpha=0.25 -> 0.25 * 500 + 0.75 * 100 = 125 + 75 = 200
+    sync.UpdateDrift(peerId, 500.0f);
+    assert(std::abs(sync.GetSmoothedDrift(peerId) - 200.0f) < 0.001f);
+
+    // Returning back to steady state (100 units)
+    // 0.25 * 100 + 0.75 * 200 = 25 + 150 = 175
+    sync.UpdateDrift(peerId, 100.0f);
+    assert(std::abs(sync.GetSmoothedDrift(peerId) - 175.0f) < 0.001f);
+
+    std::cout << "test_ema_drift_filter passed!" << std::endl;
+}
+
 void test_file_transfer_command_handling() {
     NetMuxFramework framework;
     std::string testPath = "test_cmd_transfer.bin";
@@ -891,6 +913,7 @@ int main() {
     test_file_transfer_streaming();
     test_file_transfer_peer_targeting();
     test_file_transfer_command_handling();
+    test_ema_drift_filter();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

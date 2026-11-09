@@ -683,16 +683,17 @@ void NetMuxFramework::ProcessIncomingPackets() {
                     m_sync.UpdateDrift(peerId, driftDist);
 
                     // If client coordinate has drifted beyond threshold (> 1500 units, ~2.3%),
-                    // authoritatively correct the client with MasterStateSync
+                    // authoritatively correct the client with MasterStateSync using EMA filtered drift
                     const float DRIFT_CORRECTION_THRESHOLD = 1500.0f;
-                    if (driftDist > DRIFT_CORRECTION_THRESHOLD) {
+                    float smoothed = m_sync.GetSmoothedDrift(peerId);
+                    if (driftDist > DRIFT_CORRECTION_THRESHOLD || smoothed > DRIFT_CORRECTION_THRESHOLD) {
                         Packet corrPkt = { peerId, serverPeer.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(),
                                            NetMuxPacketType::MasterStateSync, serverPeer.normalizedX, serverPeer.normalizedY,
                                            0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
                         corrPkt.button = (int)driftDist;
                         m_network.SendPacket(corrPkt);
                         m_sync.RecordAuthoritativeCorrection(peerId);
-                        std::cout << "[SyncAuthority] Correcting peer " << peerId << " drift: " << driftDist << " units." << std::endl;
+                        std::cout << "[SyncAuthority] Correcting peer " << peerId << " drift: " << driftDist << " units (smoothed: " << smoothed << ")." << std::endl;
                     }
                 }
             }

@@ -1,3 +1,12 @@
+## [0.1.121-alpha] - 2026-11-04
+
+### Added
+- Exponential Moving Average (EMA) Drift Filter:
+  - Added `smoothedDrift` to `PeerState` with $\alpha = 0.25$ smoothing in `SyncModule::UpdateDrift()` to reject single-packet outlier jitter.
+  - Exposed `GetSmoothedDrift()` accessor in `SyncModule`.
+  - Integrated smoothed drift into `NetMuxFramework::ProcessIncomingPackets()` during `SyncCheck` validation to prevent erratic authoritative snapping.
+  - Added unit test `test_ema_drift_filter()` in `tests/test_main.cpp`.
+
 ## [0.1.120-alpha] - 2026-11-04
 
 ### Added

@@ -36,8 +36,25 @@ void SyncModule::UpdatePeerResolution(unsigned long long id, int width, int heig
 void SyncModule::UpdateDrift(unsigned long long id, float drift) {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_peers.count(id)) {
-        m_peers[id].drift = drift;
+        PeerState& peer = m_peers[id];
+        peer.drift = drift;
+        // EMA filter: alpha = 0.25 (75% history, 25% new measurement)
+        if (peer.smoothedDrift == 0.0f) {
+            peer.smoothedDrift = drift;
+        } else {
+            const float ALPHA = 0.25f;
+            peer.smoothedDrift = (ALPHA * drift) + ((1.0f - ALPHA) * peer.smoothedDrift);
+        }
     }
+}
+
+float SyncModule::GetSmoothedDrift(unsigned long long id) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto it = m_peers.find(id);
+    if (it != m_peers.end()) {
+        return it->second.smoothedDrift;
+    }
+    return 0.0f;
 }
 
 void SyncModule::RecordAuthoritativeCorrection(unsigned long long id) {

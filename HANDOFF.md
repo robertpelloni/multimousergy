@@ -103,6 +103,12 @@
 - Glowing dual-layer focus halo rings in `D3D11Overlay.cpp`.
 - Adaptive delta compression (1:25 anchor ratio) in `InputEngine.cpp`.
 
+### Exponential Moving Average (EMA) Drift Filter (v0.1.121-alpha)
+- Added `smoothedDrift` to `PeerState` with $\alpha = 0.25$ filter in `SyncModule::UpdateDrift()` to reject single-packet outlier jitter.
+- Exposed `GetSmoothedDrift(peerId)` accessor in `SyncModule`.
+- Updated `NetMuxFramework::ProcessIncomingPackets()` during `SyncCheck` handling to verify both immediate and smoothed drift against `DRIFT_CORRECTION_THRESHOLD`.
+- Added unit test `test_ema_drift_filter()` in `tests/test_main.cpp`.
+
 ### Stdin Command Protocol & Drag-and-Drop Pipe (v0.1.120-alpha)
 - Implemented `ProcessStdinCommands()` in `NetMuxFramework` to parse IPC commands (such as `TRANSFER <filePath> <targetPeerId>`) directly from stdin.
 - Connected drag-and-drop file staging in `ui/index.html` via `ui/main.js` and `ui/preload.js` to pipe transfer requests into the backend process stdin.
@@ -122,10 +128,10 @@
 - Added unit test `test_file_transfer_streaming()` in `tests/test_main.cpp`.
 
 ## Project State
-- **Version**: `v0.1.120-alpha`
-- **Build**: CMake + GCC/Clang/MSVC, 100% CTest pass rate (37/37 unit tests passing).
+- **Version**: `v0.1.121-alpha`
+- **Build**: CMake + GCC/Clang/MSVC, 100% CTest pass rate (38/38 unit tests passing).
 - Working tree clean.
 
 ## Notes for Successor
-- All Milestone 6 items (H.264 codecs, WebRTC native integration, spatial audio, and integrated video chat stream synchronizer) and drag-and-drop file transfer pipeline integrations are fully implemented and verified.
+- All Milestone 6 items (H.264 codecs, WebRTC native integration, spatial audio, and integrated video chat stream synchronizer), drag-and-drop file transfer pipeline, and EMA drift filtering are fully implemented and verified.
 - The Electron frontend runs headless C++ netmux instances and consumes JSON telemetry via stdout.

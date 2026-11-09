@@ -48,6 +48,7 @@ struct PeerState {
     double latency;
     double e2eLatency;
     float drift;
+    float smoothedDrift; // EMA filtered drift to reject single-packet jitter
     double clockOffset; // Offset to convert remote timestamps to local timeline
     bool isStalled;
     float vx; // Velocity pixels/ms
@@ -70,6 +71,7 @@ public:
     void SetAuthenticated(unsigned long long id, bool auth);
     void UpdatePeerResolution(unsigned long long id, int width, int height, float dpi = 1.0f);
     void UpdateDrift(unsigned long long id, float drift);
+    float GetSmoothedDrift(unsigned long long id) const;
     void RecordAuthoritativeCorrection(unsigned long long id);
     void UpdateLatency(unsigned long long id, double latency);
     void UpdateClockOffset(unsigned long long id, double remoteTime, double localTime);
