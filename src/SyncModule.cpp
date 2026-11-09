@@ -88,6 +88,28 @@ void SyncModule::UpdatePeerSelection(unsigned long long id, bool selecting, int 
     }
 }
 
+bool SyncModule::GetPeerSelectionBox(unsigned long long id, SelectionBox& outBox) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto it = m_peers.find(id);
+    if (it == m_peers.end() || !it->second.isSelecting) {
+        return false;
+    }
+
+    const PeerState& peer = it->second;
+    int curX = (int)peer.x;
+    int curY = (int)peer.y;
+    int startX = (int)peer.selStartX;
+    int startY = (int)peer.selStartY;
+
+    outBox.minX = std::min(startX, curX);
+    outBox.minY = std::min(startY, curY);
+    outBox.maxX = std::max(startX, curX);
+    outBox.maxY = std::max(startY, curY);
+    outBox.width = outBox.maxX - outBox.minX;
+    outBox.height = outBox.maxY - outBox.minY;
+    return true;
+}
+
 void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp, const char* name, const char* gname, const char* dname) {
     std::lock_guard<std::mutex> lock(m_mutex);
     bool isNew = (m_peers.find(id) == m_peers.end());

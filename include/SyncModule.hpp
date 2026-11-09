@@ -20,6 +20,15 @@ struct MonitorDescriptor {
     bool isPrimary = true;
 };
 
+struct SelectionBox {
+    int minX = 0;
+    int minY = 0;
+    int maxX = 0;
+    int maxY = 0;
+    int width = 0;
+    int height = 0;
+};
+
 struct PeerState {
     unsigned long long id;
     unsigned int groupId;
@@ -68,6 +77,7 @@ public:
     void RefreshPeer(unsigned long long id, unsigned int groupId);
     void UpdatePeerButtons(unsigned long long id, int button, bool down);
     void UpdatePeerSelection(unsigned long long id, bool selecting, int startX, int startY);
+    bool GetPeerSelectionBox(unsigned long long id, SelectionBox& outBox) const;
     void SetAuthenticated(unsigned long long id, bool auth);
     void UpdatePeerResolution(unsigned long long id, int width, int height, float dpi = 1.0f);
     void UpdateDrift(unsigned long long id, float drift);

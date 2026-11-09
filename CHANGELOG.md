@@ -1,3 +1,11 @@
+## [0.1.123-alpha] - 2026-11-04
+
+### Added
+- Collaborative Drag Selection Bounding Box Engine:
+  - Added `SelectionBox` struct and `GetPeerSelectionBox()` in `SyncModule`.
+  - Automatically calculates ordered min/max bounds and dimensions for active peer drag operations, correctly resolving inverted drag vectors.
+  - Added unit test `test_collaborative_drag_selection_box()` in `tests/test_main.cpp`.
+
 ## [0.1.122-alpha] - 2026-11-04
 
 ### Added

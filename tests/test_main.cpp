@@ -312,6 +312,41 @@ void test_network_rate_limiter() {
     std::cout << "NetworkManager Token-Bucket Rate Limiter test passed!" << std::endl;
 }
 
+void test_collaborative_drag_selection_box() {
+    SyncModule sync;
+    unsigned long long peerId = 505;
+    sync.UpdatePeer(peerId, 1, 1000, 1000);
+
+    SelectionBox box;
+    // When not selecting, should return false
+    assert(!sync.GetPeerSelectionBox(peerId, box));
+
+    // Simulate drag selection
+    sync.UpdatePeerSelection(peerId, true, 10000, 10000);
+    sync.UpdatePeer(peerId, 1, 30000, 30000);
+
+    assert(sync.GetPeerSelectionBox(peerId, box));
+    assert(box.maxX >= box.minX);
+    assert(box.maxY >= box.minY);
+    assert(box.width >= 0);
+    assert(box.height >= 0);
+
+    // Invert selection (drag reverse)
+    sync.UpdatePeerSelection(peerId, true, 40000, 40000);
+    sync.UpdatePeer(peerId, 1, 10000, 10000);
+    assert(sync.GetPeerSelectionBox(peerId, box));
+    assert(box.maxX >= box.minX);
+    assert(box.maxY >= box.minY);
+    assert(box.width >= 0);
+    assert(box.height >= 0);
+
+    // Release selection
+    sync.UpdatePeerSelection(peerId, false, 0, 0);
+    assert(!sync.GetPeerSelectionBox(peerId, box));
+
+    std::cout << "test_collaborative_drag_selection_box passed!" << std::endl;
+}
+
 void test_file_transfer_custom_directory() {
     FileTransferEngine receiver;
     std::string customDir = "test_custom_incoming_dir";
@@ -946,6 +981,7 @@ int main() {
     test_file_transfer_peer_targeting();
     test_file_transfer_command_handling();
     test_file_transfer_custom_directory();
+    test_collaborative_drag_selection_box();
     test_ema_drift_filter();
     std::cout << "All tests passed!" << std::endl;
     return 0;
