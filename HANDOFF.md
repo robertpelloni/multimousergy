@@ -140,6 +140,10 @@
 - Dynamically resolves inverted drag vectors and boundary dimensions across display coordinates.
 - Added unit test `test_collaborative_drag_selection_box()` in `tests/test_main.cpp`.
 
+### Dynamic Minimap Drag Selection Styling & Dimensional Markers (v0.1.127-alpha)
+- Wired minimap drag selection fill and stroke in `ui/index.html` to user selection color (`selColors`).
+- Added real-time width x height bounding box dimension labels on the canvas during active drag operations.
+
 ### Targeted Peer File Transfer Dispatching (v0.1.119-alpha)
 - Added `GetTransferPeerId(unsigned long long transferId)` in `FileTransferEngine`.
 - Implemented `SendPacketToPeer(const Packet& packet, unsigned long long targetPeerId)` in `NetworkManager` for direct UDP/TCP routing to target peers.
@@ -154,10 +158,10 @@
 - Added unit test `test_file_transfer_streaming()` in `tests/test_main.cpp`.
 
 ## Project State
-- **Version**: `v0.1.126-alpha`
+- **Version**: `v0.1.127-alpha`
 - **Build**: CMake + GCC/Clang/MSVC, 100% CTest pass rate (43/43 unit tests passing).
 - Working tree clean.
 
 ## Notes for Successor
-- All Milestone 6 items (H.264 codecs, WebRTC native integration, spatial audio, and integrated video chat stream synchronizer), drag-and-drop file transfer pipeline, configurable destination directory, multi-team TCP stream group routing, and collaborative multi-selection intersection detection are fully implemented and verified.
+- All Milestone 6 items (H.264 codecs, WebRTC native integration, spatial audio, and integrated video chat stream synchronizer), drag-and-drop file transfer pipeline, configurable destination directory, multi-team TCP stream group routing, collaborative multi-selection intersection detection, and dynamic minimap selection dimensional styling are fully implemented and verified.
 - The Electron frontend runs headless C++ netmux instances and consumes JSON telemetry via stdout.

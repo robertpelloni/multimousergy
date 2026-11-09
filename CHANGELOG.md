@@ -1,3 +1,10 @@
+## [0.1.127-alpha] - 2026-11-04
+
+### Added
+- Dynamic Minimap Drag Selection Styling & Dimensional Markers:
+  - Wired the live minimap drag selection rectangle fill and dashed stroke to user-configured selection color (`selColors`).
+  - Added real-time width x height bounding box pixel dimension labels on the canvas during active drag operations.
+
 ## [0.1.126-alpha] - 2026-11-04
 
 ### Added

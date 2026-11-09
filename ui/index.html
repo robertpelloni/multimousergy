@@ -1142,14 +1142,19 @@
                             let rectW = x - startX;
                             let rectH = y - startY;
 
-                            ctx.fillStyle = 'rgba(0, 120, 215, 0.25)';
+                            ctx.fillStyle = `rgba(${selColors.r}, ${selColors.g}, ${selColors.b}, 0.25)`;
                             ctx.fillRect(startX, startY, rectW, rectH);
 
-                            ctx.strokeStyle = 'rgba(0, 210, 255, 0.85)';
+                            ctx.strokeStyle = `rgba(${selColors.r}, ${selColors.g}, ${selColors.b}, 0.85)`;
                             ctx.lineWidth = 1.5;
                             ctx.setLineDash([4, 2]);
                             ctx.strokeRect(startX, startY, rectW, rectH);
                             ctx.setLineDash([]);
+
+                            // Dimensions label
+                            ctx.fillStyle = `rgb(${selColors.r}, ${selColors.g}, ${selColors.b})`;
+                            ctx.font = '9px monospace';
+                            ctx.fillText(`${Math.abs(Math.round(rectW))}x${Math.abs(Math.round(rectH))}`, Math.min(startX, x), Math.max(startY, y) + 12);
                         }
                     });
 
