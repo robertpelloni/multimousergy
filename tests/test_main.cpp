@@ -17,6 +17,7 @@
 #include "VideoEncoder.hpp"
 #include "VideoDecoder.hpp"
 #include "WebRTCManager.hpp"
+#include "PacketSerializer.hpp"
 
 void test_concurrent_cursor_sync();
 void test_group_isolation();
@@ -510,6 +511,56 @@ void test_ema_drift_filter() {
     assert(std::abs(sync.GetSmoothedDrift(peerId) - 175.0f) < 0.001f);
 
     std::cout << "test_ema_drift_filter passed!" << std::endl;
+}
+
+void test_packet_serializer_validation() {
+    // 1. Valid Header-Only Packet
+    Packet movePkt;
+    movePkt.senderId = 12345;
+    movePkt.groupId = 1;
+    movePkt.sequenceNumber = 10;
+    movePkt.type = NetMuxPacketType::Movement;
+    movePkt.x = 500;
+    movePkt.y = 600;
+
+    std::vector<uint8_t> moveBytes = PacketSerializer::Serialize(movePkt, true);
+    assert(PacketSerializer::ValidatePacket(moveBytes.data(), moveBytes.size()) == true);
+
+    // 2. Reject undersized buffer
+    assert(PacketSerializer::ValidatePacket(moveBytes.data(), PacketSerializer::HEADER_SIZE - 1) == false);
+
+    // 3. Valid Payload Packet
+    Packet dataPkt;
+    dataPkt.senderId = 999;
+    dataPkt.groupId = 2;
+    dataPkt.sequenceNumber = 42;
+    dataPkt.type = NetMuxPacketType::FileData;
+    const char* sampleData = "Hello NetMux Serializer!";
+    dataPkt.payloadSize = (int32_t)std::strlen(sampleData);
+    std::memcpy(dataPkt.payload, sampleData, dataPkt.payloadSize);
+
+    std::vector<uint8_t> dataBytes = PacketSerializer::Serialize(dataPkt, false);
+    assert(PacketSerializer::ValidatePacket(dataBytes.data(), dataBytes.size()) == true);
+
+    // 4. Reject truncated payload
+    assert(PacketSerializer::ValidatePacket(dataBytes.data(), dataBytes.size() - 5) == false);
+
+    // 5. Reject invalid packet type
+    std::vector<uint8_t> corruptTypeBytes = moveBytes;
+    int32_t badType = 999999;
+    std::memcpy(corruptTypeBytes.data() + 24, &badType, sizeof(badType));
+    assert(PacketSerializer::ValidatePacket(corruptTypeBytes.data(), corruptTypeBytes.size()) == false);
+
+    // 6. Roundtrip deserialization after validation
+    Packet decodedPkt;
+    assert(PacketSerializer::ValidatePacket(dataBytes.data(), dataBytes.size()) == true);
+    size_t consumed = PacketSerializer::Deserialize(dataBytes.data(), dataBytes.size(), decodedPkt);
+    assert(consumed == dataBytes.size());
+    assert(decodedPkt.senderId == 999);
+    assert(decodedPkt.payloadSize == (int32_t)std::strlen(sampleData));
+    assert(std::memcmp(decodedPkt.payload, sampleData, decodedPkt.payloadSize) == 0);
+
+    std::cout << "test_packet_serializer_validation passed!" << std::endl;
 }
 
 void test_file_transfer_command_handling() {
@@ -1098,6 +1149,7 @@ int main() {
     test_conflict_blocking_state();
     test_collaborative_selection_overlap();
     test_ema_drift_filter();
+    test_packet_serializer_validation();
     std::cout << "All tests passed!" << std::endl;
     return 0;
 }

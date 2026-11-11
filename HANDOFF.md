@@ -1,6 +1,12 @@
-# NetMux Session Handoff - v0.1.128-alpha
+# NetMux Session Handoff - v0.1.129-alpha
 
 ## Repository Synchronization Summary (2026-11-04)
+
+### Binary Packet Integrity Validation (v0.1.129-alpha)
+- **Protocol Serialization Hardening**:
+  - Implemented `ValidatePacket(const uint8_t* buffer, size_t size)` in `PacketSerializer`.
+  - Enforces enum bounds checking against `NetMuxPacketType` and verifies sufficient buffer size for fixed headers and declared payloads.
+  - Added unit test `test_packet_serializer_validation()` in `tests/test_main.cpp`.
 
 ### Group-Scoped Peer Membership Queries (v0.1.128-alpha)
 - **Multi-Team Discovery & Group Isolation**:

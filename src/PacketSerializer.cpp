@@ -99,6 +99,48 @@ std::vector<uint8_t> PacketSerializer::Serialize(const Packet& pkt, bool headerO
     return buf;
 }
 
+bool PacketSerializer::ValidatePacket(const uint8_t* buffer, size_t size) {
+    if (!buffer || size < HEADER_SIZE) return false;
+
+    // Fixed Header offset layout:
+    // senderId: 0 (8 bytes)
+    // groupId: 8 (4 bytes)
+    // sequenceNumber: 12 (4 bytes)
+    // localTimestamp: 16 (8 bytes)
+    // type: 24 (4 bytes)
+    int32_t typeInt = 0;
+    std::memcpy(&typeInt, buffer + 24, sizeof(int32_t));
+
+    // Validate type bounds against NetMuxPacketType enumeration (Movement = 0 up to VideoFrame)
+    if (typeInt < (int32_t)NetMuxPacketType::Movement || typeInt > (int32_t)NetMuxPacketType::VideoFrame) {
+        return false;
+    }
+
+    NetMuxPacketType type = (NetMuxPacketType)typeInt;
+    bool isHeaderOnly = (type == NetMuxPacketType::Movement ||
+                         type == NetMuxPacketType::AbsoluteMovement ||
+                         type == NetMuxPacketType::DeltaMovement ||
+                         type == NetMuxPacketType::Sync ||
+                         type == NetMuxPacketType::Ping ||
+                         type == NetMuxPacketType::Heartbeat ||
+                         type == NetMuxPacketType::SyncCheck);
+
+    if (isHeaderOnly) {
+        return true;
+    }
+
+    // Header size + payloadSize integer
+    if (size < HEADER_SIZE + sizeof(int32_t)) return false;
+
+    int32_t payloadSize = 0;
+    std::memcpy(&payloadSize, buffer + HEADER_SIZE, sizeof(int32_t));
+
+    if (payloadSize < 0 || payloadSize > 4096) return false;
+    if (size < HEADER_SIZE + sizeof(int32_t) + (size_t)payloadSize) return false;
+
+    return true;
+}
+
 size_t PacketSerializer::Deserialize(const uint8_t* buffer, size_t size, Packet& outPkt) {
     if (size < HEADER_SIZE) return 0;
 

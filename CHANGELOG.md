@@ -1,3 +1,11 @@
+## [0.1.129-alpha] - 2026-11-04
+
+### Added
+- Binary Packet Integrity Validation:
+  - Added `ValidatePacket(const uint8_t* buffer, size_t size)` in `PacketSerializer`.
+  - Enforces enum bounds checking against `NetMuxPacketType` and verifies sufficient buffer size for fixed headers and declared payloads.
+  - Added comprehensive unit test `test_packet_serializer_validation()` in `tests/test_main.cpp`.
+
 ## [0.1.128-alpha] - 2026-11-04
 
 ### Added
