@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(NetMux VERSION 0.1.90 LANGUAGES CXX)
+project(NetMux VERSION 0.1.129 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -17,6 +17,7 @@ endif()
 # Library files
 set(LIB_SOURCES
     src/DriverInterface.cpp
+    src/WaylandPortalManager.cpp
     src/InputEngine.cpp
     src/NetworkManager.cpp
     src/OverlayEngine.cpp

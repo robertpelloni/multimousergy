@@ -36,6 +36,15 @@ enum class ConnectionState {
 struct ClientConnection {
     Socket socket;
     std::vector<char> buffer;
+    unsigned long long peerId = 0;
+    unsigned int groupId = 0;
+};
+
+struct TokenBucketLimiter {
+    double tokens = 200.0;
+    double maxTokens = 200.0;
+    double refillRate = 100.0; // Tokens added per second
+    double lastRefill = 0.0;
 };
 
 class NetworkManager {
@@ -51,6 +60,7 @@ public:
     void SetIsServer(bool isServer) { m_isServer = isServer; }
     void SendPacket(const Packet& packet);
     void SendPacketToGroup(const Packet& packet, unsigned int groupId);
+    void SendPacketToPeer(const Packet& packet, unsigned long long targetPeerId);
     bool ReceivePacket(Packet& packet);
 
     bool BroadcastDiscovery(int port);
@@ -58,6 +68,10 @@ public:
     bool PollDiscovery(DiscoveryPacket& pkt);
 
     int GetClientCount() const { return (int)m_clients.size(); }
+
+    // Token-Bucket Rate Limiting
+    void ConfigureRateLimiter(double maxTokens, double refillRate);
+    bool CheckRateLimit(unsigned long long peerId, double cost, double currentTime);
 
     void Shutdown();
 
@@ -77,4 +91,8 @@ private:
     ConnectionState m_tcpState;
 
     std::vector<char> m_connectorBuffer; // Buffer for the client-side connector socket
+
+    std::map<unsigned long long, TokenBucketLimiter> m_rateLimiters;
+    double m_defaultMaxTokens = 200.0;
+    double m_defaultRefillRate = 100.0;
 };

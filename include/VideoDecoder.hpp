@@ -10,22 +10,32 @@
 #include <mftransform.h>
 #endif
 
+struct VideoDecoderConfig {
+    uint32_t width = 1920;
+    uint32_t height = 1080;
+    bool lowLatency = true;
+};
+
 class VideoDecoder {
 public:
     VideoDecoder();
     ~VideoDecoder();
 
-#ifdef _WIN32
-    bool Initialize(ID3D11Device* device);
-    bool DecodeFrame(const std::vector<uint8_t>& bitstream, ID3D11Texture2D** outTexture);
-#else
-    bool Initialize(void* device) { return false; }
-    bool DecodeFrame(const std::vector<uint8_t>& bitstream, void** outTexture) { return false; }
-#endif
+    bool Initialize(void* device, const VideoDecoderConfig& config = VideoDecoderConfig());
+    bool DecodeFrame(const std::vector<uint8_t>& bitstream, void** outTexture);
+    void Shutdown();
+
+    bool IsInitialized() const { return m_initialized; }
+    VideoDecoderConfig GetConfig() const { return m_config; }
 
 private:
+    bool m_initialized;
+    VideoDecoderConfig m_config;
+
 #ifdef _WIN32
     ID3D11Device* m_device;
     IMFTransform* m_decoder;
+    IMFMediaType* m_inputType;
+    IMFMediaType* m_outputType;
 #endif
 };

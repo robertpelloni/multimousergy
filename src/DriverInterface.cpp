@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <linux/input.h>
+#include <linux/uinput.h>
 #include <cstring>
 #endif
 
@@ -94,12 +95,57 @@ typedef PVIGEM_TARGET (*pvigem_target_x360_alloc)(void);
 typedef VIGEM_ERROR (*pvigem_target_add)(PVIGEM_CLIENT, PVIGEM_TARGET);
 #endif
 
+#ifdef __linux__
+bool DriverInterface::InitUInputDevice() {
+    const char* paths[] = { "/dev/uinput", "/dev/input/uinput" };
+    int fd = -1;
+    for (const char* p : paths) {
+        fd = open(p, O_WRONLY | O_NONBLOCK);
+        if (fd >= 0) break;
+    }
+    if (fd < 0) return false;
+
+    // Configure uinput virtual mouse events
+    ioctl(fd, UI_SET_EVBIT, EV_KEY);
+    ioctl(fd, UI_SET_KEYBIT, BTN_LEFT);
+    ioctl(fd, UI_SET_KEYBIT, BTN_RIGHT);
+    ioctl(fd, UI_SET_KEYBIT, BTN_MIDDLE);
+
+    ioctl(fd, UI_SET_EVBIT, EV_REL);
+    ioctl(fd, UI_SET_RELBIT, REL_X);
+    ioctl(fd, UI_SET_RELBIT, REL_Y);
+    ioctl(fd, UI_SET_RELBIT, REL_WHEEL);
+
+    struct uinput_setup usetup;
+    std::memset(&usetup, 0, sizeof(usetup));
+    usetup.id.bustype = BUS_USB;
+    usetup.id.vendor = 0x1234;  // MultiMousergy vendor ID
+    usetup.id.product = 0x5678; // MultiMousergy virtual mouse product ID
+    std::strncpy(usetup.name, "MultiMousergy Virtual Mouse", UINPUT_MAX_NAME_SIZE);
+
+    if (ioctl(fd, UI_DEV_SETUP, &usetup) < 0 || ioctl(fd, UI_DEV_CREATE) < 0) {
+        close(fd);
+        return false;
+    }
+
+    m_device = fd;
+    m_isUInput = true;
+    m_initialized = true;
+    std::cout << "[Driver] Linux uinput virtual mouse created successfully." << std::endl;
+    return true;
+}
+#endif
+
 bool DriverInterface::Initialize(NetMuxDriverType type) {
     m_type = type;
     std::cout << "[Driver] Initializing hardware abstraction layer..." << std::endl;
 
 #ifdef __linux__
-    std::cout << "[Driver] Scanning Linux evdev devices..." << std::endl;
+    if (InitUInputDevice()) {
+        return true;
+    }
+
+    std::cout << "[Driver] Fallback: Scanning Linux evdev devices..." << std::endl;
     for (int i = 0; i < 32; ++i) {
         char path[64];
         snprintf(path, sizeof(path), "/dev/input/event%d", i);
@@ -109,6 +155,7 @@ bool DriverInterface::Initialize(NetMuxDriverType type) {
             if (ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), rel_bits) >= 0) {
                 if ((rel_bits[0] & (1 << REL_X)) && (rel_bits[0] & (1 << REL_Y))) {
                     m_device = fd;
+                    m_isUInput = false;
                     m_initialized = true;
                     std::cout << "[Driver] Linux evdev injection enabled on: " << path << std::endl;
                     return true;
@@ -117,7 +164,7 @@ bool DriverInterface::Initialize(NetMuxDriverType type) {
             close(fd);
         }
     }
-    std::cerr << "[Driver] Failed to find a suitable evdev device (Permissions?)" << std::endl;
+    std::cerr << "[Driver] Failed to find a suitable evdev or uinput device (Permissions?)" << std::endl;
 #endif
 
 #ifdef _WIN32
@@ -205,8 +252,12 @@ void DriverInterface::Shutdown() {
         m_vigemClient = nullptr;
 #endif
 #ifdef __linux__
-        if (m_device >= 0) close(m_device);
+        if (m_device >= 0) {
+            if (m_isUInput) ioctl(m_device, UI_DEV_DESTROY);
+            close(m_device);
+        }
         m_device = -1;
+        m_isUInput = false;
 #endif
         m_initialized = false;
     }

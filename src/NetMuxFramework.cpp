@@ -16,9 +16,12 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include <io.h>
 #else
 #include <unistd.h>
+#include <sys/select.h>
 #endif
+#include <sstream>
 
 NetMuxFramework::NetMuxFramework()
     : m_running(false), m_lastSyncTime(0), m_lastPerfLog(0), m_overlayDirty(false) {
@@ -90,6 +93,7 @@ bool NetMuxFramework::Initialize(const AppSettings& settings) {
 
 #ifdef _WIN32
     if (m_settings.useD3D11 || m_settings.spatialMode) {
+        m_spatialViewport.SetBoundaryConfig(m_settings.inputConfig.boundaryX, m_settings.inputConfig.boundaryY, m_settings.inputConfig.isLeft);
         ID3D11Device* d3dDevice = (ID3D11Device*)m_overlay.GetD3D11Device();
         ID3D11DeviceContext* d3dContext = (ID3D11DeviceContext*)m_overlay.GetD3D11Context();
         if (d3dDevice) {
@@ -179,6 +183,7 @@ void NetMuxFramework::Run() {
         PerformSyncCheck();
         PerformFileTransfer();
         PerformPeerCleanup();
+        ProcessStdinCommands();
 #ifdef __linux__
         ProcessX11Events();
 #endif
@@ -236,9 +241,28 @@ void NetMuxFramework::Run() {
                           << ",\"y\":" << p.second.y
                           << ",\"latency\":" << p.second.latency
                           << ",\"isSelecting\":" << (p.second.isSelecting ? "true" : "false")
+                          << ",\"isConflictBlocked\":" << (p.second.isConflictBlocked ? "true" : "false")
+                          << ",\"selStartX\":" << p.second.selStartX
+                          << ",\"selStartY\":" << p.second.selStartY
+                          << ",\"drift\":" << p.second.drift
+                          << ",\"corrections\":" << p.second.authoritativeCorrections
                           << ",\"groupId\":" << p.second.groupId
                           << "}";
                 first = false;
+            }
+            std::cout << "],\"transfers\":[";
+            auto activeTransfers = m_fileTransfer.GetActiveTransfers();
+            bool firstTx = true;
+            for (auto const& [tId, tStatus] : activeTransfers) {
+                if (!firstTx) std::cout << ",";
+                std::cout << "{\"id\":" << tId
+                          << ",\"filename\":\"" << tStatus.filename << "\""
+                          << ",\"progress\":" << tStatus.progress
+                          << ",\"isComplete\":" << (tStatus.isComplete ? "true" : "false")
+                          << ",\"isOutgoing\":" << (tStatus.isOutgoing ? "true" : "false")
+                          << ",\"error\":" << static_cast<int>(tStatus.lastError)
+                          << "}";
+                firstTx = false;
             }
             std::cout << "]}" << std::endl;
             lastUIUpdate = m_loopTimer.ElapsedMilliseconds();
@@ -368,22 +392,31 @@ void NetMuxFramework::ProcessInteractionQueue() {
         if (m_sync.GetPeerState(event.peerId, peer)) {
             unsigned long long previousOwner = m_sync.GetActivePeer();
 
-            if (m_sync.ResolveInteraction(event.peerId, event.timestamp, !event.down)) {
+            if (m_sync.ResolveGroupInteraction(event.peerId, peer.groupId, event.timestamp, !event.down)) {
                 if (!m_driver.SendMouseButton(event.button, event.down)) {
                     m_input.PerformWarpClickRestore((int)peer.x, (int)peer.y, event.button, event.down);
                 }
 
-                // Rebroadcast focus update if owner changed
+                // Rebroadcast focus update if owner changed (isolated strictly to the peer's collaborative group)
                 if (m_settings.isServer && previousOwner != event.peerId) {
-                    Packet focusPkt = { m_localId, m_settings.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::FocusUpdate, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
+                    Packet focusPkt = { m_localId, peer.groupId, m_sequenceCounter++, 0.0, NetMuxPacketType::FocusUpdate, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
                     focusPkt.button = (int)event.peerId; // Reuse button field for peer ID
-                    m_network.SendPacket(focusPkt);
+                    m_network.SendPacketToGroup(focusPkt, peer.groupId);
                 }
             } else {
                 std::cout << "[Conflict] Peer " << event.peerId << " denied focus ownership." << std::endl;
             }
         }
     }
+}
+
+bool NetMuxFramework::QueueFileTransfer(const std::string& filePath, unsigned long long targetPeerId) {
+    return m_fileTransfer.StartTransfer(filePath, targetPeerId);
+}
+
+bool NetMuxFramework::QueueBatchFileTransfer(const std::vector<std::string>& filePaths, unsigned long long targetPeerId) {
+    std::vector<unsigned long long> outIds;
+    return m_fileTransfer.StartBatchTransfer(filePaths, targetPeerId, outIds);
 }
 
 void NetMuxFramework::ProcessOutgoingPackets() {
@@ -513,6 +546,9 @@ void NetMuxFramework::ProcessIncomingPackets() {
             long dy = (long)(ny - oldPeer.targetY);
 
             m_sync.UpdatePeer(peerId, inPkt.groupId, inPkt.x, inPkt.y, inPkt.localTimestamp);
+            if (inPkt.isSelecting) {
+                m_sync.UpdatePeerSelection(peerId, true, inPkt.selectionStartX, inPkt.selectionStartY);
+            }
             m_overlayDirty = true;
             
             if (peerId == m_sync.GetActivePeer()) {
@@ -562,7 +598,7 @@ void NetMuxFramework::ProcessIncomingPackets() {
                         m_lastClipboardTimestamp = remoteTimestamp;
                         buffer.clear();
                     }
-                    if (m_settings.isServer) m_network.SendPacket(inPkt);
+                    if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
                 }
             }
         } else if (inPkt.type == NetMuxPacketType::Handshake) {
@@ -638,18 +674,47 @@ void NetMuxFramework::ProcessIncomingPackets() {
             }
         } else if (inPkt.type == NetMuxPacketType::SyncCheck) {
             if (m_settings.isServer) {
-                // If we receive a sync check, we should potentially rebroadcast or reply with MasterStateSync
-                // but for now we just refresh the peer's timeout.
                 m_sync.RefreshPeer(peerId, inPkt.groupId);
+                PeerState serverPeer;
+                if (m_sync.GetPeerState(peerId, serverPeer)) {
+                    // Check coordinate drift between client perception and authoritative server state
+                    int dx = inPkt.x - serverPeer.normalizedX;
+                    int dy = inPkt.y - serverPeer.normalizedY;
+                    float driftDist = std::sqrt((float)(dx * dx + dy * dy));
+                    m_sync.UpdateDrift(peerId, driftDist);
+
+                    // If client coordinate has drifted beyond threshold (> 1500 units, ~2.3%),
+                    // authoritatively correct the client with MasterStateSync using EMA filtered drift
+                    const float DRIFT_CORRECTION_THRESHOLD = 1500.0f;
+                    float smoothed = m_sync.GetSmoothedDrift(peerId);
+                    if (driftDist > DRIFT_CORRECTION_THRESHOLD || smoothed > DRIFT_CORRECTION_THRESHOLD) {
+                        Packet corrPkt = { peerId, serverPeer.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(),
+                                           NetMuxPacketType::MasterStateSync, serverPeer.normalizedX, serverPeer.normalizedY,
+                                           0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
+                        corrPkt.button = (int)driftDist;
+                        m_network.SendPacket(corrPkt);
+                        m_sync.RecordAuthoritativeCorrection(peerId);
+                        std::cout << "[SyncAuthority] Correcting peer " << peerId << " drift: " << driftDist << " units (smoothed: " << smoothed << ")." << std::endl;
+                    }
+                }
             }
         } else if (inPkt.type == NetMuxPacketType::MasterStateSync) {
-            // Server Authority: Update local perception of remote peer
+            // Server Authority: Apply authoritative coordinate correction to remote peer
             if (!m_settings.isServer) {
+                PeerState localPeer;
+                if (m_sync.GetPeerState(peerId, localPeer)) {
+                    int dx = inPkt.x - localPeer.normalizedX;
+                    int dy = inPkt.y - localPeer.normalizedY;
+                    float appliedDrift = std::sqrt((float)(dx * dx + dy * dy));
+                    m_sync.UpdateDrift(peerId, appliedDrift);
+                }
                 m_sync.UpdatePeer(peerId, inPkt.groupId, inPkt.x, inPkt.y, inPkt.localTimestamp);
+                m_sync.RecordAuthoritativeCorrection(peerId);
+                m_overlayDirty = true;
             }
         } else if (inPkt.type == NetMuxPacketType::FileHeader) {
             if (IsPeerTrusted(peerId, inPkt.type)) {
-                m_fileTransfer.HandleFileHeader(inPkt);
+                m_fileTransfer.HandleFileHeader(inPkt, peerId);
                 if (m_settings.isServer) m_network.SendPacketToGroup(inPkt, inPkt.groupId);
             }
         } else if (inPkt.type == NetMuxPacketType::FileData) {
@@ -694,7 +759,7 @@ void NetMuxFramework::PerformMasterStateSync() {
                 m_lastMasterSyncPos[id].second != peer.normalizedY) {
 
                 Packet masterPkt = { id, peer.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(), NetMuxPacketType::MasterStateSync, peer.normalizedX, peer.normalizedY, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
-                m_network.SendPacket(masterPkt);
+                m_network.SendPacketToGroup(masterPkt, peer.groupId);
                 m_lastMasterSyncPos[id] = {peer.normalizedX, peer.normalizedY};
             }
         }
@@ -764,17 +829,66 @@ void NetMuxFramework::PerformFileTransfer() {
     for (auto const& [id, status] : transfers) {
         if (status.isOutgoing && !status.isComplete) {
             Packet pkt = { m_localId, m_settings.groupId, m_sequenceCounter++, m_loopTimer.ElapsedMilliseconds(), NetMuxPacketType::FileData, 0, 0, 0, false, false, 0, 0, 0, false, 0, 0, 1.0f, "", 0 };
+            unsigned long long targetPeer = m_fileTransfer.GetTransferPeerId(id);
 
             // Check if we need to send header first
             if (!m_fileTransfer.IsHeaderSent(id)) {
                 if (m_fileTransfer.GetHeaderPacket(id, pkt)) {
-                    m_network.SendPacket(pkt);
+                    if (targetPeer != 0) {
+                        m_network.SendPacketToPeer(pkt, targetPeer);
+                    } else {
+                        m_network.SendPacket(pkt);
+                    }
                     m_fileTransfer.SetHeaderSent(id, true);
                 }
             } else {
                 if (m_fileTransfer.GetNextChunk(id, pkt)) {
-                    m_network.SendPacket(pkt);
+                    if (targetPeer != 0) {
+                        m_network.SendPacketToPeer(pkt, targetPeer);
+                    } else {
+                        m_network.SendPacket(pkt);
+                    }
                 }
+            }
+        }
+    }
+}
+
+void NetMuxFramework::ProcessStdinCommands() {
+    // Non-blocking check for input from stdin (IPC pipe from Electron process)
+#ifdef _WIN32
+    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    DWORD bytesAvail = 0;
+    if (hStdin == INVALID_HANDLE_VALUE || !PeekNamedPipe(hStdin, NULL, 0, NULL, &bytesAvail, NULL) || bytesAvail == 0) {
+        return;
+    }
+#else
+    fd_set readFds;
+    FD_ZERO(&readFds);
+    FD_SET(STDIN_FILENO, &readFds);
+    timeval tv = {0, 0};
+    if (select(STDIN_FILENO + 1, &readFds, NULL, NULL, &tv) <= 0) {
+        return;
+    }
+#endif
+
+    std::string line;
+    if (std::getline(std::cin, line)) {
+        if (line.empty()) return;
+
+        std::stringstream ss(line);
+        std::string cmd;
+        ss >> cmd;
+
+        if (cmd == "TRANSFER") {
+            std::string filePath;
+            unsigned long long targetPeer = 0;
+            ss >> filePath;
+            if (ss >> targetPeer) {
+                // targetPeer specified
+            }
+            if (!filePath.empty()) {
+                QueueFileTransfer(filePath, targetPeer);
             }
         }
     }

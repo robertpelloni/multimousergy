@@ -49,14 +49,16 @@
 - [x] Diagnostics & Tray: Integrated logging and background operation.
 - [x] Bandwidth Optimization: Delta compression for cursor movement.
 - [x] Native Vendor SDK: Dynamic linking and runtime detection.
+- [x] Consolidated Command Dashboard: Unified single-page interface with high-value controls, live minimap, and file staging.
 
 ## Milestone 6: MultiMousergy Spatial Evolution (IN PROGRESS)
 - [x] WebRTC Signaling Structural Path (SDP/ICE).
 - [x] DXGI Desktop Duplication Skeleton (Windows) and X11 Frame Capture (Linux).
 - [x] 3D Composition Engine: D3D11-based spatial viewport basics.
 - [x] Boundary Animation: Smooth pan/zoom transitions via matrix interpolation.
+- [x] Interactive Spatial Viewport Boundaries: Screen edge boundary visualizer directly rendering in 3D space with real-time UI synchronization.
 - [x] Webcam/Media Pipeline Skeletons (Windows Media Foundation).
 - [x] macOS CoreGraphics driver stubs for cross-platform expansion.
-- [ ] Complete H.264 Encoder/Decoder Implementation.
-- [ ] Complete WebRTC Native C++ Media Integration.
-- [ ] Integrated Video Chat: Synchronized webcam/audio streams.
+- [x] Complete H.264 Encoder/Decoder Implementation.
+- [x] Complete WebRTC Native C++ Media Integration.
+- [x] Integrated Video Chat: Synchronized webcam/audio streams.

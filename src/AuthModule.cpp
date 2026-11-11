@@ -157,3 +157,48 @@ bool AuthModule::VerifyResponse(int nonce, const std::string& key, const unsigne
     }
     return result == 0;
 }
+
+bool AuthModule::ComputeHMAC_SHA256(const std::string& key, const void* data, size_t dataLen, unsigned char* outMac) {
+    const size_t BLOCK_SIZE = 64; // SHA-256 block size is 512 bits = 64 bytes
+    unsigned char kPrime[BLOCK_SIZE];
+    std::memset(kPrime, 0, BLOCK_SIZE);
+
+    if (key.length() > BLOCK_SIZE) {
+        ComputeSHA256(key, kPrime);
+    } else {
+        std::memcpy(kPrime, key.data(), key.length());
+    }
+
+    // Inner and Outer padded keys
+    unsigned char ipad[BLOCK_SIZE];
+    unsigned char opad[BLOCK_SIZE];
+    for (size_t i = 0; i < BLOCK_SIZE; ++i) {
+        ipad[i] = kPrime[i] ^ 0x36;
+        opad[i] = kPrime[i] ^ 0x5c;
+    }
+
+    // Inner hash: H(ipad || data)
+    SHA256Context innerCtx = CreateContext();
+    UpdateHash(innerCtx, ipad, BLOCK_SIZE);
+    UpdateHash(innerCtx, data, dataLen);
+    unsigned char innerHash[32];
+    FinalizeHash(innerCtx, innerHash);
+
+    // Outer hash: H(opad || innerHash)
+    SHA256Context outerCtx = CreateContext();
+    UpdateHash(outerCtx, opad, BLOCK_SIZE);
+    UpdateHash(outerCtx, innerHash, 32);
+    return FinalizeHash(outerCtx, outMac);
+}
+
+bool AuthModule::VerifyHMAC_SHA256(const std::string& key, const void* data, size_t dataLen, const unsigned char* expectedMac) {
+    unsigned char actualMac[32];
+    if (!ComputeHMAC_SHA256(key, data, dataLen, actualMac)) return false;
+
+    // Constant-time equality check
+    unsigned char diff = 0;
+    for (int i = 0; i < 32; ++i) {
+        diff |= (actualMac[i] ^ expectedMac[i]);
+    }
+    return diff == 0;
+}
