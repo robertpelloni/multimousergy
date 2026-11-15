@@ -1,6 +1,7 @@
 #include "SpatialViewport.hpp"
 #include "WebRTCManager.hpp"
 #include <iostream>
+#include <cmath>
 
 SpatialViewport::SpatialViewport()
 #ifdef _WIN32
@@ -12,8 +13,103 @@ SpatialViewport::SpatialViewport()
 {
 }
 
+void SpatialViewport::SetSpatialAnchor(unsigned long long peerId, float x, float y, float z, float scale) {
+    SpatialAnchor& anchor = m_anchors[peerId];
+    anchor.peerId = peerId;
+    anchor.posX = x;
+    anchor.posY = y;
+    anchor.posZ = z;
+    anchor.scale = scale;
+    if (m_activeFocusPeer == peerId) {
+        anchor.hasActiveFocus = true;
+    }
+}
+
+bool SpatialViewport::GetSpatialAnchor(unsigned long long peerId, SpatialAnchor& outAnchor) const {
+    auto it = m_anchors.find(peerId);
+    if (it != m_anchors.end()) {
+        outAnchor = it->second;
+        return true;
+    }
+    return false;
+}
+
+void SpatialViewport::SetActiveAnchorFocus(unsigned long long peerId) {
+    m_activeFocusPeer = peerId;
+    for (auto& pair : m_anchors) {
+        pair.second.hasActiveFocus = (pair.first == peerId);
+    }
+}
+
+void SpatialViewport::RemoveSpatialAnchor(unsigned long long peerId) {
+    m_anchors.erase(peerId);
+    if (m_activeFocusPeer == peerId) {
+        m_activeFocusPeer = 0;
+    }
+}
+
+void SpatialViewport::ScreenToRay(int screenX, int screenY, int viewportWidth, int viewportHeight, Ray3D& outRay) {
+    if (viewportWidth <= 0 || viewportHeight <= 0) return;
+
+    // Convert screen coordinates to Normalized Device Coordinates (NDC) [-1, 1]
+    float ndcX = (2.0f * screenX) / viewportWidth - 1.0f;
+    float ndcY = 1.0f - (2.0f * screenY) / viewportHeight;
+
+    // Camera sits at (0, 0, -5) with 45-deg FOV perspective projection
+    outRay.originX = 0.0f;
+    outRay.originY = 0.0f;
+    outRay.originZ = -5.0f;
+
+    float aspect = (float)viewportWidth / (float)viewportHeight;
+    float tanHalfFov = 0.41421356f; // tan(pi / 8) for ~45 deg FOV
+
+    outRay.dirX = ndcX * aspect * tanHalfFov;
+    outRay.dirY = ndcY * tanHalfFov;
+    outRay.dirZ = 1.0f;
+
+    // Normalize direction vector
+    float len = std::sqrt(outRay.dirX * outRay.dirX + outRay.dirY * outRay.dirY + outRay.dirZ * outRay.dirZ);
+    if (len > 0.0f) {
+        outRay.dirX /= len;
+        outRay.dirY /= len;
+        outRay.dirZ /= len;
+    }
+}
+
+bool SpatialViewport::IntersectRayWithAnchorPlane(const Ray3D& ray, const SpatialAnchor& anchor, float& outU, float& outV) {
+    // Plane is oriented along Z = anchor.posZ with normal (0, 0, -1) facing camera
+    float planeZ = anchor.posZ;
+    if (std::abs(ray.dirZ) < 1e-6f) return false;
+
+    // Ray equation: P = origin + t * dir
+    float t = (planeZ - ray.originZ) / ray.dirZ;
+    if (t < 0.0f) return false; // Behind ray origin
+
+    float hitX = ray.originX + t * ray.dirX;
+    float hitY = ray.originY + t * ray.dirY;
+
+    // Plane extents scaled by anchor.scale (default plane is 2x2 centered at anchor.posX, anchor.posY)
+    float halfWidth = (anchor.scale > 0.0f ? anchor.scale : 1.0f);
+    float halfHeight = halfWidth;
+
+    float localX = hitX - anchor.posX;
+    float localY = hitY - anchor.posY;
+
+    if (localX < -halfWidth || localX > halfWidth || localY < -halfHeight || localY > halfHeight) {
+        return false; // Missed the anchor plane quad
+    }
+
+    // Map to normalized UV coordinates [0.0, 1.0]
+    outU = (localX + halfWidth) / (2.0f * halfWidth);
+    outV = (halfHeight - localY) / (2.0f * halfHeight);
+
+    return true;
+}
+
 SpatialViewport::~SpatialViewport() {
 #ifdef _WIN32
+    if (m_boundaryPixelShader) m_boundaryPixelShader->Release();
+    if (m_boundaryVertexBuffer) m_boundaryVertexBuffer->Release();
     if (m_samplerState) m_samplerState->Release();
     if (m_constantBuffer) m_constantBuffer->Release();
     if (m_indexBuffer) m_indexBuffer->Release();
@@ -152,6 +248,45 @@ bool SpatialViewport::Initialize(ID3D11Device* device) {
         }
     }
 
+    // 5. Create Boundary Line Pixel Shader (Neon Cyan / Electric Blue highlight for interactive edge boundaries)
+    const char* boundaryPixelShaderSrc =
+        "struct PS_INPUT {"
+        "    float4 Pos : SV_POSITION;"
+        "    float2 Tex : TEXCOORD0;"
+        "};"
+        "float4 main(PS_INPUT input) : SV_Target {"
+        "    return float4(0.0f, 0.82f, 1.0f, 0.85f);"
+        "}";
+
+    ID3DBlob* boundaryPsBlob = nullptr;
+    hr = D3DCompile(boundaryPixelShaderSrc, strlen(boundaryPixelShaderSrc), nullptr, nullptr, nullptr, "main", "ps_4_0", 0, 0, &boundaryPsBlob, &errorBlob);
+    if (SUCCEEDED(hr)) {
+        device->CreatePixelShader(boundaryPsBlob->GetBufferPointer(), boundaryPsBlob->GetBufferSize(), nullptr, &m_boundaryPixelShader);
+        boundaryPsBlob->Release();
+    } else {
+        if (errorBlob) {
+            std::cerr << "[SpatialViewport] Boundary PS Error: " << (char*)errorBlob->GetBufferPointer() << std::endl;
+            errorBlob->Release();
+        }
+    }
+
+    // 6. Create Dynamic Vertex Buffer for Interactive Edge Boundary Line
+    Vertex boundaryVertices[] = {
+        { DirectX::XMFLOAT3(-1.0f,  1.0f, 0.0f), DirectX::XMFLOAT2(0.0f, 0.0f) },
+        { DirectX::XMFLOAT3(-0.96f, 1.0f, 0.0f), DirectX::XMFLOAT2(1.0f, 0.0f) },
+        { DirectX::XMFLOAT3(-1.0f, -1.0f, 0.0f), DirectX::XMFLOAT2(0.0f, 1.0f) },
+        { DirectX::XMFLOAT3(-0.96f,-1.0f, 0.0f), DirectX::XMFLOAT2(1.0f, 1.0f) }
+    };
+    D3D11_BUFFER_DESC boundaryDesc = {};
+    boundaryDesc.Usage = D3D11_USAGE_DYNAMIC;
+    boundaryDesc.ByteWidth = sizeof(Vertex) * 4;
+    boundaryDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    boundaryDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+    D3D11_SUBRESOURCE_DATA boundaryData = {};
+    boundaryData.pSysMem = boundaryVertices;
+    device->CreateBuffer(&boundaryDesc, &boundaryData, &m_boundaryVertexBuffer);
+
     return true;
 }
 
@@ -237,6 +372,30 @@ void SpatialViewport::Render(ID3D11DeviceContext* context, const std::map<unsign
         }
 
         planeIndex++;
+    }
+
+    // 3. Render Interactive Screen Edge Boundary Visualizer
+    if (m_boundaryVertexBuffer && m_boundaryPixelShader) {
+        // Update boundary vertices based on m_isLeft and m_boundaryX configuration
+        float edgeX = m_isLeft ? -1.0f : 1.0f;
+        float lineWidth = 0.04f;
+        float x1 = m_isLeft ? edgeX : (edgeX - lineWidth);
+        float x2 = m_isLeft ? (edgeX + lineWidth) : edgeX;
+
+        D3D11_MAPPED_SUBRESOURCE mappedBoundary;
+        if (SUCCEEDED(context->Map(m_boundaryVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedBoundary))) {
+            Vertex* v = (Vertex*)mappedBoundary.pData;
+            v[0] = { DirectX::XMFLOAT3(x1,  1.0f, 0.001f), DirectX::XMFLOAT2(0.0f, 0.0f) };
+            v[1] = { DirectX::XMFLOAT3(x2,  1.0f, 0.001f), DirectX::XMFLOAT2(1.0f, 0.0f) };
+            v[2] = { DirectX::XMFLOAT3(x1, -1.0f, 0.001f), DirectX::XMFLOAT2(0.0f, 1.0f) };
+            v[3] = { DirectX::XMFLOAT3(x2, -1.0f, 0.001f), DirectX::XMFLOAT2(1.0f, 1.0f) };
+            context->Unmap(m_boundaryVertexBuffer, 0);
+        }
+
+        // Draw boundary line overlay with glowing boundary shader
+        context->IASetVertexBuffers(0, 1, &m_boundaryVertexBuffer, &stride, &offset);
+        context->PSSetShader(m_boundaryPixelShader, nullptr, 0);
+        context->DrawIndexed(6, 0, 0);
     }
 }
 

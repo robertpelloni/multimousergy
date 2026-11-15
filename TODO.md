@@ -38,7 +38,24 @@
 - [x] WebRTC Integration: Setup Native C++ Data & Media pipeline scaffolding and signaling integration.
 - [x] Implement WebRTC Media Pipeline scaffolding for synchronized webcam/audio streams.
 - [x] Replace Win32 ConfigGUI with Electron-based webview architecture (headless C++ mode with JSON telemetry).
+- [x] Consolidate Electron frontend into a single-page unified command dashboard with comprehensive tooltips, persistent config sync, and tray controls.
+- [x] Full CLI synchronization in `src/main.cpp` for driver types, peer colors, group info, display names, and 3D spatial mode.
+- [x] Clean and modernize cross-platform build and run scripts in `scripts/`.
+- [x] Implement interactive screen edge boundary visualizer in SpatialViewport linked to netmux.cfg settings.
 - [x] Implement macOS CoreGraphics driver stubs for cross-platform expansion.
-- [ ] Complete libwebrtc native library integration (currently using stubs).
-- [ ] Implement IMFMediaSource enumerators for webcam capture.
-- [ ] Complete H.264 encoder/decoder implementation.
+- [x] Complete libwebrtc native library integration (using libdatachannel).
+- [x] Implement IMFMediaSource enumerators for webcam capture.
+- [x] Complete H.264 encoder/decoder implementation.
+- [x] Implement peer media stream synchronization for integrated video chat.
+- [x] Implement dynamic resolution and DPI-aware coordinate scaling.
+- [x] Implement multi-file batch transfer queueing and enhanced drag-and-drop staging.
+- [x] Implement directional spatial audio panning linked to peer cursor positions.
+- [x] Implement SpatialAnchor 3D node tracking in SpatialViewport.
+- [x] Implement group-scoped interaction ownership for isolated collaborative teams.
+- [x] Implement multi-monitor virtual display layout mapping in SyncModule.
+- [x] Implement Linux uinput virtual hardware mouse emulation in DriverInterface.
+- [x] Implement Wayland portal-based input capture session management in WaylandPortalManager.
+- [x] Implement 3D spatial raycasting and anchor plane intersection in SpatialViewport.
+- [x] Implement configurable screen-switching hotkeys in InputEngine.
+- [x] Implement RFC 2104 / RFC 4231 HMAC-SHA256 message integrity verification in AuthModule.
+- [x] Implement token-bucket network rate limiter in NetworkManager.

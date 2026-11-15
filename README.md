@@ -6,6 +6,14 @@ MultiMousergy — internally still **NetMux** (`CMakeLists.txt`: `project(NetMux
 
 **Prototype, parked.** Version 0.1.90-alpha. Last substantive work: 2026-08-12 (system tray cursor icon fix); last commit 2026-10-22 (README rewrite). MIT licensed (see `LICENSE`).
 
+MultiMousergy — internally still **NetMux** (`CMakeLists.txt`:
+`project(NetMux VERSION 0.1.129)`) — is a Windows C++17 application for
+sharing one mouse across two networked PCs: move your cursor off the edge
+of one machine's display and it appears on the other machine as an
+independent second cursor, injected through virtual HID drivers, with a
+D3D11/GDI+ overlay drawing the remote cursor locally.
+
+
 ## What's implemented
 
 Real code, ~150 KB of C++ under `src/`:
@@ -38,3 +46,7 @@ NetMux.exe --client <Server_IP> --port 5555 --boundary-x 0
 ## Docs in this repo
 
 `VISION.md`, `ROADMAP.md`, `TODO.md`, `HANDOFF.md`, `MEMORY.md`, `IDEAS.md`, `CHANGELOG.md`, `AGENTS.md`.
+
+Prototype, v0.1.98-alpha. Created May 2026; latest commits include enhanced focus halo visual feedback, adaptive delta compression bandwidth optimization, interactive 3D spatial edge boundary visualizer, and consolidated unified Electron dashboard. MIT licensed (see `LICENSE`). Design docs:
+`VISION.md`, `ROADMAP.md`, `HANDOFF.md`.
+

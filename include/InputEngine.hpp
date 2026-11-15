@@ -23,6 +23,11 @@ public:
     bool IsLocalUserActive() const;
     double GetLastLocalActivity() const;
 
+    // Configurable Switch Hotkey
+    void SetSwitchHotkey(int modifier, int vkCode, bool enabled = true);
+    bool CheckHotkeyTrigger(int modifier, int vkCode);
+    bool ToggleScreenCapture();
+
     bool IsCaptured() const;
     void SetPeerConnected(bool connected);
 
@@ -36,6 +41,9 @@ public:
     int m_virtualX;
     int m_virtualY;
     double m_lastLocalActivity;
+    int m_hotkeyModifier = 0;
+    int m_hotkeyVkCode = 0;
+    bool m_hotkeyEnabled = false;
     Config m_config;
     std::queue<Packet> m_pendingPackets;
 #ifdef _WIN32

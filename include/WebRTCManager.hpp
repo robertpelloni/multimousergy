@@ -5,18 +5,30 @@
 #include <functional>
 #include <cstdint>
 #include "webrtc_mock.hpp"
+#include "VideoEncoder.hpp"
+#include "VideoDecoder.hpp"
+#include <map>
 
 #ifdef _WIN32
 struct ID3D11ShaderResourceView;
 struct ID3D11Texture2D;
 #endif
 
+struct PeerMediaStream {
+    unsigned long long peerId = 0;
+    std::vector<uint8_t> latestVideoPacket;
+    std::vector<uint8_t> latestAudioPacket;
+    double lastTimestamp = 0.0;
+    bool hasActiveVideo = false;
+    bool hasActiveAudio = false;
+};
+
 class WebRTCManager {
 public:
     WebRTCManager();
     ~WebRTCManager();
 
-    bool Initialize();
+    bool Initialize(void* d3dDevice = nullptr);
     bool CreateOffer(std::string& outSdp);
     bool HandleAnswer(const std::string& sdp);
     bool HandleOffer(const std::string& sdp, std::string& outAnswerSdp);
@@ -24,34 +36,66 @@ public:
 
     void SendData(const uint8_t* data, size_t size);
     bool IsConnected() const;
+    void SetConnected(bool connected);
     void Shutdown();
+
+    // Synchronized peer video & audio streaming (Video Chat)
+    void SyncPeerMediaStreams(unsigned long long peerId, const std::vector<uint8_t>& videoPacket, const std::vector<uint8_t>& audioPacket, double timestamp);
+    bool GetPeerMediaStream(unsigned long long peerId, PeerMediaStream& outStream) const;
+    void ClearPeerMediaStream(unsigned long long peerId);
+
+    // Directional spatial audio panning
+    static void CalculateSpatialAudioGain(int peerNormalizedX, int peerNormalizedY, float& leftGain, float& rightGain);
+    static bool ApplySpatialAudioPan(const std::vector<uint8_t>& pcmInput, int peerNormX, int peerNormY, std::vector<uint8_t>& pcmOutput);
 
     // Media track management
     void SendDesktopFrame(void* frameData);
     void AddVideoTrack();
     void AddAudioTrack();
+    void EnableAudioTrack(bool enable);
+    bool IsAudioTrackEnabled() const { return m_audioEnabled; }
+    void PushAudioFrame(const uint8_t* audioData, size_t size);
 
     void SetSignalingCallback(std::function<void(const std::string&)> callback) {
         m_signalingCallback = callback;
     }
 
+    // Set callback for receiving incoming video bitstream packets
+    void SetVideoFrameCallback(std::function<void(const std::vector<uint8_t>&)> callback) {
+        m_videoFrameCallback = callback;
+    }
+
+    // Set callback for receiving incoming audio stream packets
+    void SetAudioFrameCallback(std::function<void(const std::vector<uint8_t>&)> callback) {
+        m_audioFrameCallback = callback;
+    }
+
     // Singleton accessor for subsystems that need the WebRTC pipeline
     static WebRTCManager* GetInstance() { return s_instance; }
 
-    // Remote desktop texture streaming (DXGI path)
+    // Desktop frame compression and streaming pipeline
+    void EncodeLocalDesktopFrame(void* frameTexture);
+    bool DecodeRemoteVideoPacket(const std::vector<uint8_t>& bitstream, void** outTexture);
+
 #ifdef _WIN32
     ID3D11ShaderResourceView* GetRemoteDesktopTexture(unsigned long long peerId);
-    void EncodeLocalDesktopFrame(ID3D11Texture2D* frame);
 #endif
+
+    size_t GetQueuedDataBytes() const { return m_queuedBytes; }
+    const std::vector<std::string>& GetICECandidates() const { return m_iceCandidates; }
 
 private:
     static WebRTCManager* s_instance;
-    rtc::Thread* m_networkThread;
-    rtc::Thread* m_workerThread;
-    rtc::Thread* m_signalingThread;
-    webrtc::PeerConnectionFactoryInterface* m_factory;
-    webrtc::PeerConnectionInterface* m_peerConnection;
-    webrtc::DataChannelInterface* m_dataChannel;
+    bool m_connected;
+    bool m_audioEnabled = false;
+    size_t m_queuedBytes;
+    std::vector<std::string> m_iceCandidates;
+
+    VideoEncoder m_videoEncoder;
+    VideoDecoder m_videoDecoder;
+    std::map<unsigned long long, PeerMediaStream> m_peerStreams;
 
     std::function<void(const std::string&)> m_signalingCallback;
+    std::function<void(const std::vector<uint8_t>&)> m_videoFrameCallback;
+    std::function<void(const std::vector<uint8_t>&)> m_audioFrameCallback;
 };
