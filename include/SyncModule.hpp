@@ -10,6 +10,30 @@ struct HistoryPoint {
     double timestamp;
 };
 
+struct MonitorDescriptor {
+    int monitorId = 0;
+    int x = 0;
+    int y = 0;
+    int width = 1920;
+    int height = 1080;
+    float dpiScale = 1.0f;
+    bool isPrimary = true;
+};
+
+struct SelectionBox {
+    int minX = 0;
+    int minY = 0;
+    int maxX = 0;
+    int maxY = 0;
+    int width = 0;
+    int height = 0;
+
+    bool Intersects(const SelectionBox& other) const {
+        return (minX < other.maxX && maxX > other.minX &&
+                minY < other.maxY && maxY > other.minY);
+    }
+};
+
 struct PeerState {
     unsigned long long id;
     unsigned int groupId;
@@ -38,12 +62,14 @@ struct PeerState {
     double latency;
     double e2eLatency;
     float drift;
+    float smoothedDrift; // EMA filtered drift to reject single-packet jitter
     double clockOffset; // Offset to convert remote timestamps to local timeline
     bool isStalled;
     float vx; // Velocity pixels/ms
     float vy;
     unsigned int totalPacketsReceived;
     double lastAuthTime;
+    unsigned int authoritativeCorrections;
     std::vector<HistoryPoint> jitterBuffer;
 };
 
@@ -56,9 +82,13 @@ public:
     void RefreshPeer(unsigned long long id, unsigned int groupId);
     void UpdatePeerButtons(unsigned long long id, int button, bool down);
     void UpdatePeerSelection(unsigned long long id, bool selecting, int startX, int startY);
+    bool GetPeerSelectionBox(unsigned long long id, SelectionBox& outBox) const;
+    bool CheckSelectionConflict(unsigned long long peerId1, unsigned long long peerId2, SelectionBox& outOverlap) const;
     void SetAuthenticated(unsigned long long id, bool auth);
     void UpdatePeerResolution(unsigned long long id, int width, int height, float dpi = 1.0f);
     void UpdateDrift(unsigned long long id, float drift);
+    float GetSmoothedDrift(unsigned long long id) const;
+    void RecordAuthoritativeCorrection(unsigned long long id);
     void UpdateLatency(unsigned long long id, double latency);
     void UpdateClockOffset(unsigned long long id, double remoteTime, double localTime);
 
@@ -75,8 +105,18 @@ public:
     static int Normalize(int val, int max);
     static int Denormalize(int val, int max);
 
+    // Multi-Monitor Virtual Display Layout Mapping
+    void AddLocalMonitor(const MonitorDescriptor& desc);
+    void ClearLocalMonitors();
+    bool MapVirtualToPhysicalMonitor(int virtualX, int virtualY, int& outMonitorId, int& outLocalX, int& outLocalY) const;
+    const std::vector<MonitorDescriptor>& GetLocalMonitors() const { return m_monitors; }
+
+    // Dynamic resolution and DPI-aware coordinate projection
+    bool ScalePeerCoordinates(unsigned long long id, int targetWidth, int targetHeight, float targetDpi, int& outX, int& outY);
+
     // Interaction Ownership: returns true if interaction is permitted
     bool ResolveInteraction(unsigned long long id, double timestamp, bool isRelease = false);
+    bool ResolveGroupInteraction(unsigned long long id, unsigned int groupId, double timestamp, bool isRelease = false);
 
     // Focus validation for arbitrary input events
     bool DispatchInputEvent(unsigned long long id, double timestamp);
@@ -89,12 +129,18 @@ public:
 
     void SetActivePeer(unsigned long long id);
     unsigned long long GetActivePeer() const { return m_activePeerId; }
+    unsigned long long GetGroupActivePeer(unsigned int groupId) const;
+    std::vector<unsigned long long> GetGroupPeers(unsigned int groupId) const;
+    int GetGroupPeerCount(unsigned int groupId) const;
     unsigned long long GetLocalId() const { return m_localId; }
 
 private:
     std::map<unsigned long long, PeerState> m_peers;
     unsigned long long m_activePeerId = 0;
+    std::map<unsigned int, unsigned long long> m_groupActivePeerId;
+    std::map<unsigned int, double> m_groupLastActiveSwitch;
+    std::vector<MonitorDescriptor> m_monitors;
     unsigned long long m_localId = 0;
     double m_lastActiveSwitch = 0;
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
 };

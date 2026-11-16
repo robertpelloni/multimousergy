@@ -23,9 +23,11 @@ struct FileTransfer {
     uint64_t fileSize;
     std::string hash;
     std::string localPath;
+    std::string tempPath;
     uint64_t bytesTransferred;
     bool isOutgoing;
     bool isComplete;
+    unsigned long long peerId = 0;
     FileTransferError lastError = FileTransferError::None;
     std::vector<char> buffer;
 };
@@ -37,11 +39,12 @@ public:
 
     // Outgoing
     bool StartTransfer(const std::string& filePath, unsigned long long targetPeerId);
+    bool StartBatchTransfer(const std::vector<std::string>& filePaths, unsigned long long targetPeerId, std::vector<unsigned long long>& outTransferIds);
     bool GetHeaderPacket(unsigned long long transferId, Packet& outPkt);
     bool GetNextChunk(unsigned long long transferId, Packet& outPkt);
 
     // Incoming
-    bool HandleFileHeader(const Packet& pkt);
+    bool HandleFileHeader(const Packet& pkt, unsigned long long senderPeerId = 0);
     bool HandleFileData(const Packet& pkt);
 
     // Monitoring
@@ -56,14 +59,19 @@ public:
 
     bool IsHeaderSent(unsigned long long transferId);
     void SetHeaderSent(unsigned long long transferId, bool sent);
+    unsigned long long GetTransferPeerId(unsigned long long transferId);
+
+    void SetDestinationDirectory(const std::string& dir);
+    std::string GetDestinationDirectory() const;
 
     void CleanupPeerTransfers(unsigned long long peerId);
 
 private:
-    std::mutex m_mutex;
+    mutable std::mutex m_mutex;
     std::map<unsigned long long, FileTransfer> m_transfers;
     std::map<unsigned long long, bool> m_headerSent;
     unsigned long long m_nextTransferId = 1;
+    std::string m_destDir = "";
 
     std::string CalculateHash(const std::string& path);
 };

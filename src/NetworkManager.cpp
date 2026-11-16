@@ -144,14 +144,65 @@ static int SafeSend(Socket s, const char* data, int len) {
 }
 
 void NetworkManager::SendPacketToGroup(const Packet& packet, unsigned int groupId) {
-    if (!m_running || m_udpSocket == INVALID_SOCKET_HANDLE || !m_isServer) return;
+    if (!m_running || !m_isServer) return;
 
     bool headerOnly = packet.IsHeaderOnly();
     std::vector<uint8_t> data = PacketSerializer::Serialize(packet, headerOnly);
 
-    for (auto const& [id, peer] : m_udpPeerMap) {
-        if (peer.groupId == groupId) {
-            sendto(m_udpSocket, (const char*)data.data(), (int)data.size(), 0, (struct sockaddr*)&peer.addr, sizeof(sockaddr_in));
+    if (headerOnly) {
+        if (m_udpSocket != INVALID_SOCKET_HANDLE) {
+            for (auto const& [id, peer] : m_udpPeerMap) {
+                if (peer.groupId == groupId) {
+                    sendto(m_udpSocket, (const char*)data.data(), (int)data.size(), 0, (struct sockaddr*)&peer.addr, sizeof(sockaddr_in));
+                }
+            }
+        }
+    } else {
+        // TCP group routing
+        for (auto& client : m_clients) {
+            if (client.groupId == groupId || groupId == 0) {
+                SafeSend(client.socket, (const char*)data.data(), (int)data.size());
+            }
+        }
+    }
+}
+
+void NetworkManager::SendPacketToPeer(const Packet& packet, unsigned long long targetPeerId) {
+    if (!m_running || targetPeerId == 0) {
+        SendPacket(packet);
+        return;
+    }
+
+    bool headerOnly = packet.IsHeaderOnly();
+    std::vector<uint8_t> data = PacketSerializer::Serialize(packet, headerOnly);
+
+    if (headerOnly) {
+        if (m_isServer) {
+            auto it = m_udpPeerMap.find(targetPeerId);
+            if (it != m_udpPeerMap.end()) {
+                sendto(m_udpSocket, (const char*)data.data(), (int)data.size(), 0, (struct sockaddr*)&it->second.addr, sizeof(sockaddr_in));
+            }
+        } else if (m_hasRemoteAddr) {
+            sendto(m_udpSocket, (const char*)data.data(), (int)data.size(), 0, (struct sockaddr*)&m_remoteAddr, sizeof(sockaddr_in));
+        }
+    } else {
+        if (m_isServer) {
+            bool sent = false;
+            for (auto& client : m_clients) {
+                if (client.peerId == targetPeerId) {
+                    SafeSend(client.socket, (const char*)data.data(), (int)data.size());
+                    sent = true;
+                    break;
+                }
+            }
+            if (!sent) {
+                // Fallback: If peerId not yet bound to a TCP socket, broadcast to clients
+                for (auto& client : m_clients) {
+                    SafeSend(client.socket, (const char*)data.data(), (int)data.size());
+                }
+            }
+        } else if (m_tcpSocket != INVALID_SOCKET_HANDLE) {
+            SafeSend(m_tcpSocket, (const char*)data.data(), (int)data.size());
         }
     }
 }
@@ -289,6 +340,14 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
             size_t consumed = PacketSerializer::Deserialize((const uint8_t*)it->buffer.data(), it->buffer.size(), packet);
             if (consumed > 0) {
                 it->buffer.erase(it->buffer.begin(), it->buffer.begin() + consumed);
+                if (m_isServer) {
+                    if (it->peerId == 0 && packet.senderId != 0) {
+                        it->peerId = packet.senderId;
+                    }
+                    if (packet.groupId != 0) {
+                        it->groupId = packet.groupId;
+                    }
+                }
                 return true;
             }
         }
@@ -334,6 +393,39 @@ bool NetworkManager::ReceivePacket(Packet& packet) {
     }
 
     return false;
+}
+
+void NetworkManager::ConfigureRateLimiter(double maxTokens, double refillRate) {
+    m_defaultMaxTokens = maxTokens;
+    m_defaultRefillRate = refillRate;
+}
+
+bool NetworkManager::CheckRateLimit(unsigned long long peerId, double cost, double currentTime) {
+    TokenBucketLimiter& limiter = m_rateLimiters[peerId];
+    if (limiter.lastRefill == 0.0) {
+        limiter.tokens = m_defaultMaxTokens;
+        limiter.maxTokens = m_defaultMaxTokens;
+        limiter.refillRate = m_defaultRefillRate;
+        limiter.lastRefill = currentTime;
+    }
+
+    // Refill tokens based on elapsed seconds
+    double elapsed = currentTime - limiter.lastRefill;
+    if (elapsed > 0.0) {
+        limiter.tokens += elapsed * limiter.refillRate;
+        if (limiter.tokens > limiter.maxTokens) {
+            limiter.tokens = limiter.maxTokens;
+        }
+        limiter.lastRefill = currentTime;
+    }
+
+    // Check availability
+    if (limiter.tokens >= cost) {
+        limiter.tokens -= cost;
+        return true;
+    }
+
+    return false; // Rate limit exceeded
 }
 
 void NetworkManager::Shutdown() {

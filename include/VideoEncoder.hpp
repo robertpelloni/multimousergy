@@ -10,20 +10,30 @@
 #include <mftransform.h>
 #endif
 
+struct VideoEncoderConfig {
+    uint32_t width = 1920;
+    uint32_t height = 1080;
+    uint32_t fps = 60;
+    uint32_t bitrate = 5000000; // 5 Mbps
+    bool lowLatency = true;
+};
+
 class VideoEncoder {
 public:
     VideoEncoder();
     ~VideoEncoder();
 
-#ifdef _WIN32
-    bool Initialize(ID3D11Device* device);
-    bool EncodeFrame(ID3D11Texture2D* texture, std::vector<uint8_t>& outBitstream);
-#else
-    bool Initialize(void* device) { return false; }
-    bool EncodeFrame(void* texture, std::vector<uint8_t>& outBitstream) { return false; }
-#endif
+    bool Initialize(void* device, const VideoEncoderConfig& config = VideoEncoderConfig());
+    bool EncodeFrame(void* texture, std::vector<uint8_t>& outBitstream);
+    void Shutdown();
+
+    bool IsInitialized() const { return m_initialized; }
+    VideoEncoderConfig GetConfig() const { return m_config; }
 
 private:
+    bool m_initialized;
+    VideoEncoderConfig m_config;
+
 #ifdef _WIN32
     ID3D11Device* m_device;
     IMFTransform* m_encoder;

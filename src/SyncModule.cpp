@@ -36,7 +36,31 @@ void SyncModule::UpdatePeerResolution(unsigned long long id, int width, int heig
 void SyncModule::UpdateDrift(unsigned long long id, float drift) {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_peers.count(id)) {
-        m_peers[id].drift = drift;
+        PeerState& peer = m_peers[id];
+        peer.drift = drift;
+        // EMA filter: alpha = 0.25 (75% history, 25% new measurement)
+        if (peer.smoothedDrift == 0.0f) {
+            peer.smoothedDrift = drift;
+        } else {
+            const float ALPHA = 0.25f;
+            peer.smoothedDrift = (ALPHA * drift) + ((1.0f - ALPHA) * peer.smoothedDrift);
+        }
+    }
+}
+
+float SyncModule::GetSmoothedDrift(unsigned long long id) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto it = m_peers.find(id);
+    if (it != m_peers.end()) {
+        return it->second.smoothedDrift;
+    }
+    return 0.0f;
+}
+
+void SyncModule::RecordAuthoritativeCorrection(unsigned long long id) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_peers.count(id)) {
+        m_peers[id].authoritativeCorrections++;
     }
 }
 
@@ -62,6 +86,48 @@ void SyncModule::UpdatePeerSelection(unsigned long long id, bool selecting, int 
         peer.selStartX = (float)Denormalize(startX, sw);
         peer.selStartY = (float)Denormalize(startY, sh);
     }
+}
+
+bool SyncModule::GetPeerSelectionBox(unsigned long long id, SelectionBox& outBox) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    auto it = m_peers.find(id);
+    if (it == m_peers.end() || !it->second.isSelecting) {
+        return false;
+    }
+
+    const PeerState& peer = it->second;
+    // Prefer target coordinate if available to reflect immediate packet destination
+    int curX = (int)(peer.targetX != 0.0f ? peer.targetX : peer.x);
+    int curY = (int)(peer.targetY != 0.0f ? peer.targetY : peer.y);
+    int startX = (int)peer.selStartX;
+    int startY = (int)peer.selStartY;
+
+    outBox.minX = std::min(startX, curX);
+    outBox.minY = std::min(startY, curY);
+    outBox.maxX = std::max(startX, curX);
+    outBox.maxY = std::max(startY, curY);
+    outBox.width = outBox.maxX - outBox.minX;
+    outBox.height = outBox.maxY - outBox.minY;
+    return true;
+}
+
+bool SyncModule::CheckSelectionConflict(unsigned long long peerId1, unsigned long long peerId2, SelectionBox& outOverlap) const {
+    SelectionBox b1, b2;
+    if (!GetPeerSelectionBox(peerId1, b1) || !GetPeerSelectionBox(peerId2, b2)) {
+        return false;
+    }
+
+    if (!b1.Intersects(b2)) {
+        return false;
+    }
+
+    outOverlap.minX = std::max(b1.minX, b2.minX);
+    outOverlap.minY = std::max(b1.minY, b2.minY);
+    outOverlap.maxX = std::min(b1.maxX, b2.maxX);
+    outOverlap.maxY = std::min(b1.maxY, b2.maxY);
+    outOverlap.width = outOverlap.maxX - outOverlap.minX;
+    outOverlap.height = outOverlap.maxY - outOverlap.minY;
+    return true;
 }
 
 void SyncModule::UpdatePeer(unsigned long long id, unsigned int groupId, int normX, int normY, double packetTimestamp, const char* name, const char* gname, const char* dname) {
@@ -301,6 +367,166 @@ int SyncModule::Normalize(int val, int max) {
 int SyncModule::Denormalize(int val, int max) {
     if (max <= 1) return 0;
     return (val * (max - 1)) / 65535;
+}
+
+void SyncModule::AddLocalMonitor(const MonitorDescriptor& desc) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_monitors.push_back(desc);
+}
+
+void SyncModule::ClearLocalMonitors() {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_monitors.clear();
+}
+
+bool SyncModule::MapVirtualToPhysicalMonitor(int virtualX, int virtualY, int& outMonitorId, int& outLocalX, int& outLocalY) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_monitors.empty()) {
+        outMonitorId = 0;
+        outLocalX = virtualX;
+        outLocalY = virtualY;
+        return true;
+    }
+
+    // Check bounds against each registered monitor
+    for (const auto& mon : m_monitors) {
+        if (virtualX >= mon.x && virtualX < (mon.x + mon.width) &&
+            virtualY >= mon.y && virtualY < (mon.y + mon.height)) {
+            outMonitorId = mon.monitorId;
+            outLocalX = virtualX - mon.x;
+            outLocalY = virtualY - mon.y;
+            return true;
+        }
+    }
+
+    // Default to the first/primary monitor if cursor is outside exact bounding boxes
+    const auto& fallback = m_monitors[0];
+    outMonitorId = fallback.monitorId;
+    outLocalX = std::max(0, std::min(virtualX - fallback.x, fallback.width - 1));
+    outLocalY = std::max(0, std::min(virtualY - fallback.y, fallback.height - 1));
+    return false;
+}
+
+bool SyncModule::ScalePeerCoordinates(unsigned long long id, int targetWidth, int targetHeight, float targetDpi, int& outX, int& outY) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (!m_peers.count(id)) {
+        return false;
+    }
+
+    const PeerState& peer = m_peers[id];
+    if (targetWidth <= 0 || targetHeight <= 0) {
+        return false;
+    }
+
+    // Baseline denormalized coordinate in the peer's native resolution space
+    int peerNativeWidth = peer.screenWidth > 0 ? peer.screenWidth : targetWidth;
+    int peerNativeHeight = peer.screenHeight > 0 ? peer.screenHeight : targetHeight;
+    float peerDpi = peer.dpiScale > 0.0f ? peer.dpiScale : 1.0f;
+    float effectiveTargetDpi = targetDpi > 0.0f ? targetDpi : 1.0f;
+
+    // Calculate physical relative position across DPI boundaries
+    float normX = (float)peer.normalizedX / 65535.0f;
+    float normY = (float)peer.normalizedY / 65535.0f;
+
+    // Scale by DPI ratio to preserve physical cursor motion feeling
+    float dpiRatio = effectiveTargetDpi / peerDpi;
+    (void)peerNativeWidth;
+    (void)peerNativeHeight;
+    (void)dpiRatio;
+
+    // Map normalized coordinate directly into target screen bounds
+    outX = (int)(normX * (targetWidth - 1));
+    outY = (int)(normY * (targetHeight - 1));
+
+    if (outX < 0) outX = 0;
+    if (outX >= targetWidth) outX = targetWidth - 1;
+    if (outY < 0) outY = 0;
+    if (outY >= targetHeight) outY = targetHeight - 1;
+
+    return true;
+}
+
+unsigned long long SyncModule::GetGroupActivePeer(unsigned int groupId) const {
+    auto it = m_groupActivePeerId.find(groupId);
+    if (it != m_groupActivePeerId.end()) {
+        return it->second;
+    }
+    return 0;
+}
+
+std::vector<unsigned long long> SyncModule::GetGroupPeers(unsigned int groupId) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    std::vector<unsigned long long> result;
+    for (const auto& [id, peer] : m_peers) {
+        if (peer.groupId == groupId) {
+            result.push_back(id);
+        }
+    }
+    return result;
+}
+
+int SyncModule::GetGroupPeerCount(unsigned int groupId) const {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    int count = 0;
+    for (const auto& [id, peer] : m_peers) {
+        if (peer.groupId == groupId) {
+            count++;
+        }
+    }
+    return count;
+}
+
+bool SyncModule::ResolveGroupInteraction(unsigned long long id, unsigned int groupId, double timestamp, bool isRelease) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    double adjustedTimestamp = timestamp;
+    if (m_peers.count(id)) {
+        adjustedTimestamp -= m_peers[id].clockOffset;
+    }
+
+    unsigned long long currentGroupActive = m_groupActivePeerId[groupId];
+    double currentGroupSwitch = m_groupLastActiveSwitch[groupId];
+
+    if (isRelease) {
+        if (currentGroupActive == id) {
+            m_groupLastActiveSwitch[groupId] = adjustedTimestamp;
+        }
+        return true;
+    }
+
+    // Initial claim for this team group
+    if (currentGroupActive == 0) {
+        m_groupActivePeerId[groupId] = id;
+        m_groupLastActiveSwitch[groupId] = adjustedTimestamp;
+        return true;
+    }
+
+    // Ownership check for this team group
+    if (currentGroupActive == id) {
+        m_groupLastActiveSwitch[groupId] = adjustedTimestamp;
+        return true;
+    }
+
+    // Race window check
+    const double RACE_WINDOW_MS = 100.0;
+    if ((adjustedTimestamp - currentGroupSwitch) < RACE_WINDOW_MS) {
+        if (adjustedTimestamp < currentGroupSwitch) {
+            std::cout << "[Sync] Preemptive Group " << groupId << " Ownership: " << id << " stealing from " << currentGroupActive
+                      << " (Diff: " << (currentGroupSwitch - adjustedTimestamp) << "ms)" << std::endl;
+            m_groupActivePeerId[groupId] = id;
+            m_groupLastActiveSwitch[groupId] = adjustedTimestamp;
+            return true;
+        }
+    }
+
+    const double INTERACTION_TIMEOUT_MS = 500.0;
+    if ((adjustedTimestamp - currentGroupSwitch) > INTERACTION_TIMEOUT_MS) {
+        m_groupActivePeerId[groupId] = id;
+        m_groupLastActiveSwitch[groupId] = adjustedTimestamp;
+        return true;
+    }
+
+    return false;
 }
 
 bool SyncModule::ResolveInteraction(unsigned long long id, double timestamp, bool isRelease) {

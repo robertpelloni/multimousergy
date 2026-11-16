@@ -44,7 +44,10 @@ public:
     InputEngine& GetInputEngine() { return m_input; }
     NetworkManager& GetNetworkManager() { return m_network; }
     FileTransferEngine& GetFileTransferEngine() { return m_fileTransfer; }
+    void SetFileTransferDirectory(const std::string& dir) { m_fileTransfer.SetDestinationDirectory(dir); }
     bool IsRunning() const { return m_running; }
+    bool QueueFileTransfer(const std::string& filePath, unsigned long long targetPeerId = 0);
+    bool QueueBatchFileTransfer(const std::vector<std::string>& filePaths, unsigned long long targetPeerId = 0);
 
 #ifdef __linux__
     void* m_xDisplay = nullptr;
@@ -61,6 +64,7 @@ private:
     void PerformClipboardSync();
     void PerformFileTransfer();
     void PerformPeerCleanup();
+    void ProcessStdinCommands();
 
     bool IsPeerTrusted(unsigned long long peerId, NetMuxPacketType type);
 

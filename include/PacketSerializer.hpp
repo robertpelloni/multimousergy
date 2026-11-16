@@ -22,6 +22,10 @@ public:
     // If headerOnly is true, only fields up to 'payload' are serialized.
     static std::vector<uint8_t> Serialize(const Packet& pkt, bool headerOnly = false);
 
+    // Validates a byte buffer for packet integrity, type range, and buffer sufficiency.
+    // Returns true if the buffer contains a well-formed packet header and full declared payload.
+    static bool ValidatePacket(const uint8_t* buffer, size_t size);
+
     // Deserializes a byte buffer into a Packet struct.
     // Returns the number of bytes consumed, or 0 if more data is needed/error.
     static size_t Deserialize(const uint8_t* buffer, size_t size, Packet& outPkt);

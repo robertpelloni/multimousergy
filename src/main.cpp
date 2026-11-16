@@ -7,6 +7,7 @@
 #endif
 #include <iostream>
 #include <algorithm>
+#include <sstream>
 #include "NetMuxFramework.hpp"
 #include "SystemTray.hpp"
 
@@ -23,19 +24,30 @@ int main(int argc, char* argv[]) {
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--help" || arg == "-h") {
-            std::cout << "MultiMousergy v0.1.90-alpha - Cross-Network Multi-Cursor System\n\n"
+            std::cout << "MultiMousergy v0.1.91-alpha - Cross-Network Multi-Cursor System\n\n"
                       << "Usage: NetMux.exe [options]\n\n"
-                      << "  --server                  Run as server (default: client)\n"
-                      << "  --client <ip>             Connect to server at <ip>\n"
+                      << "  --server                  Run as server host (default: client)\n"
+                      << "  --client <ip>             Connect to server host at <ip>\n"
                       << "  --port <n>                Use port <n> (default: 5555)\n"
                       << "  --boundary-x <n>          Screen edge crossing coordinate X\n"
                       << "  --boundary-y <n>          Screen edge crossing coordinate Y\n"
                       << "  --left                    Cursor crosses to left monitor\n"
                       << "  --right                   Cursor crosses to right monitor\n"
                       << "  --d3d11                   Enable D3D11 spatial viewport & DXGI capture\n"
-                      << "  --headless                Suppress telemetry JSON on stdout\n"
+                      << "  --spatial                 Enable 3D spatial viewport transformations\n"
+                      << "  --headless                Enable stdout JSON telemetry streaming\n"
+                      << "  --benchmark               Run performance benchmarking loop\n"
                       << "  --auto-connect            Auto-connect on startup\n"
-                      << "  --key <secret>            Pre-shared security key\n"
+                      << "  --key <secret>            Pre-shared security key (SHA-256 HMAC)\n"
+                      << "  --driver-type <0|1|2>     Virtual HID Driver (0:Interception, 1:ViGEm, 2:Auto)\n"
+                      << "  --display-name <name>     Friendly workstation display name\n"
+                      << "  --session-name <name>     Collaborative session identifier\n"
+                      << "  --group-name <name>       Multi-tenant group name\n"
+                      << "  --group-id <n>            Multi-tenant group numeric ID\n"
+                      << "  --peer-color <r,g,b>      Remote cursor RGB color tint (0-255)\n"
+                      << "  --sel-color <r,g,b>       Selection box RGB color tint (0-255)\n"
+                      << "  --cursor-theme <path>     Path to custom 32x32 BMP cursor texture\n"
+                      << "  --cursor-scale <f>        Cursor size scaling multiplier (e.g. 1.25)\n"
                       << "  --help, -h                Show this help\n"
                       << std::endl;
             return 0;
@@ -59,10 +71,36 @@ int main(int argc, char* argv[]) {
         else if (arg == "--left") settings.inputConfig.isLeft = true;
         else if (arg == "--right") settings.inputConfig.isLeft = false;
         else if (arg == "--d3d11") settings.useD3D11 = true;
+        else if (arg == "--spatial") settings.spatialMode = true;
         else if (arg == "--headless") settings.headless = true;
         else if (arg == "--benchmark") settings.benchmarking = true;
         else if (arg == "--auto-connect") settings.autoConnect = true;
         else if ((arg == "--key" || arg == "-k") && i + 1 < argc) settings.securityKey = argv[++i];
+        else if (arg == "--driver-type" && i + 1 < argc) settings.driverType = static_cast<NetMuxDriverType>(std::stoi(argv[++i]));
+        else if (arg == "--display-name" && i + 1 < argc) settings.displayName = argv[++i];
+        else if (arg == "--session-name" && i + 1 < argc) settings.sessionName = argv[++i];
+        else if (arg == "--group-name" && i + 1 < argc) settings.groupName = argv[++i];
+        else if (arg == "--group-id" && i + 1 < argc) settings.groupId = static_cast<unsigned int>(std::stoul(argv[++i]));
+        else if (arg == "--cursor-theme" && i + 1 < argc) settings.cursorThemePath = argv[++i];
+        else if (arg == "--cursor-scale" && i + 1 < argc) settings.cursorScale = std::stof(argv[++i]);
+        else if (arg == "--peer-color" && i + 1 < argc) {
+            std::stringstream ss(argv[++i]);
+            std::string r, g, b;
+            if (std::getline(ss, r, ',') && std::getline(ss, g, ',') && std::getline(ss, b, ',')) {
+                settings.peerColorR = static_cast<unsigned char>(std::stoi(r));
+                settings.peerColorG = static_cast<unsigned char>(std::stoi(g));
+                settings.peerColorB = static_cast<unsigned char>(std::stoi(b));
+            }
+        }
+        else if (arg == "--sel-color" && i + 1 < argc) {
+            std::stringstream ss(argv[++i]);
+            std::string r, g, b;
+            if (std::getline(ss, r, ',') && std::getline(ss, g, ',') && std::getline(ss, b, ',')) {
+                settings.selectionColorR = static_cast<unsigned char>(std::stoi(r));
+                settings.selectionColorG = static_cast<unsigned char>(std::stoi(g));
+                settings.selectionColorB = static_cast<unsigned char>(std::stoi(b));
+            }
+        }
     }
 
     NetMuxFramework framework;
@@ -86,7 +124,7 @@ int main(int argc, char* argv[]) {
     std::atomic<bool> trayExitRequested{false};
     {
         std::string mode = settings.isServer ? "Server" : "Client";
-        std::string tooltip = "MultiMousergy - " + mode + " (v0.1.90-alpha)";
+        std::string tooltip = "MultiMousergy - " + mode + " (v0.1.91-alpha)";
         tray.Initialize(GetModuleHandle(nullptr), tooltip, [&]() {
             std::cout << "[Tray] Exit requested." << std::endl;
             trayExitRequested.store(true);

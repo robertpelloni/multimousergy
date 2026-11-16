@@ -17,6 +17,9 @@ public:
 
     static bool IsDriverInstalled(NetMuxDriverType type);
 
+    bool IsInitialized() const { return m_initialized; }
+    NetMuxDriverType GetDriverType() const { return m_type; }
+
 private:
     bool m_initialized;
     NetMuxDriverType m_type;
@@ -42,6 +45,8 @@ private:
 
 #ifdef __linux__
     int m_device;
+    bool m_isUInput = false;
+    bool InitUInputDevice();
 #endif
 #ifdef __APPLE__
     void* m_macEventSource = nullptr;
